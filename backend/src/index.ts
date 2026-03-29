@@ -2,6 +2,8 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import staticFiles from '@fastify/static'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import path from 'path'
 import fs from 'fs'
 import { downloadRoute } from './routes/download'
@@ -36,6 +38,19 @@ dirs.forEach(d => {
 
 app.register(cors, { origin: '*' })
 app.register(multipart, { limits: { fileSize: 500 * 1024 * 1024 } }) // 500MB
+
+app.register(swagger, {
+  openapi: {
+    info: {
+      title: 'Video Editor API',
+      version: '1.0.0',
+    },
+  },
+})
+
+app.register(swaggerUi, {
+  routePrefix: '/docs',
+})
 
 app.register(staticFiles, {
   root: path.join(process.cwd(), 'outputs'),

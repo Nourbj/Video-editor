@@ -150,7 +150,9 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     if (audioPath && fs.existsSync(audioPath)) {
       cmd.input(audioPath)
-      cmd.complexFilter([[`[0:a][1:a]amix=inputs=2:duration=first[aout]`].join('')], 'aout')
+      // Build a single audio mix output labeled "aout"
+      cmd.complexFilter(['[0:a][1:a]amix=inputs=2:duration=first[aout]'])
+      // Map video from input 0 and mixed audio from filter graph
       cmd.outputOptions(['-map 0:v', '-map [aout]', '-c:a aac'])
     } else {
       cmd.audioCodec('aac')
