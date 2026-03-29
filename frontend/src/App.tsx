@@ -135,6 +135,8 @@ export default function App() {
     }
   }, [previewLoading, video])
 
+  const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <header className="border-b border-zinc-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
@@ -143,7 +145,7 @@ export default function App() {
             <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
               <Film size={16} className="text-white" />
             </div>
-            <span className="font-semibold text-zinc-900 tracking-tight">Video Editor</span>
+            <span className="font-semibold text-zinc-900 tracking-tight">{appName}</span>
           </div>
 
           {video && (

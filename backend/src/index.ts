@@ -6,12 +6,20 @@ import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import path from 'path'
 import fs from 'fs'
+import dotenv from 'dotenv'
 import { downloadRoute } from './routes/download'
 import { processRoute } from './routes/process'
 import { subtitleRoute } from './routes/subtitles'
 import { uploadRoute } from './routes/upload'
 import { checkYtdlp } from './utils/ytdlp'
 import { checkFfmpeg, checkFfprobe } from './utils/ffmpeg'
+
+const envCandidates = [
+  path.join(process.cwd(), '.env'),
+  path.join(process.cwd(), '..', '.env'),
+]
+const envPath = envCandidates.find(p => fs.existsSync(p))
+dotenv.config(envPath ? { path: envPath } : undefined)
 
 const app = Fastify({ logger: true })
 
@@ -37,7 +45,8 @@ dirs.forEach(d => {
 })
 
 app.register(cors, { origin: '*' })
-app.register(multipart, { limits: { fileSize: 500 * 1024 * 1024 } }) // 500MB
+const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 500)
+app.register(multipart, { limits: { fileSize: maxUploadMb * 1024 * 1024 } })
 
 app.register(swagger, {
   openapi: {
@@ -75,8 +84,10 @@ app.register(uploadRoute, { prefix: '/api' })
 const start = async () => {
   try {
     await checkDependencies()
-    await app.listen({ port: 3001, host: '0.0.0.0' })
-    console.log('🚀 Backend running on http://localhost:3001')
+    const port = Number(process.env.BACKEND_PORT || 3001)
+    const host = process.env.BACKEND_HOST || '0.0.0.0'
+    await app.listen({ port, host })
+    console.log(`🚀 Backend running on http://${host}:${port}`)
   } catch (err) {
     app.log.error(err)
     process.exit(1)

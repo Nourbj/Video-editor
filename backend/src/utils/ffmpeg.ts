@@ -52,9 +52,13 @@ function toAssColor(hex?: string) {
 }
 
 function buildSubtitleStyle(style?: SubtitleStyle) {
-  const size = style?.size ?? 22
-  const color = toAssColor(style?.color)
-  const position = style?.position ?? 'bottom'
+  const defaultSize = Number(process.env.SUBTITLE_DEFAULT_SIZE || 22)
+  const defaultColor = process.env.SUBTITLE_DEFAULT_COLOR || '#ffffff'
+  const defaultPosition = (process.env.SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
+
+  const size = style?.size ?? defaultSize
+  const color = toAssColor(style?.color || defaultColor)
+  const position = style?.position ?? defaultPosition
   const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
   const marginV = position === 'top' ? 24 : position === 'middle' ? 0 : 24
   return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
@@ -173,9 +177,11 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     }
 
     cmd.videoFilter(filters)
+    const crf = process.env.FFMPEG_CRF || '23'
+    const preset = process.env.FFMPEG_PRESET || 'fast'
     cmd.videoCodec('libx264')
-    cmd.addOption('-crf', '23')
-    cmd.addOption('-preset', 'fast')
+    cmd.addOption('-crf', crf)
+    cmd.addOption('-preset', preset)
 
     if (audioPath && fs.existsSync(audioPath)) {
       cmd.input(audioPath)

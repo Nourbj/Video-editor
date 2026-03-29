@@ -32,11 +32,15 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   }
 
   // Download video (max 10 minutes, best quality under 720p)
+  const maxDuration = Number(process.env.YTDLP_MAX_DURATION_SEC || 600)
+  const format = process.env.YTDLP_FORMAT ||
+    'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best'
+
   const dlCmd = [
     'yt-dlp',
     '--no-playlist',
-    '--match-filter', '"duration < 600"',
-    '-f', '"bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best"',
+    '--match-filter', `"duration < ${maxDuration}"`,
+    '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
     `"${url}"`

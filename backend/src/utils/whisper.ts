@@ -33,8 +33,9 @@ export async function generateSrtWithWhisper(params: {
     args.push('--language', language)
   }
 
+  const timeoutMs = Number(process.env.WHISPER_TIMEOUT_MS || 20 * 60 * 1000)
   try {
-    await execFileAsync('whisper', args, { timeout: 20 * 60 * 1000 })
+    await execFileAsync('whisper', args, { timeout: timeoutMs })
   } catch (err: any) {
     if (err.code === 'ENOENT') {
       throw new Error('Whisper CLI not found. Install openai-whisper locally to enable auto subtitles.')
@@ -57,4 +58,3 @@ export async function generateSrtWithWhisper(params: {
 
   return { id, filename: outFilename, filepath: outPath }
 }
-

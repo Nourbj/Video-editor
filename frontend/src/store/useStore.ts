@@ -66,6 +66,10 @@ interface EditorState {
   reset: () => void
 }
 
+const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
+const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ffffff'
+const defaultSubtitlePosition = (import.meta.env.VITE_SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
+
 export const useStore = create<EditorState>((set) => ({
   video: null,
   setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null }),
@@ -86,7 +90,7 @@ export const useStore = create<EditorState>((set) => ({
   setSubtitles: s => set({ subtitles: s }),
   subtitleFilename: null,
   setSubtitleFilename: f => set({ subtitleFilename: f }),
-  subtitleStyle: { size: 22, color: '#ffffff', position: 'bottom' },
+  subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
   setSubtitleStyle: s => set({ subtitleStyle: s }),
 
   exportQuality: '720p',
@@ -103,7 +107,7 @@ export const useStore = create<EditorState>((set) => ({
     video: null, trimStart: 0, trimEnd: 0,
     audioTrack: null, audioVolume: 1, replaceOriginalAudio: false,
     subtitles: [], subtitleFilename: null,
-    subtitleStyle: { size: 22, color: '#ffffff', position: 'bottom' },
+    subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
     processedUrl: null, activeTab: 'import',
   }),
 }))
