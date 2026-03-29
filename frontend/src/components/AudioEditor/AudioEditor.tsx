@@ -71,6 +71,7 @@ export default function AudioEditor() {
             </div>
             <button
               onClick={() => setAudioTrack(null)}
+              aria-label="Remove audio track"
               className="p-1.5 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
             >
               <X size={16} />

@@ -170,7 +170,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 // Generate thumbnail
 export function generateThumbnail(inputPath: string, atSecond = 1): Promise<string> {
   return new Promise((resolve, reject) => {
-    const outFile = path.join(tempDir, `thumb_${uuidv4()}.jpg`)
+    const outFile = path.join(outputDir, `thumb_${uuidv4()}.jpg`)
     ffmpeg(inputPath)
       .screenshots({ timestamps: [atSecond], filename: path.basename(outFile), folder: path.dirname(outFile), size: '640x?' })
       .on('end', () => resolve(outFile))
