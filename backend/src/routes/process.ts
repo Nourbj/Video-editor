@@ -1,0 +1,128 @@
+import { FastifyInstance } from 'fastify'
+import { cutVideo, mergeAudio, burnSubtitles, exportVideo, getVideoMeta } from '../utils/ffmpeg'
+import path from 'path'
+import fs from 'fs'
+
+export async function processRoute(app: FastifyInstance) {
+  // Get video metadata
+  app.post('/meta', async (req, reply) => {
+    const { filename } = req.body as { filename: string }
+    const filepath = path.join(process.cwd(), 'uploads', filename)
+
+    if (!fs.existsSync(filepath)) {
+      // Try outputs
+      const outPath = path.join(process.cwd(), 'outputs', filename)
+      if (!fs.existsSync(outPath)) return reply.code(404).send({ error: 'File not found' })
+    }
+
+    try {
+      const meta = await getVideoMeta(filepath)
+      const video = meta.streams.find(s => s.codec_type === 'video')
+      const audio = meta.streams.find(s => s.codec_type === 'audio')
+      return {
+        duration: meta.format.duration,
+        size: meta.format.size,
+        bitrate: meta.format.bit_rate,
+        video: video ? {
+          codec: video.codec_name,
+          width: video.width,
+          height: video.height,
+          fps: video.r_frame_rate,
+        } : null,
+        audio: audio ? {
+          codec: audio.codec_name,
+          sampleRate: audio.sample_rate,
+          channels: audio.channels,
+        } : null,
+      }
+    } catch (err) {
+      app.log.error(err)
+      return reply.code(500).send({ error: 'Cannot read video metadata' })
+    }
+  })
+
+  // Cut video
+  app.post('/cut', async (req, reply) => {
+    const { filename, startTime, endTime } = req.body as {
+      filename: string
+      startTime: number
+      endTime: number
+    }
+
+    const inputPath = path.join(process.cwd(), 'uploads', filename)
+    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'File not found' })
+
+    try {
+      const outPath = await cutVideo({ inputPath, startTime, endTime })
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Cut failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  // Merge audio
+  app.post('/merge-audio', async (req, reply) => {
+    const { videoFilename, audioFilename, volume, replaceOriginal } = req.body as {
+      videoFilename: string
+      audioFilename: string
+      volume?: number
+      replaceOriginal?: boolean
+    }
+
+    const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
+    const audioPath = path.join(process.cwd(), 'uploads', audioFilename)
+
+    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'Video not found' })
+    if (!fs.existsSync(audioPath)) return reply.code(404).send({ error: 'Audio not found' })
+
+    try {
+      const outPath = await mergeAudio({ inputPath, audioPath, volume, replaceOriginal })
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Audio merge failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  // Full export
+  app.post('/export', async (req, reply) => {
+    const body = req.body as {
+      filename: string
+      quality?: '480p' | '720p' | '1080p'
+      startTime?: number
+      endTime?: number
+      audioFilename?: string
+      subtitleFilename?: string
+    }
+
+    const inputPath = path.join(process.cwd(), 'uploads', body.filename)
+    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'File not found' })
+
+    const audioPath = body.audioFilename
+      ? path.join(process.cwd(), 'uploads', body.audioFilename)
+      : undefined
+
+    const subtitlePath = body.subtitleFilename
+      ? path.join(process.cwd(), 'uploads', body.subtitleFilename)
+      : undefined
+
+    try {
+      const outPath = await exportVideo({
+        inputPath,
+        quality: body.quality || '720p',
+        startTime: body.startTime,
+        endTime: body.endTime,
+        audioPath,
+        subtitlePath,
+      })
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Export failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+}

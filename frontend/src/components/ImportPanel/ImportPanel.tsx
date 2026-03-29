@@ -1,0 +1,160 @@
+import React, { useState, useRef } from 'react'
+import { Link, Upload, Loader2, Youtube, Instagram, Facebook } from 'lucide-react'
+import { downloadFromUrl, uploadVideo } from '../../api/client'
+import { useStore } from '../../store/useStore'
+
+const PLATFORM_ICONS: Record<string, React.ReactNode> = {
+  youtube: <Youtube size={16} className="text-red-400" />,
+  instagram: <Instagram size={16} className="text-pink-400" />,
+  facebook: <Facebook size={16} className="text-blue-400" />,
+}
+
+function detectPlatform(url: string) {
+  if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube'
+  if (url.includes('instagram')) return 'instagram'
+  if (url.includes('facebook') || url.includes('fb.com')) return 'facebook'
+  return null
+}
+
+export default function ImportPanel() {
+  const { setVideo, setActiveTab } = useStore()
+  const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const platform = detectPlatform(url)
+
+  const handleUrlDownload = async () => {
+    if (!url.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const info = await downloadFromUrl(url)
+      setVideo(info)
+      setActiveTab('edit')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Download failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (!file.type.startsWith('video/')) {
+      setError('Please select a video file')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setUploadProgress(0)
+    try {
+      const info = await uploadVideo(file, setUploadProgress)
+      setVideo(info)
+      setActiveTab('edit')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setLoading(false)
+      setUploadProgress(0)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileUpload(file)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-1">Import video</h2>
+        <p className="text-sm text-zinc-400">Paste a link or upload a local file</p>
+      </div>
+
+      {/* URL input */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-zinc-300">Video URL</label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-500" />}
+            </div>
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUrlDownload()}
+              placeholder="https://youtube.com/watch?v=... or Instagram / Facebook"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+            />
+          </div>
+          <button
+            onClick={handleUrlDownload}
+            disabled={loading || !url.trim()}
+            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            {loading ? 'Downloading...' : 'Download'}
+          </button>
+        </div>
+
+        <div className="flex gap-2 text-xs text-zinc-500">
+          <span className="flex items-center gap-1"><Youtube size={12} className="text-red-400" /> YouTube</span>
+          <span className="flex items-center gap-1"><Instagram size={12} className="text-pink-400" /> Instagram</span>
+          <span className="flex items-center gap-1"><Facebook size={12} className="text-blue-400" /> Facebook</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-zinc-600">
+        <div className="flex-1 h-px bg-zinc-700" />
+        <span className="text-xs font-medium">OR</span>
+        <div className="flex-1 h-px bg-zinc-700" />
+      </div>
+
+      {/* File upload */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onClick={() => fileRef.current?.click()}
+        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+          dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50'
+        }`}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+        />
+        <Upload size={32} className="mx-auto mb-3 text-zinc-500" />
+        <p className="text-zinc-300 font-medium">Drop video here or click to browse</p>
+        <p className="text-zinc-500 text-sm mt-1">MP4, MOV, AVI, MKV — max 500MB</p>
+
+        {uploadProgress > 0 && (
+          <div className="mt-4 mx-auto max-w-xs">
+            <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-zinc-400 mt-1">{uploadProgress}%</p>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+    </div>
+  )
+}
