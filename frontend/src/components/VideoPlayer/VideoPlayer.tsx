@@ -14,13 +14,35 @@ export default function VideoPlayer() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, setVolume] = useState(1)
-  const duration = video?.duration || 0
+  const fullDuration = video?.duration || 0
+  const effectiveStart = trimStart
+  const effectiveEnd = trimEnd || fullDuration
+  const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
 
   const src = processedUrl || video?.url || ''
 
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
   }, [video])
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.currentTime < effectiveStart || v.currentTime > effectiveEnd) {
+      v.currentTime = effectiveStart
+      setCurrentTime(effectiveStart)
+    }
+  }, [effectiveStart, effectiveEnd])
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    // Reset progress to start of trim when trim bounds change
+    v.currentTime = effectiveStart
+    setCurrentTime(effectiveStart)
+    setPlaying(false)
+    v.pause()
+  }, [effectiveStart, effectiveEnd])
 
   const togglePlay = () => {
     const v = videoRef.current
@@ -38,8 +60,9 @@ export default function VideoPlayer() {
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const t = parseFloat(e.target.value)
-    if (videoRef.current) videoRef.current.currentTime = t
-    setCurrentTime(t)
+    const next = effectiveStart + t
+    if (videoRef.current) videoRef.current.currentTime = next
+    setCurrentTime(next)
   }
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +76,7 @@ export default function VideoPlayer() {
   return (
     <div className="space-y-3">
       {/* Video */}
-      <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+      <div className="relative bg-zinc-100 rounded-xl overflow-hidden aspect-video">
         <video
           ref={videoRef}
           src={src}
@@ -75,25 +98,28 @@ export default function VideoPlayer() {
       </div>
 
       {/* Controls */}
-      <div className="bg-zinc-800/60 rounded-xl p-3 space-y-2">
+      <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
         {/* Scrubber */}
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} className="text-white hover:text-violet-400 transition-colors flex-shrink-0">
+          <button onClick={togglePlay} className="text-zinc-900 hover:text-violet-500 transition-colors flex-shrink-0">
             {playing ? <Pause size={18} /> : <Play size={18} />}
           </button>
           <input
             type="range"
             min={0}
-            max={duration}
+            max={effectiveDuration || 0}
             step={0.1}
-            value={currentTime}
+            value={Math.max(0, currentTime - effectiveStart)}
             onChange={handleSeek}
             aria-label="Seek video"
             className="flex-1 accent-violet-500 h-1"
           />
-          <span className="text-xs text-zinc-400 font-mono w-20 text-right">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <span className="text-xs text-zinc-500 font-mono w-20 text-right">
+            {formatTime(Math.max(0, currentTime - effectiveStart))} / {formatTime(effectiveDuration)}
           </span>
+        </div>
+        <div className="text-[11px] text-zinc-500 font-mono text-right">
+          Total: {formatTime(fullDuration)}
         </div>
 
         {/* Volume */}
@@ -109,13 +135,13 @@ export default function VideoPlayer() {
       </div>
 
       {/* Trim range */}
-      <div className="bg-zinc-800/60 rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-medium text-zinc-300">Trim</h3>
+      <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
+        <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="text-xs text-zinc-500 w-12">Start</span>
             <input
-              type="range" min={0} max={duration} step={0.1} value={trimStart}
+              type="range" min={0} max={fullDuration} step={0.1} value={trimStart}
               onChange={e => {
                 const v = parseFloat(e.target.value)
                 if (v < trimEnd) setTrimStart(v)
@@ -123,12 +149,12 @@ export default function VideoPlayer() {
               aria-label="Trim start"
               className="flex-1 accent-violet-500 h-1"
             />
-            <span className="text-xs text-zinc-400 font-mono w-12 text-right">{formatTime(trimStart)}</span>
+            <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimStart)}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-zinc-500 w-12">End</span>
             <input
-              type="range" min={0} max={duration} step={0.1} value={trimEnd}
+              type="range" min={0} max={fullDuration} step={0.1} value={trimEnd}
               onChange={e => {
                 const v = parseFloat(e.target.value)
                 if (v > trimStart) setTrimEnd(v)
@@ -136,22 +162,22 @@ export default function VideoPlayer() {
               aria-label="Trim end"
               className="flex-1 accent-violet-500 h-1"
             />
-            <span className="text-xs text-zinc-400 font-mono w-12 text-right">{formatTime(trimEnd)}</span>
+            <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimEnd)}</span>
           </div>
         </div>
 
         {/* Visual trim bar */}
-        <div className="relative h-6 bg-zinc-700 rounded-lg overflow-hidden">
+        <div className="relative h-6 bg-zinc-200 rounded-lg overflow-hidden">
           <div
             className="absolute top-0 h-full bg-violet-600/60 rounded"
             style={{
-              left: `${(trimStart / duration) * 100}%`,
-              right: `${100 - (trimEnd / duration) * 100}%`,
+              left: `${fullDuration ? (trimStart / fullDuration) * 100 : 0}%`,
+              right: `${fullDuration ? 100 - (trimEnd / fullDuration) * 100 : 0}%`,
             }}
           />
           <div
-            className="absolute top-0 h-full w-0.5 bg-white/80"
-            style={{ left: `${(currentTime / duration) * 100}%` }}
+            className="absolute top-0 h-full w-0.5 bg-zinc-900/70"
+            style={{ left: `${fullDuration ? (currentTime / fullDuration) * 100 : 0}%` }}
           />
         </div>
         <p className="text-xs text-zinc-500">

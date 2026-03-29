@@ -22,6 +22,7 @@ export interface AudioOptions {
 export interface SubtitleOptions {
   inputPath: string
   subtitlePath: string // .srt file path
+  style?: SubtitleStyle
 }
 
 export interface ExportOptions {
@@ -29,8 +30,34 @@ export interface ExportOptions {
   quality?: '480p' | '720p' | '1080p'
   audioPath?: string
   subtitlePath?: string
+  subtitleStyle?: SubtitleStyle
   startTime?: number
   endTime?: number
+}
+
+export interface SubtitleStyle {
+  size?: number
+  color?: string // hex like #ffffff
+  position?: 'bottom' | 'middle' | 'top'
+}
+
+function toAssColor(hex?: string) {
+  if (!hex) return '&Hffffff'
+  const clean = hex.replace('#', '')
+  if (clean.length !== 6) return '&Hffffff'
+  const r = clean.slice(0, 2)
+  const g = clean.slice(2, 4)
+  const b = clean.slice(4, 6)
+  return `&H${b}${g}${r}`
+}
+
+function buildSubtitleStyle(style?: SubtitleStyle) {
+  const size = style?.size ?? 22
+  const color = toAssColor(style?.color)
+  const position = style?.position ?? 'bottom'
+  const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
+  const marginV = position === 'top' ? 24 : position === 'middle' ? 0 : 24
+  return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
 }
 
 // Get video metadata
@@ -104,14 +131,15 @@ export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal =
 }
 
 // Burn subtitles into video
-export function burnSubtitles({ inputPath, subtitlePath }: SubtitleOptions): Promise<string> {
+export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `sub_${uuidv4()}.mp4`)
     // Escape path for FFmpeg filter
     const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
+    const forceStyle = buildSubtitleStyle(style)
 
     ffmpeg(inputPath)
-      .videoFilter(`subtitles='${escapedSrt}':force_style='FontName=Arial,FontSize=20,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2'`)
+      .videoFilter(`subtitles='${escapedSrt}':force_style='${forceStyle}'`)
       .videoCodec('libx264')
       .audioCodec('copy')
       .output(outFile)
@@ -140,7 +168,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     if (subtitlePath && fs.existsSync(subtitlePath)) {
       const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
-      filters.push(`subtitles='${escapedSrt}':force_style='FontName=Arial,FontSize=22,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2'`)
+      const forceStyle = buildSubtitleStyle(options.subtitleStyle)
+      filters.push(`subtitles='${escapedSrt}':force_style='${forceStyle}'`)
     }
 
     cmd.videoFilter(filters)

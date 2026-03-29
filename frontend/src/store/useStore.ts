@@ -18,6 +18,12 @@ export interface AudioTrack {
   replaceOriginal: boolean
 }
 
+export interface SubtitleStyle {
+  size: number
+  color: string
+  position: 'bottom' | 'middle' | 'top'
+}
+
 interface EditorState {
   // Video
   video: VideoProject | null
@@ -42,6 +48,8 @@ interface EditorState {
   setSubtitles: (s: SubtitleEntry[]) => void
   subtitleFilename: string | null
   setSubtitleFilename: (f: string | null) => void
+  subtitleStyle: SubtitleStyle
+  setSubtitleStyle: (s: SubtitleStyle) => void
 
   // Export
   exportQuality: '480p' | '720p' | '1080p'
@@ -78,6 +86,8 @@ export const useStore = create<EditorState>((set) => ({
   setSubtitles: s => set({ subtitles: s }),
   subtitleFilename: null,
   setSubtitleFilename: f => set({ subtitleFilename: f }),
+  subtitleStyle: { size: 22, color: '#ffffff', position: 'bottom' },
+  setSubtitleStyle: s => set({ subtitleStyle: s }),
 
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
@@ -93,6 +103,7 @@ export const useStore = create<EditorState>((set) => ({
     video: null, trimStart: 0, trimEnd: 0,
     audioTrack: null, audioVolume: 1, replaceOriginalAudio: false,
     subtitles: [], subtitleFilename: null,
+    subtitleStyle: { size: 22, color: '#ffffff', position: 'bottom' },
     processedUrl: null, activeTab: 'import',
   }),
 }))

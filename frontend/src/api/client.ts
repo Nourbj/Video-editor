@@ -18,6 +18,12 @@ export interface SubtitleEntry {
   text: string
 }
 
+export interface SubtitleStyle {
+  size: number
+  color: string
+  position: 'bottom' | 'middle' | 'top'
+}
+
 // Download video from URL
 export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   const { data } = await api.post('/download', { url })
@@ -84,9 +90,19 @@ export const uploadSubtitle = async (file: File) => {
   return data as { id: string; filename: string; entries: SubtitleEntry[] }
 }
 
+// Auto-generate subtitles from video using local whisper
+export const autoSubtitles = async (params: {
+  videoFilename: string
+  language?: string
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large'
+}) => {
+  const { data } = await api.post('/subtitle/auto', params)
+  return data as { id: string; filename: string; entries: SubtitleEntry[] }
+}
+
 // Burn subtitles
-export const burnSubtitles = async (videoFilename: string, subtitleFilename: string) => {
-  const { data } = await api.post('/subtitle/burn', { videoFilename, subtitleFilename })
+export const burnSubtitles = async (videoFilename: string, subtitleFilename: string, style?: SubtitleStyle) => {
+  const { data } = await api.post('/subtitle/burn', { videoFilename, subtitleFilename, style })
   return data as { url: string; filename: string }
 }
 
@@ -98,6 +114,7 @@ export const exportVideo = async (params: {
   endTime?: number
   audioFilename?: string
   subtitleFilename?: string
+  subtitleStyle?: SubtitleStyle
 }) => {
   const { data } = await api.post('/export', params)
   return data as { url: string; filename: string }

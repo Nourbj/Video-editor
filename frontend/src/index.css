@@ -12,8 +12,8 @@ html, body, #root {
 }
 
 body {
-  background: #09090b;
-  color: #fafafa;
+  background: #f8fafc;
+  color: #0f172a;
   font-family: 'DM Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -24,7 +24,7 @@ input[type='range'] {
   appearance: none;
   height: 4px;
   border-radius: 9999px;
-  background: #3f3f46;
+  background: #e4e4e7;
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-thumb {

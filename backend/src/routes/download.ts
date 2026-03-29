@@ -63,7 +63,8 @@ export async function downloadRoute(app: FastifyInstance) {
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Download failed'
-      return reply.code(500).send({ error: message })
+      const isClientError = message.toLowerCase().includes('unsupported') || message.toLowerCase().includes('private')
+      return reply.code(isClientError ? 400 : 500).send({ error: message })
     }
   })
 }

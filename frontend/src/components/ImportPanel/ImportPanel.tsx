@@ -16,6 +16,21 @@ function detectPlatform(url: string) {
   return null
 }
 
+function isLikelyPublicFacebookVideo(rawUrl: string) {
+  try {
+    const u = new URL(rawUrl)
+    const host = u.hostname.replace(/^www\./, '')
+    if (host === 'fb.watch') return true
+    const path = u.pathname
+    if (/\/reel\/\d+/.test(path)) return true
+    if (/\/videos\/\d+/.test(path)) return true
+    if (path === '/watch/' && u.searchParams.get('v')) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 export default function ImportPanel() {
   const { setVideo, setActiveTab } = useStore()
   const [url, setUrl] = useState('')
@@ -31,6 +46,11 @@ export default function ImportPanel() {
     if (!url.trim()) return
     setLoading(true)
     setError(null)
+    if (platform === 'facebook' && !isLikelyPublicFacebookVideo(url)) {
+      setLoading(false)
+      setError('Please paste a direct public Facebook video/reel link (with an ID).')
+      return
+    }
     try {
       const info = await downloadFromUrl(url)
       setVideo(info)
@@ -70,19 +90,19 @@ export default function ImportPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
-        <h2 className="text-xl font-semibold text-white mb-1">Import video</h2>
-        <p className="text-sm text-zinc-400">Paste a link or upload a local file</p>
+        <h2 className="text-xl font-semibold text-zinc-900">Import video</h2>
+        <p className="text-sm text-zinc-500">Paste a link or upload a local file</p>
       </div>
 
       {/* URL input */}
       <div className="space-y-3">
-        <label htmlFor="video-url" className="block text-sm font-medium text-zinc-300">Video URL</label>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <label htmlFor="video-url" className="block text-sm font-medium text-zinc-700">Video URL</label>
+        <div className="flex flex-col sm:flex-row gap-1">
           <div className="relative flex-1">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-500" />}
+              {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-400" />}
             </div>
             <input
               id="video-url"
@@ -91,13 +111,13 @@ export default function ImportPanel() {
               onChange={e => setUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleUrlDownload()}
               placeholder="https://youtube.com/watch?v=... or Instagram / Facebook"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+              className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
             />
           </div>
           <button
             onClick={handleUrlDownload}
             disabled={loading || !url.trim()}
-            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
+            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             {loading ? 'Downloading...' : 'Download'}
@@ -111,10 +131,10 @@ export default function ImportPanel() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-zinc-600">
-        <div className="flex-1 h-px bg-zinc-700" />
+      <div className="flex items-center gap-3 text-zinc-500">
+        <div className="flex-1 h-px bg-zinc-200" />
         <span className="text-xs font-medium">OR</span>
-        <div className="flex-1 h-px bg-zinc-700" />
+        <div className="flex-1 h-px bg-zinc-200" />
       </div>
 
       {/* File upload */}
@@ -124,7 +144,7 @@ export default function ImportPanel() {
         onDragLeave={() => setDragOver(false)}
         onClick={() => fileRef.current?.click()}
         className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
-          dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50'
+          dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
         }`}
       >
         <input
@@ -135,19 +155,19 @@ export default function ImportPanel() {
           aria-label="Upload video file"
           onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
         />
-        <Upload size={32} className="mx-auto mb-3 text-zinc-500" />
-        <p className="text-zinc-300 font-medium">Drop video here or click to browse</p>
+        <Upload size={32} className="mx-auto mb-3 text-zinc-400" />
+        <p className="text-zinc-700 font-medium">Drop video here or click to browse</p>
         <p className="text-zinc-500 text-sm mt-1">MP4, MOV, AVI, MKV</p>
 
         {uploadProgress > 0 && (
           <div className="mt-4 mx-auto max-w-xs">
-            <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-violet-500 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-400 mt-1">{uploadProgress}%</p>
+            <p className="text-xs text-zinc-500 mt-1">{uploadProgress}%</p>
           </div>
         )}
       </div>

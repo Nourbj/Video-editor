@@ -1,4 +1,4 @@
-# ClipForge — Video Editor
+# Video Editor
 
 Éditeur vidéo web complet : import YouTube/Instagram/Facebook, découpage, audio, sous-titres, export MP4.
 
@@ -33,6 +33,9 @@ scoop install ffmpeg yt-dlp
 ffmpeg -version
 yt-dlp --version
 node --version   # >= 18
+
+# (Optionnel) Sous-titres automatiques en local
+pip install -U openai-whisper
 ```
 
 ### 1. Backend

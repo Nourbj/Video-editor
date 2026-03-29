@@ -48,6 +48,15 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
       throw new Error('yt-dlp not found on system. Please install it or use docker-compose.')
     }
+    const stderr = String(err.stderr || '')
+    if (
+      stderr.includes('Unsupported URL') ||
+      stderr.includes('login.php') ||
+      stderr.toLowerCase().includes('private') ||
+      stderr.toLowerCase().includes('sign in')
+    ) {
+      throw new Error('Unsupported or private URL. Please use a public video/reel link.')
+    }
     throw err
   }
 

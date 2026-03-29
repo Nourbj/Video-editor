@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { burnSubtitles } from '../utils/ffmpeg'
+import { generateSrtWithWhisper } from '../utils/whisper'
 
 export interface SubtitleEntry {
   index: number
@@ -63,9 +64,14 @@ export async function subtitleRoute(app: FastifyInstance) {
 
   // Burn subtitles into video
   app.post('/subtitle/burn', async (req, reply) => {
-    const { videoFilename, subtitleFilename } = req.body as {
+    const { videoFilename, subtitleFilename, style } = req.body as {
       videoFilename: string
       subtitleFilename: string
+      style?: {
+        size?: number
+        color?: string
+        position?: 'bottom' | 'middle' | 'top'
+      }
     }
 
     const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
@@ -75,10 +81,32 @@ export async function subtitleRoute(app: FastifyInstance) {
     if (!fs.existsSync(subtitlePath)) return reply.code(404).send({ error: 'Subtitle not found' })
 
     try {
-      const outPath = await burnSubtitles({ inputPath, subtitlePath })
+      const outPath = await burnSubtitles({ inputPath, subtitlePath, style })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Subtitle burn failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  // Auto-generate subtitles using local Whisper
+  app.post('/subtitle/auto', async (req, reply) => {
+    const { videoFilename, language, model } = req.body as {
+      videoFilename: string
+      language?: string
+      model?: 'tiny' | 'base' | 'small' | 'medium' | 'large'
+    }
+
+    const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
+    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'Video not found' })
+
+    try {
+      const { id, filename, filepath } = await generateSrtWithWhisper({ inputPath, language, model })
+      const content = fs.readFileSync(filepath, 'utf-8')
+      const entries = parseSRT(content)
+      return { id, filename, entries }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Auto subtitles failed'
       return reply.code(500).send({ error: message })
     }
   })

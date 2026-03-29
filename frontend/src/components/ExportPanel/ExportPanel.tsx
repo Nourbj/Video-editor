@@ -14,6 +14,7 @@ export default function ExportPanel() {
     video, trimStart, trimEnd,
     audioTrack, audioVolume, replaceOriginalAudio,
     subtitles, subtitleFilename,
+    subtitleStyle,
     exportQuality, setExportQuality,
     setProcessedUrl, setActiveTab,
   } = useStore()
@@ -50,6 +51,7 @@ export default function ExportPanel() {
         endTime: hasTrim ? trimEnd : undefined,
         audioFilename: audioTrack?.filename,
         subtitleFilename: subFile || undefined,
+        subtitleStyle,
       })
 
       setProcessedUrl(result.url)
@@ -64,7 +66,7 @@ export default function ExportPanel() {
 
   if (!video) {
     return (
-      <div className="text-center py-12 text-zinc-600">
+      <div className="text-center py-12 text-zinc-500">
         <p>Import a video first</p>
       </div>
     )
@@ -73,29 +75,29 @@ export default function ExportPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-white mb-1">Export</h2>
-        <p className="text-sm text-zinc-400">Review settings and export your final video</p>
+        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Export</h2>
+        <p className="text-sm text-zinc-500">Review settings and export your final video</p>
       </div>
 
       {/* Summary */}
-      <div className="bg-zinc-800/60 rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-zinc-300">Export summary</h3>
+      <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
+        <h3 className="text-sm font-semibold text-zinc-700">Export summary</h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-zinc-400"><Scissors size={13} /> Trim</span>
-            <span className="text-zinc-200 font-mono text-xs">
+            <span className="flex items-center gap-2 text-zinc-500"><Scissors size={13} /> Trim</span>
+            <span className="text-zinc-700 font-mono text-xs">
               {hasTrim ? `${formatTime(trimStart)} → ${formatTime(trimEnd)} (${formatTime(trimEnd - trimStart)})` : 'Full video'}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-zinc-400"><Music size={13} /> Audio</span>
-            <span className="text-zinc-200 text-xs">
+            <span className="flex items-center gap-2 text-zinc-500"><Music size={13} /> Audio</span>
+            <span className="text-zinc-700 text-xs">
               {hasAudio ? `${audioTrack!.filename} (${Math.round(audioVolume * 100)}%, ${replaceOriginalAudio ? 'replace' : 'mix'})` : 'Original'}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-zinc-400"><FileText size={13} /> Subtitles</span>
-            <span className="text-zinc-200 text-xs">
+            <span className="flex items-center gap-2 text-zinc-500"><FileText size={13} /> Subtitles</span>
+            <span className="text-zinc-700 text-xs">
               {hasSubtitles ? `${subtitles.length} entries` : 'None'}
             </span>
           </div>
@@ -104,7 +106,7 @@ export default function ExportPanel() {
 
       {/* Quality */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-zinc-300">Output quality</label>
+        <label className="text-sm font-medium text-zinc-700">Output quality</label>
         <div className="flex gap-2">
           {(['480p', '720p', '1080p'] as const).map(q => (
             <button
@@ -113,7 +115,7 @@ export default function ExportPanel() {
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 exportQuality === q
                   ? 'bg-violet-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
               }`}
             >
               {q}
@@ -127,7 +129,7 @@ export default function ExportPanel() {
         <button
           onClick={handleExport}
           disabled={loading}
-          className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -157,7 +159,7 @@ export default function ExportPanel() {
           </a>
           <button
             onClick={() => { setDone(null); setError(null) }}
-            className="w-full py-2.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded-xl text-sm transition-colors"
+            className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm transition-colors"
           >
             Export again with different settings
           </button>

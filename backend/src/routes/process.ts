@@ -96,6 +96,11 @@ export async function processRoute(app: FastifyInstance) {
       endTime?: number
       audioFilename?: string
       subtitleFilename?: string
+      subtitleStyle?: {
+        size?: number
+        color?: string
+        position?: 'bottom' | 'middle' | 'top'
+      }
     }
 
     const inputPath = path.join(process.cwd(), 'uploads', body.filename)
@@ -117,6 +122,7 @@ export async function processRoute(app: FastifyInstance) {
         endTime: body.endTime,
         audioPath,
         subtitlePath,
+        subtitleStyle: body.subtitleStyle,
       })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
