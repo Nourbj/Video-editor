@@ -88,6 +88,7 @@ export default function VideoPlayer() {
             step={0.1}
             value={currentTime}
             onChange={handleSeek}
+            aria-label="Seek video"
             className="flex-1 accent-violet-500 h-1"
           />
           <span className="text-xs text-zinc-400 font-mono w-20 text-right">
@@ -101,6 +102,7 @@ export default function VideoPlayer() {
           <input
             type="range" min={0} max={1} step={0.05} value={volume}
             onChange={handleVolume}
+            aria-label="Video volume"
             className="w-24 accent-violet-500 h-1"
           />
         </div>
@@ -118,6 +120,7 @@ export default function VideoPlayer() {
                 const v = parseFloat(e.target.value)
                 if (v < trimEnd) setTrimStart(v)
               }}
+              aria-label="Trim start"
               className="flex-1 accent-violet-500 h-1"
             />
             <span className="text-xs text-zinc-400 font-mono w-12 text-right">{formatTime(trimStart)}</span>
@@ -130,6 +133,7 @@ export default function VideoPlayer() {
                 const v = parseFloat(e.target.value)
                 if (v > trimStart) setTrimEnd(v)
               }}
+              aria-label="Trim end"
               className="flex-1 accent-violet-500 h-1"
             />
             <span className="text-xs text-zinc-400 font-mono w-12 text-right">{formatTime(trimEnd)}</span>

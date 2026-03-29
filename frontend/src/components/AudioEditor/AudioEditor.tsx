@@ -49,6 +49,7 @@ export default function AudioEditor() {
             type="file"
             accept="audio/*"
             className="hidden"
+            aria-label="Upload audio file"
             onChange={e => e.target.files?.[0] && handleAudioUpload(e.target.files[0])}
           />
           <Music size={28} className="mx-auto mb-3 text-zinc-500" />
@@ -122,6 +123,7 @@ export default function AudioEditor() {
             <input
               type="range" min={0} max={2} step={0.05} value={audioVolume}
               onChange={e => setAudioVolume(parseFloat(e.target.value))}
+              aria-label="Audio volume"
               className="w-full accent-violet-500"
             />
             <div className="flex justify-between text-xs text-zinc-500">

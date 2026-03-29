@@ -100,7 +100,12 @@ export default function SubtitleEditor() {
         >
           <Upload size={15} /> Import .srt
         </button>
-        <input ref={fileRef} type="file" accept=".srt" className="hidden"
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".srt"
+          className="hidden"
+          aria-label="Upload subtitles file (.srt)"
           onChange={e => e.target.files?.[0] && handleUploadSRT(e.target.files[0])} />
 
         {subtitles.length > 0 && (
@@ -133,6 +138,7 @@ export default function SubtitleEditor() {
                   type="text"
                   value={entry.startTime}
                   onChange={e => updateEntry(i, 'startTime', e.target.value)}
+                  aria-label={`Start time for subtitle ${entry.index}`}
                   className="flex-1 bg-zinc-700 rounded-lg px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
                 <span className="text-xs text-zinc-600">→</span>
@@ -140,6 +146,7 @@ export default function SubtitleEditor() {
                   type="text"
                   value={entry.endTime}
                   onChange={e => updateEntry(i, 'endTime', e.target.value)}
+                  aria-label={`End time for subtitle ${entry.index}`}
                   className="flex-1 bg-zinc-700 rounded-lg px-2 py-1 text-xs font-mono text-zinc-300 focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
                 <button
@@ -153,6 +160,7 @@ export default function SubtitleEditor() {
                 value={entry.text}
                 onChange={e => updateEntry(i, 'text', e.target.value)}
                 rows={2}
+                aria-label={`Subtitle text for entry ${entry.index}`}
                 className="w-full bg-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-500 resize-none"
               />
             </div>

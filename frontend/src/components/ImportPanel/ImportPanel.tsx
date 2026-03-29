@@ -78,13 +78,14 @@ export default function ImportPanel() {
 
       {/* URL input */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-zinc-300">Video URL</label>
-        <div className="flex gap-2">
+        <label htmlFor="video-url" className="block text-sm font-medium text-zinc-300">Video URL</label>
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
               {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-500" />}
             </div>
             <input
+              id="video-url"
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
@@ -96,14 +97,14 @@ export default function ImportPanel() {
           <button
             onClick={handleUrlDownload}
             disabled={loading || !url.trim()}
-            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             {loading ? 'Downloading...' : 'Download'}
           </button>
         </div>
 
-        <div className="flex gap-2 text-xs text-zinc-500">
+        <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
           <span className="flex items-center gap-1"><Youtube size={12} className="text-red-400" /> YouTube</span>
           <span className="flex items-center gap-1"><Instagram size={12} className="text-pink-400" /> Instagram</span>
           <span className="flex items-center gap-1"><Facebook size={12} className="text-blue-400" /> Facebook</span>
@@ -122,7 +123,7 @@ export default function ImportPanel() {
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onClick={() => fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+        className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
           dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50'
         }`}
       >
@@ -131,11 +132,12 @@ export default function ImportPanel() {
           type="file"
           accept="video/*"
           className="hidden"
+          aria-label="Upload video file"
           onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
         />
         <Upload size={32} className="mx-auto mb-3 text-zinc-500" />
         <p className="text-zinc-300 font-medium">Drop video here or click to browse</p>
-        <p className="text-zinc-500 text-sm mt-1">MP4, MOV, AVI, MKV — max 500MB</p>
+        <p className="text-zinc-500 text-sm mt-1">MP4, MOV, AVI, MKV</p>
 
         {uploadProgress > 0 && (
           <div className="mt-4 mx-auto max-w-xs">

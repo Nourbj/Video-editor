@@ -55,10 +55,10 @@ export default function App() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
 
           {/* LEFT: Sidebar nav + panel */}
-          <div className="w-80 flex-shrink-0 space-y-4">
+          <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
             {/* Tab nav */}
             <nav className="bg-zinc-900 rounded-2xl p-1.5 border border-zinc-800">
               {TABS.map(tab => {
@@ -94,7 +94,7 @@ export default function App() {
             </nav>
 
             {/* Active panel */}
-            <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 min-h-[400px]">
+            <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 min-h-[360px] sm:min-h-[400px]">
               {activeTab === 'import'    && <ImportPanel />}
               {activeTab === 'edit'      && <EditPanel />}
               {activeTab === 'audio'     && <AudioEditor />}
@@ -108,7 +108,7 @@ export default function App() {
             {video ? (
               <div className="space-y-4">
                 {/* Video info bar */}
-                <div className="bg-zinc-900 rounded-2xl border border-zinc-800 px-4 py-3 flex items-center gap-3">
+                <div className="bg-zinc-900 rounded-2xl border border-zinc-800 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
                   {video.thumbnail && (
                     <img src={video.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                   )}
@@ -147,7 +147,7 @@ export default function App() {
               </div>
             ) : (
               /* Empty state */
-              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 border-dashed h-full min-h-[500px] flex flex-col items-center justify-center text-center p-10">
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center text-center p-8 sm:p-10">
                 <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
                   <Film size={28} className="text-zinc-600" />
                 </div>
