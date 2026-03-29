@@ -34,8 +34,10 @@ ffmpeg -version
 yt-dlp --version
 node --version   # >= 18
 
-# (Optionnel) Sous-titres automatiques en local
-pip install -U openai-whisper
+# (Optionnel) Sous-titres automatiques en local (whisper.cpp)
+# Télécharger un modèle (ex: small)
+mkdir -p models
+curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin -o models/ggml-small.bin
 ```
 
 ### 1. Backend

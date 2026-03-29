@@ -15,36 +15,56 @@ export async function generateSrtWithWhisper(params: {
 
   const tempDir = path.join(process.cwd(), 'temp')
   const uploadsDir = path.join(process.cwd(), 'uploads')
-  const ext = path.extname(inputPath)
-  const tempInput = path.join(tempDir, `whisper_${uuidv4()}${ext}`)
 
-  fs.copyFileSync(inputPath, tempInput)
+  const wavPath = path.join(tempDir, `whisper_${uuidv4()}.wav`)
+  const outputBase = path.join(tempDir, `whisper_${uuidv4()}`)
 
-  const args = [
-    tempInput,
-    '--model', model,
-    '--output_format', 'srt',
-    '--output_dir', tempDir,
-    '--task', 'transcribe',
-    '--fp16', 'False',
-  ]
+  const whisperBin = process.env.WHISPER_CPP_BIN || 'whisper-cpp'
+  const modelName = model
+  const modelPath = process.env.WHISPER_CPP_MODEL || path.join(process.cwd(), 'models', `ggml-${modelName}.bin`)
 
-  if (language) {
-    args.push('--language', language)
+  if (!fs.existsSync(modelPath)) {
+    throw new Error(`Whisper.cpp model not found: ${modelPath}`)
   }
+
+  // Extract mono 16k WAV (whisper.cpp expects wav input)
+  const ffmpegArgs = [
+    '-y',
+    '-i', inputPath,
+    '-ac', '1',
+    '-ar', '16000',
+    '-vn',
+    wavPath,
+  ]
 
   const timeoutMs = Number(process.env.WHISPER_TIMEOUT_MS || 20 * 60 * 1000)
   try {
-    await execFileAsync('whisper', args, { timeout: timeoutMs })
+    await execFileAsync('ffmpeg', ffmpegArgs, { timeout: timeoutMs })
+  } catch (err: any) {
+    throw new Error('Failed to extract audio for subtitles')
+  }
+
+  const args = [
+    '-m', modelPath,
+    '-f', wavPath,
+    '-of', outputBase,
+    '-osrt',
+  ]
+
+  if (language && language !== 'auto') {
+    args.push('-l', language)
+  }
+
+  try {
+    await execFileAsync(whisperBin, args, { timeout: timeoutMs })
   } catch (err: any) {
     if (err.code === 'ENOENT') {
-      throw new Error('Whisper CLI not found. Install openai-whisper locally to enable auto subtitles.')
+      throw new Error('whisper.cpp binary not found. Please install whisper.cpp.')
     }
     throw err
   }
 
-  const base = path.basename(tempInput, ext)
-  const tempSrt = path.join(tempDir, `${base}.srt`)
+  const tempSrt = `${outputBase}.srt`
   if (!fs.existsSync(tempSrt)) {
     throw new Error('Auto subtitles failed: no SRT produced')
   }
@@ -54,7 +74,7 @@ export async function generateSrtWithWhisper(params: {
   const outPath = path.join(uploadsDir, outFilename)
 
   fs.renameSync(tempSrt, outPath)
-  fs.unlinkSync(tempInput)
+  if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath)
 
   return { id, filename: outFilename, filepath: outPath }
 }

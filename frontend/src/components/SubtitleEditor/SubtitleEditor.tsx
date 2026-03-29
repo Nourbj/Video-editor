@@ -186,7 +186,7 @@ export default function SubtitleEditor() {
             </select>
           </label>
         </div>
-        <p className="text-xs text-zinc-500">Runs locally using Whisper. First run may take time to download model.</p>
+        <p className="text-xs text-zinc-500">Runs locally using whisper.cpp. First run may take time to download model.</p>
       </div>
 
       {/* Style controls */}

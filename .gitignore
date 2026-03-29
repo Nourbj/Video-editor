@@ -19,6 +19,7 @@ coverage/
 # uploads/
 # outputs/
 # temp/
+# models/
 
 # OS / editor
 .DS_Store
@@ -28,4 +29,3 @@ Thumbs.db
 
 # Docker
 # .docker/
-
