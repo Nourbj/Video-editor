@@ -41,7 +41,10 @@ export async function generateSrtWithWhisper(params: {
   try {
     await execFileAsync('ffmpeg', ffmpegArgs, { timeout: timeoutMs })
   } catch (err: any) {
-    throw new Error('Failed to extract audio for subtitles')
+    const stderr = err?.stderr ? String(err.stderr).trim() : ''
+    const stdout = err?.stdout ? String(err.stdout).trim() : ''
+    const details = [stderr, stdout].filter(Boolean).join(' | ')
+    throw new Error(details ? `Failed to extract audio for subtitles: ${details}` : 'Failed to extract audio for subtitles')
   }
 
   const args = [
@@ -61,7 +64,11 @@ export async function generateSrtWithWhisper(params: {
     if (err.code === 'ENOENT') {
       throw new Error('whisper.cpp binary not found. Please install whisper.cpp.')
     }
-    throw err
+    const stderr = err?.stderr ? String(err.stderr).trim() : ''
+    const stdout = err?.stdout ? String(err.stdout).trim() : ''
+    const details = [stderr, stdout].filter(Boolean).join(' | ')
+    const base = `whisper.cpp failed (exit ${err?.code ?? 'unknown'})`
+    throw new Error(details ? `${base}: ${details}` : base)
   }
 
   const tempSrt = `${outputBase}.srt`

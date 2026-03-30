@@ -9,7 +9,7 @@ function secondsToSRT(s: number): string {
   const m = Math.floor((s % 3600) / 60)
   const sec = Math.floor(s % 60)
   const ms = Math.round((s % 1) * 1000)
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')},${String(ms).padStart(3,'0')}`
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')},${String(ms).padStart(3, '0')}`
 }
 
 function srtToSeconds(t: string): number {
@@ -142,9 +142,8 @@ export default function SubtitleEditor() {
           <button
             onClick={handleSave}
             disabled={saving || saved}
-            className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              saved ? 'bg-green-600/20 text-green-600' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200'
-            }`}
+            className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${saved ? 'bg-green-600/20 text-green-600' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200'
+              }`}
           >
             <FileText size={15} />
             {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save SRT'}
