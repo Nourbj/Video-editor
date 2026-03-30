@@ -125,7 +125,6 @@ export default function App() {
     setProcessedUrl,
   ])
 
-  // If a preview was queued while processing, run it right after finishing
   useEffect(() => {
     if (!video) return
     if (previewLoading) return
@@ -140,7 +139,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <header className="border-b border-zinc-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="w-full px-8 h-14 flex items-center justify-start gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
               <Film size={16} className="text-white" />
