@@ -25,7 +25,7 @@ export default function SubtitleEditor() {
   const [saved, setSaved] = useState(false)
   const [autoLoading, setAutoLoading] = useState(false)
   const [autoLang, setAutoLang] = useState('auto')
-  const [autoModel, setAutoModel] = useState<'tiny' | 'base' | 'small' | 'medium' | 'large'>('small')
+  const [autoModel, setAutoModel] = useState<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'>('small')
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   const addEntry = () => {
@@ -185,7 +185,6 @@ export default function SubtitleEditor() {
             </select>
           </label>
         </div>
-        <p className="text-xs text-zinc-500">Runs locally using whisper.cpp. First run may take time to download model.</p>
       </div>
 
       {/* Style controls */}

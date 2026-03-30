@@ -16,10 +16,9 @@ coverage/
 # .env.*
 
 # App data
-# uploads/
-# outputs/
-# temp/
-# models/
+uploads/
+outputs/
+temp/
 
 # OS / editor
 .DS_Store

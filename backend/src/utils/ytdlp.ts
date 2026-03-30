@@ -20,9 +20,10 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const id = uuidv4()
   const outputDir = path.join(process.cwd(), 'uploads')
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
+  const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
 
   // Get video info first
-  const infoCmd = `yt-dlp --dump-json --no-playlist "${url}"`
+  const infoCmd = `yt-dlp --dump-json --no-playlist --js-runtimes ${jsRuntime} "${url}"`
   let info: Record<string, unknown> = {}
   try {
     const { stdout } = await execAsync(infoCmd, { timeout: 30000 })
@@ -39,6 +40,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const dlCmd = [
     'yt-dlp',
     '--no-playlist',
+    '--js-runtimes', jsRuntime,
     '--match-filter', `"duration < ${maxDuration}"`,
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
@@ -83,7 +85,8 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 }
 
 export async function getVideoInfo(url: string): Promise<Record<string, unknown>> {
-  const { stdout } = await execAsync(`yt-dlp --dump-json --no-playlist "${url}"`, { timeout: 20000 })
+  const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+  const { stdout } = await execAsync(`yt-dlp --dump-json --no-playlist --js-runtimes ${jsRuntime} "${url}"`, { timeout: 20000 })
   return JSON.parse(stdout)
 }
 

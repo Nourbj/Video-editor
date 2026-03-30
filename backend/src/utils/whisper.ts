@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile)
 export async function generateSrtWithWhisper(params: {
   inputPath: string
   language?: string
-  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large'
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
 }) {
   const { inputPath, language, model = 'small' } = params
 
@@ -17,17 +17,12 @@ export async function generateSrtWithWhisper(params: {
   const uploadsDir = path.join(process.cwd(), 'uploads')
 
   const wavPath = path.join(tempDir, `whisper_${uuidv4()}.wav`)
-  const outputBase = path.join(tempDir, `whisper_${uuidv4()}`)
 
-  const whisperBin = process.env.WHISPER_CPP_BIN || 'whisper-cpp'
+  const whisperPy = process.env.WHISPER_PY_BIN || 'python3'
   const modelName = model
-  const modelPath = process.env.WHISPER_CPP_MODEL || path.join(process.cwd(), 'models', `ggml-${modelName}.bin`)
+  const scriptPath = path.join(process.cwd(), 'scripts', 'transcribe_faster.py')
 
-  if (!fs.existsSync(modelPath)) {
-    throw new Error(`Whisper.cpp model not found: ${modelPath}`)
-  }
-
-  // Extract mono 16k WAV (whisper.cpp expects wav input)
+  // Extract mono 16k WAV (openai-whisper expects WAV input)
   const ffmpegArgs = [
     '-y',
     '-i', inputPath,
@@ -48,30 +43,32 @@ export async function generateSrtWithWhisper(params: {
   }
 
   const args = [
-    '-m', modelPath,
-    '-f', wavPath,
-    '-of', outputBase,
-    '-osrt',
+    scriptPath,
+    wavPath,
+    path.join(tempDir, `${path.parse(wavPath).name}.srt`),
+    modelName,
+    language || 'auto',
   ]
 
   if (language && language !== 'auto') {
-    args.push('-l', language)
+    args.push('--language', language)
   }
 
   try {
-    await execFileAsync(whisperBin, args, { timeout: timeoutMs })
+    await execFileAsync(whisperPy, args, { timeout: timeoutMs })
   } catch (err: any) {
     if (err.code === 'ENOENT') {
-      throw new Error('whisper.cpp binary not found. Please install whisper.cpp.')
+      throw new Error('python3 not found. Please install Python 3.')
     }
     const stderr = err?.stderr ? String(err.stderr).trim() : ''
     const stdout = err?.stdout ? String(err.stdout).trim() : ''
     const details = [stderr, stdout].filter(Boolean).join(' | ')
-    const base = `whisper.cpp failed (exit ${err?.code ?? 'unknown'})`
+    const base = `openai-whisper failed (exit ${err?.code ?? 'unknown'})`
     throw new Error(details ? `${base}: ${details}` : base)
   }
 
-  const tempSrt = `${outputBase}.srt`
+  const wavBase = path.parse(wavPath).name
+  const tempSrt = path.join(tempDir, `${wavBase}.srt`)
   if (!fs.existsSync(tempSrt)) {
     throw new Error('Auto subtitles failed: no SRT produced')
   }
@@ -80,7 +77,17 @@ export async function generateSrtWithWhisper(params: {
   const outFilename = `sub_${id}.srt`
   const outPath = path.join(uploadsDir, outFilename)
 
-  fs.renameSync(tempSrt, outPath)
+  try {
+    fs.renameSync(tempSrt, outPath)
+  } catch (err: any) {
+    // Cross-device move fallback (e.g., temp and uploads on different mounts)
+    if (err?.code === 'EXDEV') {
+      fs.copyFileSync(tempSrt, outPath)
+      fs.unlinkSync(tempSrt)
+    } else {
+      throw err
+    }
+  }
   if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath)
 
   return { id, filename: outFilename, filepath: outPath }

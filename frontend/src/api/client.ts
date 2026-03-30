@@ -94,7 +94,7 @@ export const uploadSubtitle = async (file: File) => {
 export const autoSubtitles = async (params: {
   videoFilename: string
   language?: string
-  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large'
+  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
 }) => {
   const { data } = await api.post('/subtitle/auto', params)
   return data as { id: string; filename: string; entries: SubtitleEntry[] }

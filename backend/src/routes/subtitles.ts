@@ -94,7 +94,7 @@ export async function subtitleRoute(app: FastifyInstance) {
     const { videoFilename, language, model } = req.body as {
       videoFilename: string
       language?: string
-      model?: 'tiny' | 'base' | 'small' | 'medium' | 'large'
+      model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
     }
 
     const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
