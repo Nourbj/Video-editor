@@ -101,7 +101,7 @@ export default function VideoPlayer() {
       <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
         {/* Scrubber */}
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} className="text-zinc-900 hover:text-violet-500 transition-colors flex-shrink-0">
+          <button onClick={togglePlay} className="text-zinc-900 hover:text-cyan-600 transition-colors flex-shrink-0">
             {playing ? <Pause size={18} /> : <Play size={18} />}
           </button>
           <input
@@ -112,7 +112,7 @@ export default function VideoPlayer() {
             value={Math.max(0, currentTime - effectiveStart)}
             onChange={handleSeek}
             aria-label="Seek video"
-            className="flex-1 accent-violet-500 h-1"
+            className="flex-1 accent-cyan-600 h-1"
           />
           <span className="text-xs text-zinc-500 font-mono w-20 text-right">
             {formatTime(Math.max(0, currentTime - effectiveStart))} / {formatTime(effectiveDuration)}
@@ -129,7 +129,7 @@ export default function VideoPlayer() {
             type="range" min={0} max={1} step={0.05} value={volume}
             onChange={handleVolume}
             aria-label="Video volume"
-            className="w-24 accent-violet-500 h-1"
+            className="w-24 accent-cyan-600 h-1"
           />
         </div>
       </div>
@@ -147,7 +147,7 @@ export default function VideoPlayer() {
                 if (v < trimEnd) setTrimStart(v)
               }}
               aria-label="Trim start"
-              className="flex-1 accent-violet-500 h-1"
+              className="flex-1 accent-yellow-600 h-1"
             />
             <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimStart)}</span>
           </div>
@@ -160,7 +160,7 @@ export default function VideoPlayer() {
                 if (v > trimStart) setTrimEnd(v)
               }}
               aria-label="Trim end"
-              className="flex-1 accent-violet-500 h-1"
+              className="flex-1 accent-yellow-600 h-1"
             />
             <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimEnd)}</span>
           </div>
@@ -169,7 +169,7 @@ export default function VideoPlayer() {
         {/* Visual trim bar */}
         <div className="relative h-6 bg-zinc-200 rounded-lg overflow-hidden">
           <div
-            className="absolute top-0 h-full bg-violet-600/60 rounded"
+            className="absolute top-0 h-full bg-cyan-600/60 rounded"
             style={{
               left: `${fullDuration ? (trimStart / fullDuration) * 100 : 0}%`,
               right: `${fullDuration ? 100 - (trimEnd / fullDuration) * 100 : 0}%`,

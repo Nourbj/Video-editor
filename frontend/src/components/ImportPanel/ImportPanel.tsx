@@ -111,13 +111,13 @@ export default function ImportPanel() {
               onChange={e => setUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleUrlDownload()}
               placeholder="https://youtube.com/watch?v=... or Instagram / Facebook"
-              className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+              className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all"
             />
           </div>
           <button
             onClick={handleUrlDownload}
             disabled={loading || !url.trim()}
-            className="px-5 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
+            className="px-5 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             {loading ? 'Downloading...' : 'Download'}
@@ -144,7 +144,7 @@ export default function ImportPanel() {
         onDragLeave={() => setDragOver(false)}
         onClick={() => fileRef.current?.click()}
         className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
-          dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
+          dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
         }`}
       >
         <input
@@ -163,7 +163,7 @@ export default function ImportPanel() {
           <div className="mt-4 mx-auto max-w-xs">
             <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                className="h-full bg-yellow-600 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>

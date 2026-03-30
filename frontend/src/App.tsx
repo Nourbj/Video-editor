@@ -141,7 +141,7 @@ export default function App() {
       <header className="border-b border-zinc-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
         <div className="w-full px-8 h-14 flex items-center justify-start gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
               <Film size={16} className="text-white" />
             </div>
             <span className="font-semibold text-zinc-900 tracking-tight">{appName}</span>
@@ -176,7 +176,7 @@ export default function App() {
                     onClick={() => !disabled && setActiveTab(tab.id)}
                     disabled={disabled}
                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
-                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
+                        ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
                         : disabled
                           ? 'text-zinc-300 cursor-not-allowed'
                           : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
@@ -186,7 +186,7 @@ export default function App() {
                     {tab.label}
                     {/* badges */}
                     {tab.id === 'audio' && audioTrack && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-500" />
                     )}
                     {tab.id === 'subtitles' && subtitles.length > 0 && (
                       <span className="ml-auto text-xs bg-zinc-200 text-zinc-600 rounded-full px-1.5 py-0.5">
@@ -219,8 +219,8 @@ export default function App() {
                     <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
                     <p className="text-xs text-zinc-500">
                       {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
-                      {audioTrack && <>&nbsp;·&nbsp; <span className="text-violet-400">Audio ♪</span></>}
-                      {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-violet-400">{subtitles.length} subs</span></>}
+                      {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
+                      {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
                     </p>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function App() {
                     <button
                       onClick={handlePreview}
                       disabled={previewLoading}
-                      className="px-3 py-2 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
+                      className="px-3 py-2 rounded-lg text-xs font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
                     >
                       {previewLoading ? 'Generating preview...' : 'Preview changes'}
                     </button>
@@ -304,13 +304,13 @@ function EditPanel() {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-lg p-3 border border-zinc-200">
             <p className="text-xs text-zinc-500 mb-1">Start</p>
-            <p className="text-lg font-mono font-semibold text-violet-400">
+            <p className="text-lg font-mono font-semibold text-yellow-600">
               {formatTime2(trimStart)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-3 border border-zinc-200">
             <p className="text-xs text-zinc-500 mb-1">End</p>
-            <p className="text-lg font-mono font-semibold text-violet-400">
+            <p className="text-lg font-mono font-semibold text-yellow-600">
               {formatTime2(trimEnd)}
             </p>
           </div>
@@ -332,7 +332,7 @@ function EditPanel() {
 
       <button
         onClick={() => setActiveTab('audio')}
-        className="w-full py-2.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-xl text-sm transition-colors"
+        className="w-full py-2.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-600 rounded-xl text-sm transition-colors"
       >
         Next: Add audio →
       </button>

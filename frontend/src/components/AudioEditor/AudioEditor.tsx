@@ -55,14 +55,14 @@ export default function AudioEditor() {
           <Music size={28} className="mx-auto mb-3 text-zinc-400" />
           <p className="text-zinc-700 font-medium">Upload audio track</p>
           <p className="text-zinc-500 text-sm mt-1">MP3, WAV, AAC, FLAC</p>
-          {loading && <p className="text-violet-400 text-sm mt-2 animate-pulse">Uploading...</p>}
+          {loading && <p className="text-cyan-600 text-sm mt-2 animate-pulse">Uploading...</p>}
         </div>
       ) : (
         <div className="bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-violet-600/20 rounded-lg flex items-center justify-center">
-                <Music size={18} className="text-violet-400" />
+              <div className="w-10 h-10 bg-cyan-600/20 rounded-lg flex items-center justify-center">
+                <Music size={18} className="text-cyan-600" />
               </div>
               <div>
                 <p className="text-sm font-medium text-zinc-900">{audioTrack.filename}</p>
@@ -96,7 +96,7 @@ export default function AudioEditor() {
                 onClick={() => setReplaceOriginalAudio(false)}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   !replaceOriginalAudio
-                    ? 'bg-violet-600 text-white'
+                    ? 'bg-cyan-600 text-white'
                     : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                 }`}
               >
@@ -106,7 +106,7 @@ export default function AudioEditor() {
                 onClick={() => setReplaceOriginalAudio(true)}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   replaceOriginalAudio
-                    ? 'bg-violet-600 text-white'
+                    ? 'bg-cyan-600 text-white'
                     : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                 }`}
               >
@@ -125,7 +125,7 @@ export default function AudioEditor() {
               type="range" min={0} max={2} step={0.05} value={audioVolume}
               onChange={e => setAudioVolume(parseFloat(e.target.value))}
               aria-label="Audio volume"
-              className="w-full accent-violet-500"
+              className="w-full accent-yellow-600"
             />
             <div className="flex justify-between text-xs text-zinc-500">
               <span>Mute</span><span>Normal</span><span>Boost ×2</span>

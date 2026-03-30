@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import  { useState } from 'react'
 import { Download, Loader2, CheckCircle2, Scissors, Music, FileText } from 'lucide-react'
-import { cutVideo, mergeAudio, createSubtitles, exportVideo } from '../../api/client'
+import { createSubtitles, exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
 function formatTime(s: number) {
@@ -16,7 +16,7 @@ export default function ExportPanel() {
     subtitles, subtitleFilename,
     subtitleStyle,
     exportQuality, setExportQuality,
-    setProcessedUrl, setActiveTab,
+    setProcessedUrl,
   } = useStore()
 
   const [loading, setLoading] = useState(false)
@@ -114,7 +114,7 @@ export default function ExportPanel() {
               onClick={() => setExportQuality(q)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 exportQuality === q
-                  ? 'bg-violet-600 text-white'
+                  ? 'bg-cyan-600 text-white'
                   : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
               }`}
             >
@@ -129,7 +129,7 @@ export default function ExportPanel() {
         <button
           onClick={handleExport}
           disabled={loading}
-          className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

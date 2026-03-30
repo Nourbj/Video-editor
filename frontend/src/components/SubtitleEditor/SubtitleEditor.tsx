@@ -113,7 +113,7 @@ export default function SubtitleEditor() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={addEntry}
-          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus size={15} /> Add entry
         </button>
@@ -160,7 +160,7 @@ export default function SubtitleEditor() {
             <select
               value={autoLang}
               onChange={e => setAutoLang(e.target.value)}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
             >
               <option value="auto">Auto detect</option>
               <option value="fr">French</option>
@@ -175,7 +175,7 @@ export default function SubtitleEditor() {
             <select
               value={autoModel}
               onChange={e => setAutoModel(e.target.value as typeof autoModel)}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
             >
               <option value="tiny">tiny (fast)</option>
               <option value="base">base</option>
@@ -200,7 +200,7 @@ export default function SubtitleEditor() {
               max={60}
               value={subtitleStyle.size}
               onChange={e => setSubtitleStyle({ ...subtitleStyle, size: Number(e.target.value) || 22 })}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
             />
           </label>
           <label className="text-xs text-zinc-500">
@@ -217,7 +217,7 @@ export default function SubtitleEditor() {
             <select
               value={subtitleStyle.position}
               onChange={e => setSubtitleStyle({ ...subtitleStyle, position: e.target.value as 'bottom' | 'middle' | 'top' })}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
             >
               <option value="bottom">Bottom</option>
               <option value="middle">Middle</option>
@@ -245,7 +245,7 @@ export default function SubtitleEditor() {
                   value={entry.startTime}
                   onChange={e => updateEntry(i, 'startTime', e.target.value)}
                   aria-label={`Start time for subtitle ${entry.index}`}
-                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
                 <span className="text-xs text-zinc-500">→</span>
                 <input
@@ -253,7 +253,7 @@ export default function SubtitleEditor() {
                   value={entry.endTime}
                   onChange={e => updateEntry(i, 'endTime', e.target.value)}
                   aria-label={`End time for subtitle ${entry.index}`}
-                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
                 <button
                   onClick={() => removeEntry(i)}
@@ -267,7 +267,7 @@ export default function SubtitleEditor() {
                 onChange={e => updateEntry(i, 'text', e.target.value)}
                 rows={2}
                 aria-label={`Subtitle text for entry ${entry.index}`}
-                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-violet-500 resize-none"
+                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600 resize-none"
               />
             </div>
           ))}
