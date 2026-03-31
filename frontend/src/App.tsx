@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Cookie } from 'lucide-react'
+import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Cookie, Type, Square } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -8,9 +8,11 @@ import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
 import CookiesUpload from './components/CookiesUpload/CookiesUpload'
+import TitleEditor from './components/TitleEditor/TitleEditor'
+import BorderEditor from './components/BorderEditor/BorderEditor'
 import { createSubtitles, previewVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export'
+type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'cookies' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
@@ -18,6 +20,8 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
   { id: 'audio', label: 'Audio', icon: <Music size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
+  { id: 'title', label: 'Title', icon: <Type size={15} />, requiresVideo: true },
+  { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'cookies', label: 'Cookies', icon: <Cookie size={15} /> },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
@@ -36,6 +40,8 @@ export default function App() {
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
+    titleText, titleFont, titleSize, titleColor, titlePosition,
+    borderEnabled, borderSize, borderColor,
     exportQuality,
     processedUrl, setProcessedUrl,
   } = useStore()
@@ -70,6 +76,18 @@ export default function App() {
         audioFilename: audioTrack?.filename,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
+        titleStyle: titleText.trim() ? {
+          text: titleText.trim(),
+          font: titleFont,
+          size: titleSize,
+          color: titleColor,
+          position: titlePosition,
+        } : undefined,
+        borderStyle: {
+          enabled: borderEnabled,
+          size: borderSize,
+          color: borderColor,
+        },
         logoFilename: logoImage?.filename,
         logoSize,
         logoPosition,
@@ -90,7 +108,9 @@ export default function App() {
     const hasAudio = !!audioTrack
     const hasSubtitles = subtitles.length > 0
     const hasLogo = !!logoImage
-    const hasChanges = hasTrim || hasAudio || hasSubtitles || hasLogo
+    const hasTitle = titleText.trim().length > 0
+    const hasBorder = borderEnabled && borderSize > 0
+    const hasChanges = hasTrim || hasAudio || hasSubtitles || hasLogo || hasTitle || hasBorder
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -106,6 +126,8 @@ export default function App() {
       subtitles,
       exportQuality,
       logo: logoImage ? { id: logoImage.id, size: logoSize, pos: logoPosition } : null,
+      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, pos: titlePosition } : null,
+      border: borderEnabled ? { size: borderSize, color: borderColor } : null,
     })
 
     if (sig === lastPreviewSig.current) return
@@ -133,6 +155,14 @@ export default function App() {
     logoImage,
     logoSize,
     logoPosition,
+    titleText,
+    titleFont,
+    titleSize,
+    titleColor,
+    titlePosition,
+    borderEnabled,
+    borderSize,
+    borderColor,
     previewLoading,
     processedUrl,
     setProcessedUrl,
@@ -218,6 +248,8 @@ export default function App() {
               {activeTab === 'audio' && <AudioEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
               {activeTab === 'logo' && <LogoEditor />}
+              {activeTab === 'title' && <TitleEditor />}
+              {activeTab === 'border' && <BorderEditor />}
               {activeTab === 'cookies' && <CookiesUpload />}
               {activeTab === 'export' && <ExportPanel />}
             </div>
@@ -236,6 +268,7 @@ export default function App() {
                       {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
                       {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
                       {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
+                      {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
                     </p>
                   </div>
                 </div>

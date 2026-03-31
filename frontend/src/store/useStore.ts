@@ -31,6 +31,10 @@ export interface LogoAsset {
 }
 
 export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+export type TitlePosition =
+  | 'top-left' | 'top' | 'top-right'
+  | 'middle-left' | 'middle' | 'middle-right'
+  | 'bottom-left' | 'bottom' | 'bottom-right'
 
 interface EditorState {
   // Video
@@ -67,13 +71,33 @@ interface EditorState {
   logoPosition: LogoPosition
   setLogoPosition: (p: LogoPosition) => void
 
+  // Title text
+  titleText: string
+  setTitleText: (t: string) => void
+  titleFont: string
+  setTitleFont: (f: string) => void
+  titleSize: number
+  setTitleSize: (s: number) => void
+  titleColor: string
+  setTitleColor: (c: string) => void
+  titlePosition: TitlePosition
+  setTitlePosition: (p: TitlePosition) => void
+
+  // Border
+  borderEnabled: boolean
+  setBorderEnabled: (e: boolean) => void
+  borderSize: number
+  setBorderSize: (s: number) => void
+  borderColor: string
+  setBorderColor: (c: string) => void
+
   // Export
   exportQuality: '480p' | '720p' | '1080p'
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
 
   // UI
-  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export') => void
+  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'cookies' | 'export'
+  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'cookies' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
@@ -87,6 +111,12 @@ const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ff
 const defaultSubtitlePosition = (import.meta.env.VITE_SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
 const defaultLogoSize = Number(import.meta.env.VITE_LOGO_DEFAULT_SIZE || 15)
 const defaultLogoPosition = (import.meta.env.VITE_LOGO_DEFAULT_POSITION as LogoPosition) || 'top-right'
+const defaultTitleFont = import.meta.env.VITE_TITLE_DEFAULT_FONT || 'Arial'
+const defaultTitleSize = Number(import.meta.env.VITE_TITLE_DEFAULT_SIZE || 42)
+const defaultTitleColor = import.meta.env.VITE_TITLE_DEFAULT_COLOR || '#ffffff'
+const defaultTitlePosition = (import.meta.env.VITE_TITLE_DEFAULT_POSITION as TitlePosition) || 'top'
+const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
+const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
@@ -118,6 +148,24 @@ export const useStore = create<EditorState>((set) => ({
   logoPosition: defaultLogoPosition,
   setLogoPosition: p => set({ logoPosition: p }),
 
+  titleText: '',
+  setTitleText: t => set({ titleText: t }),
+  titleFont: defaultTitleFont,
+  setTitleFont: f => set({ titleFont: f }),
+  titleSize: defaultTitleSize,
+  setTitleSize: s => set({ titleSize: s }),
+  titleColor: defaultTitleColor,
+  setTitleColor: c => set({ titleColor: c }),
+  titlePosition: defaultTitlePosition,
+  setTitlePosition: p => set({ titlePosition: p }),
+
+  borderEnabled: defaultBorderSize > 0,
+  setBorderEnabled: e => set({ borderEnabled: e }),
+  borderSize: defaultBorderSize,
+  setBorderSize: s => set({ borderSize: s }),
+  borderColor: defaultBorderColor,
+  setBorderColor: c => set({ borderColor: c }),
+
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
 
@@ -136,6 +184,14 @@ export const useStore = create<EditorState>((set) => ({
     logoImage: null,
     logoSize: defaultLogoSize,
     logoPosition: defaultLogoPosition,
+    titleText: '',
+    titleFont: defaultTitleFont,
+    titleSize: defaultTitleSize,
+    titleColor: defaultTitleColor,
+    titlePosition: defaultTitlePosition,
+    borderEnabled: defaultBorderSize > 0,
+    borderSize: defaultBorderSize,
+    borderColor: defaultBorderColor,
     processedUrl: null, activeTab: 'import',
   }),
 }))

@@ -1,5 +1,5 @@
 import  { useState } from 'react'
-import { Download, Loader2, CheckCircle2, Scissors, Music, FileText, Image as ImageIcon } from 'lucide-react'
+import { Download, Loader2, CheckCircle2, Scissors, Music, FileText, Image as ImageIcon, Type, Square } from 'lucide-react'
 import { createSubtitles, exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -16,6 +16,8 @@ export default function ExportPanel() {
     subtitles, subtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
+    titleText, titleFont, titleSize, titleColor, titlePosition,
+    borderEnabled, borderSize, borderColor,
     exportQuality, setExportQuality,
     setProcessedUrl,
   } = useStore()
@@ -62,6 +64,18 @@ export default function ExportPanel() {
         replaceOriginal: replaceOriginalAudio,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
+        titleStyle: titleText.trim() ? {
+          text: titleText.trim(),
+          font: titleFont,
+          size: titleSize,
+          color: titleColor,
+          position: titlePosition,
+        } : undefined,
+        borderStyle: {
+          enabled: borderEnabled,
+          size: borderSize,
+          color: borderColor,
+        },
         logoFilename: logoImage?.filename,
         logoSize,
         logoPosition,
@@ -119,6 +133,18 @@ export default function ExportPanel() {
             <span className="flex items-center gap-2 text-zinc-500"><ImageIcon size={13} /> Logo</span>
             <span className="text-zinc-700 text-xs">
               {hasLogo ? `${logoImage!.filename} (${logoSize}%, ${logoPosition})` : 'None'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-zinc-500"><Type size={13} /> Title</span>
+            <span className="text-zinc-700 text-xs">
+              {titleText.trim() ? `${titleText.trim().slice(0, 18)}${titleText.trim().length > 18 ? '…' : ''} (${titleFont}, ${titleSize}px)` : 'None'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
+            <span className="text-zinc-700 text-xs">
+              {borderEnabled && borderSize > 0 ? `${borderSize}px ${borderColor}` : 'None'}
             </span>
           </div>
         </div>

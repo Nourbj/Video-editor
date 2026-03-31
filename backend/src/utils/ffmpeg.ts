@@ -31,6 +31,8 @@ export interface ExportOptions {
   audioPath?: string
   subtitlePath?: string
   subtitleStyle?: SubtitleStyle
+  titleStyle?: TitleStyle
+  borderStyle?: BorderStyle
   logoPath?: string
   logoSize?: number // percent of video width (5-60)
   logoPosition?: LogoPosition
@@ -48,6 +50,24 @@ export interface SubtitleStyle {
 }
 
 export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+export type TitlePosition =
+  | 'top-left' | 'top' | 'top-right'
+  | 'middle-left' | 'middle' | 'middle-right'
+  | 'bottom-left' | 'bottom' | 'bottom-right'
+
+export interface TitleStyle {
+  text?: string
+  font?: string
+  size?: number
+  color?: string // hex
+  position?: TitlePosition
+}
+
+export interface BorderStyle {
+  enabled?: boolean
+  size?: number
+  color?: string // hex
+}
 
 function toAssColor(hex?: string) {
   if (!hex) return '&Hffffff'
@@ -70,6 +90,53 @@ function buildSubtitleStyle(style?: SubtitleStyle) {
   const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
   const marginV = position === 'top' ? 24 : position === 'middle' ? 0 : 24
   return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
+}
+
+function escapeDrawtext(text: string) {
+  // Escape characters for FFmpeg drawtext
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/:/g, '\\:')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+}
+
+function buildTitleDrawtext(style?: TitleStyle) {
+  const text = (style?.text || '').trim()
+  if (!text) return null
+
+  const font = style?.font || 'Arial'
+  const size = clamp(Number(style?.size ?? 42), 10, 200)
+  const color = style?.color || '#ffffff'
+  const position = style?.position || 'top'
+  const margin = Number(process.env.TITLE_MARGIN || 36)
+
+  const posMap: Record<TitlePosition, { x: string; y: string }> = {
+    'top-left': { x: `${margin}`, y: `${margin}` },
+    'top': { x: `(w-text_w)/2`, y: `${margin}` },
+    'top-right': { x: `w-text_w-${margin}`, y: `${margin}` },
+    'middle-left': { x: `${margin}`, y: `(h-text_h)/2` },
+    'middle': { x: `(w-text_w)/2`, y: `(h-text_h)/2` },
+    'middle-right': { x: `w-text_w-${margin}`, y: `(h-text_h)/2` },
+    'bottom-left': { x: `${margin}`, y: `h-text_h-${margin}` },
+    'bottom': { x: `(w-text_w)/2`, y: `h-text_h-${margin}` },
+    'bottom-right': { x: `w-text_w-${margin}`, y: `h-text_h-${margin}` },
+  }
+
+  const { x, y } = posMap[position]
+  const safeText = escapeDrawtext(text)
+
+  const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
+  return `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=black@0.45:boxborderw=8`
+}
+
+function buildBorderFilter(style?: BorderStyle) {
+  if (!style?.enabled) return null
+  const size = clamp(Number(style.size ?? 0), 0, 120)
+  if (size <= 0) return null
+  const color = style.color || '#ffffff'
+  // Shrink video to create border padding, then pad to original size
+  return `scale=iw-${size * 2}:ih-${size * 2},pad=iw+${size * 2}:ih+${size * 2}:${size}:${size}:color=${color}`
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -207,6 +274,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       subtitlePath,
       replaceOriginal,
       audioVolume,
+      titleStyle,
+      borderStyle,
       logoPath,
       logoSize,
       logoPosition,
@@ -238,6 +307,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     const hasAudio = !!(audioPath && fs.existsSync(audioPath))
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
+    const titleFilter = buildTitleDrawtext(titleStyle)
+    const borderFilter = buildBorderFilter(borderStyle)
 
     if (hasAudio) cmd.input(audioPath!)
     if (hasLogo) cmd.input(logoPath!).inputOptions(['-loop 1'])
@@ -253,7 +324,11 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     if (hasAudio || hasLogo) {
       const filters: string[] = []
       const baseLabel = hasLogo ? 'vbase' : 'vout'
-      filters.push(`[0:v]scale=${targetWidth}:-2${subtitleFilter}[${baseLabel}]`)
+      const vfParts: string[] = [`scale=${targetWidth}:-2`]
+      if (borderFilter) vfParts.push(borderFilter)
+      if (subtitleFilter) vfParts.push(subtitleFilter.slice(1))
+      if (titleFilter) vfParts.push(titleFilter)
+      filters.push(`[0:v]${vfParts.join(',')}[${baseLabel}]`)
 
       if (hasLogo) {
         const logoInputIndex = hasAudio ? 2 : 1
@@ -284,7 +359,9 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     } else {
       // No new audio or logo — use simple videoFilter
       const filters: string[] = [`scale=${targetWidth}:-2`]
+      if (borderFilter) filters.push(borderFilter)
       if (subtitleFilter) filters.push(subtitleFilter.slice(1))
+      if (titleFilter) filters.push(titleFilter)
       cmd.videoFilter(filters)
       cmd.audioCodec('aac')
     }

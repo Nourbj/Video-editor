@@ -26,6 +26,20 @@ export interface SubtitleStyle {
   position: 'bottom' | 'middle' | 'top'
 }
 
+export interface TitleStyle {
+  text: string
+  font: string
+  size: number
+  color: string
+  position: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+}
+
+export interface BorderStyle {
+  enabled: boolean
+  size: number
+  color: string
+}
+
 // Download video from URL
 export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   const { data } = await api.post('/download', { url })
@@ -151,6 +165,8 @@ export const exportVideo = async (params: {
   audioFilename?: string
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
+  titleStyle?: TitleStyle
+  borderStyle?: BorderStyle
   logoFilename?: string
   logoSize?: number
   logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
@@ -170,6 +186,8 @@ export const previewVideo = async (params: {
   audioFilename?: string
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
+  titleStyle?: TitleStyle
+  borderStyle?: BorderStyle
   logoFilename?: string
   logoSize?: number
   logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'

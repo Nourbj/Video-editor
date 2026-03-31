@@ -101,6 +101,18 @@ export async function processRoute(app: FastifyInstance) {
         color?: string
         position?: 'bottom' | 'middle' | 'top'
       }
+      titleStyle?: {
+        text?: string
+        font?: string
+        size?: number
+        color?: string
+        position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+      }
+      borderStyle?: {
+        enabled?: boolean
+        size?: number
+        color?: string
+      }
       logoFilename?: string
       logoSize?: number
       logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
@@ -146,6 +158,8 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
+        titleStyle: body.titleStyle,
+        borderStyle: body.borderStyle,
         logoPath,
         logoSize: body.logoSize,
         logoPosition: body.logoPosition,
@@ -173,6 +187,18 @@ export async function processRoute(app: FastifyInstance) {
         size?: number
         color?: string
         position?: 'bottom' | 'middle' | 'top'
+      }
+      titleStyle?: {
+        text?: string
+        font?: string
+        size?: number
+        color?: string
+        position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+      }
+      borderStyle?: {
+        enabled?: boolean
+        size?: number
+        color?: string
       }
       logoFilename?: string
       logoSize?: number
@@ -210,6 +236,8 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
+        titleStyle: body.titleStyle,
+        borderStyle: body.borderStyle,
         logoPath,
         logoSize: body.logoSize,
         logoPosition: body.logoPosition,
