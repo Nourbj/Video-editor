@@ -1,5 +1,5 @@
 import  { useState } from 'react'
-import { Download, Loader2, CheckCircle2, Scissors, Music, FileText } from 'lucide-react'
+import { Download, Loader2, CheckCircle2, Scissors, Music, FileText, Image as ImageIcon } from 'lucide-react'
 import { createSubtitles, exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -15,6 +15,7 @@ export default function ExportPanel() {
     audioTrack, audioVolume, replaceOriginalAudio,
     subtitles, subtitleFilename,
     subtitleStyle,
+    logoImage, logoSize, logoPosition,
     exportQuality, setExportQuality,
     setProcessedUrl,
   } = useStore()
@@ -27,6 +28,7 @@ export default function ExportPanel() {
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
   const hasAudio = !!audioTrack
   const hasSubtitles = subtitles.length > 0
+  const hasLogo = !!logoImage
 
   const handleExport = async () => {
     if (!video) return
@@ -60,6 +62,9 @@ export default function ExportPanel() {
         replaceOriginal: replaceOriginalAudio,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
+        logoFilename: logoImage?.filename,
+        logoSize,
+        logoPosition,
       })
 
       setProcessedUrl(result.url)
@@ -71,6 +76,7 @@ export default function ExportPanel() {
       setStep('')
     }
   }
+
 
   if (!video) {
     return (
@@ -109,6 +115,12 @@ export default function ExportPanel() {
               {hasSubtitles ? `${subtitles.length} entries` : 'None'}
             </span>
           </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-zinc-500"><ImageIcon size={13} /> Logo</span>
+            <span className="text-zinc-700 text-xs">
+              {hasLogo ? `${logoImage!.filename} (${logoSize}%, ${logoPosition})` : 'None'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -131,6 +143,7 @@ export default function ExportPanel() {
           ))}
         </div>
       </div>
+
 
       {/* Export button */}
       {!done ? (

@@ -24,6 +24,14 @@ export interface SubtitleStyle {
   position: 'bottom' | 'middle' | 'top'
 }
 
+export interface LogoAsset {
+  id: string
+  filename: string
+  url: string
+}
+
+export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+
 interface EditorState {
   // Video
   video: VideoProject | null
@@ -51,13 +59,21 @@ interface EditorState {
   subtitleStyle: SubtitleStyle
   setSubtitleStyle: (s: SubtitleStyle) => void
 
+  // Logo
+  logoImage: LogoAsset | null
+  setLogoImage: (l: LogoAsset | null) => void
+  logoSize: number
+  setLogoSize: (s: number) => void
+  logoPosition: LogoPosition
+  setLogoPosition: (p: LogoPosition) => void
+
   // Export
   exportQuality: '480p' | '720p' | '1080p'
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
 
   // UI
-  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'export') => void
+  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export'
+  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
@@ -69,6 +85,8 @@ interface EditorState {
 const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
 const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ffffff'
 const defaultSubtitlePosition = (import.meta.env.VITE_SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
+const defaultLogoSize = Number(import.meta.env.VITE_LOGO_DEFAULT_SIZE || 15)
+const defaultLogoPosition = (import.meta.env.VITE_LOGO_DEFAULT_POSITION as LogoPosition) || 'top-right'
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
@@ -93,6 +111,13 @@ export const useStore = create<EditorState>((set) => ({
   subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
   setSubtitleStyle: s => set({ subtitleStyle: s }),
 
+  logoImage: null,
+  setLogoImage: l => set({ logoImage: l }),
+  logoSize: defaultLogoSize,
+  setLogoSize: s => set({ logoSize: s }),
+  logoPosition: defaultLogoPosition,
+  setLogoPosition: p => set({ logoPosition: p }),
+
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
 
@@ -108,6 +133,9 @@ export const useStore = create<EditorState>((set) => ({
     audioTrack: null, audioVolume: 1, replaceOriginalAudio: false,
     subtitles: [], subtitleFilename: null,
     subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
+    logoImage: null,
+    logoSize: defaultLogoSize,
+    logoPosition: defaultLogoPosition,
     processedUrl: null, activeTab: 'import',
   }),
 }))

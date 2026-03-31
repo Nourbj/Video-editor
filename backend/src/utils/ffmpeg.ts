@@ -31,6 +31,9 @@ export interface ExportOptions {
   audioPath?: string
   subtitlePath?: string
   subtitleStyle?: SubtitleStyle
+  logoPath?: string
+  logoSize?: number // percent of video width (5-60)
+  logoPosition?: LogoPosition
   startTime?: number
   endTime?: number
   replaceOriginal?: boolean
@@ -42,6 +45,8 @@ export interface SubtitleStyle {
   color?: string // hex like #ffffff
   position?: 'bottom' | 'middle' | 'top'
 }
+
+export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
 function toAssColor(hex?: string) {
   if (!hex) return '&Hffffff'
@@ -64,6 +69,38 @@ function buildSubtitleStyle(style?: SubtitleStyle) {
   const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
   const marginV = position === 'top' ? 24 : position === 'middle' ? 0 : 24
   return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n))
+}
+
+function buildLogoOverlayFilters(params: {
+  logoInputIndex: number
+  baseLabel: string
+  size?: number
+  position?: LogoPosition
+}) {
+  const sizePct = clamp(params.size ?? 15, 5, 60)
+  const position = params.position ?? 'top-right'
+  const margin = Number(process.env.LOGO_MARGIN || 24)
+
+  const posMap: Record<LogoPosition, { x: string; y: string }> = {
+    'top-left': { x: `${margin}`, y: `${margin}` },
+    'top-right': { x: `main_w-overlay_w-${margin}`, y: `${margin}` },
+    'bottom-left': { x: `${margin}`, y: `main_h-overlay_h-${margin}` },
+    'bottom-right': { x: `main_w-overlay_w-${margin}`, y: `main_h-overlay_h-${margin}` },
+    'center': { x: `(main_w-overlay_w)/2`, y: `(main_h-overlay_h)/2` },
+  }
+
+  const logoIn = `[${params.logoInputIndex}:v]`
+  const { x, y } = posMap[position]
+
+  return [
+    `${logoIn}format=rgba[logo]`,
+    `[logo][${params.baseLabel}]scale2ref=w=main_w*${sizePct}/100:h=-1[logo_s][vref]`,
+    `[vref][logo_s]overlay=${x}:${y}:shortest=1[vout]`,
+  ]
 }
 
 // Get video metadata
@@ -159,9 +196,27 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `export_${uuidv4()}.mp4`)
-    const { inputPath, quality = '720p', startTime, endTime, audioPath, subtitlePath, replaceOriginal, audioVolume } = options
+    const {
+      inputPath,
+      quality = '720p',
+      startTime,
+      endTime,
+      audioPath,
+      subtitlePath,
+      replaceOriginal,
+      audioVolume,
+      logoPath,
+      logoSize,
+      logoPosition,
+    } = options
 
-    console.log('[exportVideo] options:', { quality, audioPath: !!audioPath, replaceOriginal, audioVolume })
+    console.log('[exportVideo] options:', {
+      quality,
+      audioPath: !!audioPath,
+      replaceOriginal,
+      audioVolume,
+      logoPath: !!logoPath,
+    })
 
     const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
     const targetWidth = scaleMap[quality]
@@ -179,43 +234,55 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     cmd.addOption('-crf', crf)
     cmd.addOption('-preset', preset)
 
-    if (audioPath && fs.existsSync(audioPath)) {
-      cmd.input(audioPath)
+    const hasAudio = !!(audioPath && fs.existsSync(audioPath))
+    const hasLogo = !!(logoPath && fs.existsSync(logoPath))
 
-      // Build subtitle part of the video filter
-      let vfChain = `[0:v]scale=${targetWidth}:-2`
-      if (subtitlePath && fs.existsSync(subtitlePath)) {
+    if (hasAudio) cmd.input(audioPath!)
+    if (hasLogo) cmd.input(logoPath!).inputOptions(['-loop 1'])
+
+    const subtitleFilter = subtitlePath && fs.existsSync(subtitlePath)
+      ? (() => {
         const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
         const forceStyle = buildSubtitleStyle(options.subtitleStyle)
-        vfChain += `,subtitles='${escapedSrt}':force_style='${forceStyle}'`
-      }
-      vfChain += '[vout]'
+        return `,subtitles='${escapedSrt}':force_style='${forceStyle}'`
+      })()
+      : ''
 
-      if (replaceOriginal) {
-        // Video from input 0, Audio ONLY from input 1
-        cmd.complexFilter([
-          `${vfChain}`,
-          `[1:a]volume=${vol}[aout]`
-        ])
-        cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac', '-shortest'])
+    if (hasAudio || hasLogo) {
+      const filters: string[] = []
+      const baseLabel = hasLogo ? 'vbase' : 'vout'
+      filters.push(`[0:v]scale=${targetWidth}:-2${subtitleFilter}[${baseLabel}]`)
+
+      if (hasLogo) {
+        const logoInputIndex = hasAudio ? 2 : 1
+        filters.push(...buildLogoOverlayFilters({
+          logoInputIndex,
+          baseLabel,
+          size: logoSize,
+          position: logoPosition,
+        }))
+      }
+
+      if (hasAudio) {
+        if (replaceOriginal) {
+          filters.push(`[1:a]volume=${vol}[aout]`)
+          cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac', '-shortest'])
+        } else {
+          filters.push(`[0:a]volume=1[a0]`)
+          filters.push(`[1:a]volume=${vol}[a1]`)
+          filters.push(`[a0][a1]amix=inputs=2:duration=first[aout]`)
+          cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
+        }
       } else {
-        // Video from input 0, Audio mixed from 0 + 1
-        cmd.complexFilter([
-          `${vfChain}`,
-          `[0:a]volume=1[a0]`,
-          `[1:a]volume=${vol}[a1]`,
-          `[a0][a1]amix=inputs=2:duration=first[aout]`
-        ])
-        cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
+        // Keep original audio when present
+        cmd.outputOptions(['-map [vout]', '-map 0:a?', '-c:a aac'])
       }
+
+      cmd.complexFilter(filters)
     } else {
-      // No new audio — use simple videoFilter
+      // No new audio or logo — use simple videoFilter
       const filters: string[] = [`scale=${targetWidth}:-2`]
-      if (subtitlePath && fs.existsSync(subtitlePath)) {
-        const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
-        const forceStyle = buildSubtitleStyle(options.subtitleStyle)
-        filters.push(`subtitles='${escapedSrt}':force_style='${forceStyle}'`)
-      }
+      if (subtitleFilter) filters.push(subtitleFilter.slice(1))
       cmd.videoFilter(filters)
       cmd.audioCodec('aac')
     }

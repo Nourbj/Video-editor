@@ -10,8 +10,10 @@ export async function generateSrtWithWhisper(params: {
   inputPath: string
   language?: string
   model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
+  startTime?: number
+  endTime?: number
 }) {
-  const { inputPath, language, model = 'small' } = params
+  const { inputPath, language, model = 'small', startTime, endTime } = params
 
   const tempDir = path.join(process.cwd(), 'temp')
   const uploadsDir = path.join(process.cwd(), 'uploads')
@@ -23,14 +25,33 @@ export async function generateSrtWithWhisper(params: {
   const scriptPath = path.join(process.cwd(), 'scripts', 'transcribe_faster.py')
 
   // Extract mono 16k WAV (openai-whisper expects WAV input)
-  const ffmpegArgs = [
-    '-y',
-    '-i', inputPath,
+  const ffmpegArgs: string[] = ['-y']
+
+  if (typeof startTime === 'number' && Number.isFinite(startTime) && startTime >= 0) {
+    ffmpegArgs.push('-ss', String(startTime))
+  }
+
+  ffmpegArgs.push('-i', inputPath)
+
+  if (
+    typeof startTime === 'number' &&
+    Number.isFinite(startTime) &&
+    typeof endTime === 'number' &&
+    Number.isFinite(endTime) &&
+    endTime > startTime
+  ) {
+    const duration = endTime - startTime
+    ffmpegArgs.push('-t', String(duration))
+  } else if (typeof endTime === 'number' && Number.isFinite(endTime) && endTime > 0) {
+    ffmpegArgs.push('-t', String(endTime))
+  }
+
+  ffmpegArgs.push(
     '-ac', '1',
     '-ar', '16000',
     '-vn',
     wavPath,
-  ]
+  )
 
   const timeoutMs = Number(process.env.WHISPER_TIMEOUT_MS || 20 * 60 * 1000)
   try {

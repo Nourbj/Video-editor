@@ -101,6 +101,9 @@ export async function processRoute(app: FastifyInstance) {
         color?: string
         position?: 'bottom' | 'middle' | 'top'
       }
+      logoFilename?: string
+      logoSize?: number
+      logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
       replaceOriginal?: boolean
       audioVolume?: number
     }
@@ -116,6 +119,14 @@ export async function processRoute(app: FastifyInstance) {
       ? path.join(process.cwd(), 'uploads', body.subtitleFilename)
       : undefined
 
+    const logoPath = body.logoFilename
+      ? path.join(process.cwd(), 'uploads', body.logoFilename)
+      : undefined
+
+    if (logoPath && !fs.existsSync(logoPath)) {
+      return reply.code(404).send({ error: 'Logo image not found' })
+    }
+
     try {
       console.log('--- POST /api/export ---')
       console.log('body:', JSON.stringify({
@@ -123,6 +134,9 @@ export async function processRoute(app: FastifyInstance) {
         audioFilename: body.audioFilename,
         replaceOriginal: body.replaceOriginal,
         audioVolume: body.audioVolume,
+        logoFilename: body.logoFilename,
+        logoSize: body.logoSize,
+        logoPosition: body.logoPosition,
       }))
       const outPath = await exportVideo({
         inputPath,
@@ -132,6 +146,9 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
+        logoPath,
+        logoSize: body.logoSize,
+        logoPosition: body.logoPosition,
         replaceOriginal: body.replaceOriginal,
         audioVolume: body.audioVolume,
       })

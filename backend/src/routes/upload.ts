@@ -59,4 +59,27 @@ export async function uploadRoute(app: FastifyInstance) {
       url: `/uploads/${filename}`,
     }
   })
+
+  // Upload image file (logo/watermark)
+  app.post('/upload-image', async (req, reply) => {
+    const data = await req.file()
+    if (!data) return reply.code(400).send({ error: 'No file uploaded' })
+
+    if (!data.mimetype.startsWith('image/')) {
+      return reply.code(400).send({ error: 'Please upload an image file' })
+    }
+
+    const ext = path.extname(data.filename) || '.png'
+    const id = uuidv4()
+    const filename = `img_${id}${ext}`
+    const filepath = path.join(process.cwd(), 'uploads', filename)
+
+    await pipeline(data.file, fs.createWriteStream(filepath))
+
+    return {
+      id,
+      filename,
+      url: `/uploads/${filename}`,
+    }
+  })
 }

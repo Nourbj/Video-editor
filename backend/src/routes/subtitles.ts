@@ -31,6 +31,16 @@ function generateSRT(entries: SubtitleEntry[]): string {
 }
 
 export async function subtitleRoute(app: FastifyInstance) {
+  const resolveVideoPath = (filename: string): string | null => {
+    const uploadPath = path.join(process.cwd(), 'uploads', filename)
+    if (fs.existsSync(uploadPath)) return uploadPath
+
+    const outputPath = path.join(process.cwd(), 'outputs', filename)
+    if (fs.existsSync(outputPath)) return outputPath
+
+    return null
+  }
+
   // Upload .srt file
   app.post('/subtitle/upload', async (req, reply) => {
     const data = await req.file()
@@ -74,10 +84,10 @@ export async function subtitleRoute(app: FastifyInstance) {
       }
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
+    const inputPath = resolveVideoPath(videoFilename)
     const subtitlePath = path.join(process.cwd(), 'uploads', subtitleFilename)
 
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'Video not found' })
+    if (!inputPath) return reply.code(404).send({ error: 'Video not found' })
     if (!fs.existsSync(subtitlePath)) return reply.code(404).send({ error: 'Subtitle not found' })
 
     try {
@@ -91,17 +101,25 @@ export async function subtitleRoute(app: FastifyInstance) {
 
   // Auto-generate subtitles using local Whisper
   app.post('/subtitle/auto', async (req, reply) => {
-    const { videoFilename, language, model } = req.body as {
+    const { videoFilename, language, model, startTime, endTime } = req.body as {
       videoFilename: string
       language?: string
       model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
+      startTime?: number
+      endTime?: number
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'Video not found' })
+    const inputPath = resolveVideoPath(videoFilename)
+    if (!inputPath) return reply.code(404).send({ error: 'Video not found' })
 
     try {
-      const { id, filename, filepath } = await generateSrtWithWhisper({ inputPath, language, model })
+      const { id, filename, filepath } = await generateSrtWithWhisper({
+        inputPath,
+        language,
+        model,
+        startTime,
+        endTime,
+      })
       const content = fs.readFileSync(filepath, 'utf-8')
       const entries = parseSRT(content)
       return { id, filename, entries }

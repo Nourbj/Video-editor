@@ -1,20 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw } from 'lucide-react'
+import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
 import AudioEditor from './components/AudioEditor/AudioEditor'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
+import LogoEditor from './components/LogoEditor/LogoEditor'
 import { createSubtitles, exportVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'export'
+type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
   { id: 'audio', label: 'Audio', icon: <Music size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
+  { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
 
@@ -31,6 +33,7 @@ export default function App() {
     audioTrack, subtitles,
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
+    logoImage, logoSize, logoPosition,
     exportQuality,
     processedUrl, setProcessedUrl,
   } = useStore()
@@ -65,6 +68,9 @@ export default function App() {
         audioFilename: audioTrack?.filename,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
+        logoFilename: logoImage?.filename,
+        logoSize,
+        logoPosition,
       })
 
       setProcessedUrl(result.url)
@@ -81,7 +87,8 @@ export default function App() {
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasAudio = !!audioTrack
     const hasSubtitles = subtitles.length > 0
-    const hasChanges = hasTrim || hasAudio || hasSubtitles
+    const hasLogo = !!logoImage
+    const hasChanges = hasTrim || hasAudio || hasSubtitles || hasLogo
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -96,6 +103,7 @@ export default function App() {
       audio: audioTrack ? { id: audioTrack.id, vol: audioTrack.volume, replace: audioTrack.replaceOriginal } : null,
       subtitles,
       exportQuality,
+      logo: logoImage ? { id: logoImage.id, size: logoSize, pos: logoPosition } : null,
     })
 
     if (sig === lastPreviewSig.current) return
@@ -120,6 +128,9 @@ export default function App() {
     audioTrack,
     subtitles,
     exportQuality,
+    logoImage,
+    logoSize,
+    logoPosition,
     previewLoading,
     processedUrl,
     setProcessedUrl,
@@ -204,6 +215,7 @@ export default function App() {
               {activeTab === 'edit' && <EditPanel />}
               {activeTab === 'audio' && <AudioEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
+              {activeTab === 'logo' && <LogoEditor />}
               {activeTab === 'export' && <ExportPanel />}
             </div>
           </div>

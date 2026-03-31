@@ -57,6 +57,16 @@ export const uploadAudio = async (file: File): Promise<{ id: string; filename: s
   return data
 }
 
+// Upload image file (logo/watermark)
+export const uploadImage = async (file: File): Promise<{ id: string; filename: string; url: string }> => {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post('/upload-image', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
 // Download audio from URL (YouTube, etc.)
 export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; filename: string; url: string }> => {
   const { data } = await api.post('/download-audio', { url })
@@ -121,6 +131,9 @@ export const exportVideo = async (params: {
   audioFilename?: string
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
+  logoFilename?: string
+  logoSize?: number
+  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
   replaceOriginal?: boolean
   audioVolume?: number
 }) => {
