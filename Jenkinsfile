@@ -3,7 +3,6 @@ pipeline {
 
   environment {
     COMPOSE_FILE = 'docker-compose.yml'
-    YTDLP_COOKIES_CRED = 'ytdlp_cookies'
   }
 
   options {
@@ -19,10 +18,6 @@ pipeline {
 
     stage('Build Images') {
       steps {
-        withCredentials([file(credentialsId: "${YTDLP_COOKIES_CRED}", variable: 'YTDLP_COOKIES_FILE')]) {
-          sh 'mkdir -p cookies'
-          sh 'cp "$YTDLP_COOKIES_FILE" cookies/ytdlp_cookies.txt'
-        }
         sh 'docker compose -f $COMPOSE_FILE build'
       }
     }

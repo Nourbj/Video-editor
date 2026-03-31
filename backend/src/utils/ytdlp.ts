@@ -9,6 +9,24 @@ const USER_AGENT =
   process.env.YTDLP_USER_AGENT ||
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 
+function validateCookiesFile(filePath: string): string | null {
+  try {
+    const buf = fs.readFileSync(filePath)
+    const text = buf.toString('utf8')
+    const firstLine = text.split(/\r?\n/, 1)[0]?.trim() || ''
+    const okHeader = firstLine === '# Netscape HTTP Cookie File' || firstLine === '# HTTP Cookie File'
+    if (!okHeader) {
+      return 'Invalid cookies file format. First line must be "# Netscape HTTP Cookie File".'
+    }
+    if (text.includes('\r') && !text.includes('\r\n')) {
+      return 'Invalid cookies file newlines. Please use standard CRLF (Windows) or LF (Linux/macOS).'
+    }
+    return null
+  } catch (e: any) {
+    return `Cannot read cookies file: ${e?.message || 'unknown error'}`
+  }
+}
+
 export interface DownloadResult {
   id: string
   filename: string
@@ -26,9 +44,21 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const cookiesPath = process.env.YTDLP_COOKIES || ''
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
 
+  if (hasCookies) {
+    const cookiesError = validateCookiesFile(cookiesPath)
+    if (cookiesError) throw new Error(cookiesError)
+  }
+
   // Get video info first
+  const cookiesFlags = hasCookies
+    ? [`--cookies "${cookiesPath}"`]
+    : cookiesFromBrowser
+      ? [`--cookies-from-browser ${cookiesFromBrowser}`]
+      : []
+
   const infoCmd = [
     'yt-dlp',
     '--dump-json',
@@ -36,7 +66,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
-    hasCookies ? `--cookies "${cookiesPath}"` : '',
+    ...cookiesFlags,
     `"${url}"`
   ].filter(Boolean).join(' ')
   let info: Record<string, unknown> = {}
@@ -58,7 +88,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
-    hasCookies ? `--cookies "${cookiesPath}"` : '',
+    ...cookiesFlags,
     '--match-filter', `"duration < ${maxDuration}"`,
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
@@ -75,6 +105,11 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     const stderr = String(err.stderr || '')
     if (stderr) {
       console.error('[yt-dlp] download error:', stderr.slice(0, 2000))
+    }
+    if (stderr.toLowerCase().includes('cookies') || stderr.toLowerCase().includes('cookie')) {
+      const baseMsg = 'Invalid cookies file. Please export cookies in Netscape format (first line must be "# Netscape HTTP Cookie File").'
+      const detail = debug && stderr ? ` | ytdlp: ${stderr.slice(0, 800)}` : ''
+      throw new Error(`${baseMsg}${detail}`)
     }
     if (
       stderr.includes('Unsupported URL') ||
@@ -116,7 +151,12 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const cookiesPath = process.env.YTDLP_COOKIES || ''
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+  if (hasCookies) {
+    const cookiesError = validateCookiesFile(cookiesPath)
+    if (cookiesError) throw new Error(cookiesError)
+  }
   const cmd = [
     'yt-dlp',
     '--dump-json',
@@ -124,7 +164,11 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
-    hasCookies ? `--cookies "${cookiesPath}"` : '',
+    ...(hasCookies
+      ? [`--cookies "${cookiesPath}"`]
+      : cookiesFromBrowser
+        ? [`--cookies-from-browser ${cookiesFromBrowser}`]
+        : []),
     `"${url}"`
   ].filter(Boolean).join(' ')
   try {
