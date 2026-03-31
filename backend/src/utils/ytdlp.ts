@@ -5,6 +5,9 @@ import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 
 const execAsync = promisify(exec)
+const USER_AGENT =
+  process.env.YTDLP_USER_AGENT ||
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 
 export interface DownloadResult {
   id: string
