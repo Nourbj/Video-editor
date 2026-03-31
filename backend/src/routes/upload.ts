@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getVideoMeta, generateThumbnail } from '../utils/ffmpeg'
+import { validateCookiesFile } from '../utils/ytdlp'
 
 export async function uploadRoute(app: FastifyInstance) {
   app.post('/upload', async (req, reply) => {
@@ -81,5 +82,34 @@ export async function uploadRoute(app: FastifyInstance) {
       filename,
       url: `/uploads/${filename}`,
     }
+  })
+
+  // Upload yt-dlp cookies file (public)
+  app.post('/cookies/upload', async (req, reply) => {
+    const data = await req.file()
+    if (!data) return reply.code(400).send({ error: 'No file uploaded' })
+
+    const ext = path.extname(data.filename || '').toLowerCase()
+    if (ext && ext !== '.txt') {
+      return reply.code(400).send({ error: 'Please upload a .txt cookies file' })
+    }
+
+    const envPath = process.env.YTDLP_COOKIES
+    const targetPath = envPath
+      ? envPath
+      : path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
+
+    const targetDir = path.dirname(targetPath)
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
+
+    await pipeline(data.file, fs.createWriteStream(targetPath))
+
+    const validationError = validateCookiesFile(targetPath)
+    if (validationError) {
+      try { fs.unlinkSync(targetPath) } catch { /* ignore */ }
+      return reply.code(400).send({ error: validationError })
+    }
+
+    return { ok: true, path: targetPath }
   })
 }

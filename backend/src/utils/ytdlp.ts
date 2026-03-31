@@ -9,8 +9,12 @@ const USER_AGENT =
   process.env.YTDLP_USER_AGENT ||
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 
-function validateCookiesFile(filePath: string): string | null {
+export function validateCookiesFile(filePath: string): string | null {
   try {
+    const stat = fs.statSync(filePath)
+    if (stat.isDirectory()) {
+      return `Cookies path is a directory, expected a file: ${filePath}`
+    }
     const buf = fs.readFileSync(filePath)
     const text = buf.toString('utf8')
     const firstLine = text.split(/\r?\n/, 1)[0]?.trim() || ''

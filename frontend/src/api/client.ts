@@ -77,6 +77,16 @@ export const uploadImage = async (file: File): Promise<{ id: string; filename: s
   return data
 }
 
+// Upload yt-dlp cookies file
+export const uploadCookies = async (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post('/cookies/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data as { ok: boolean; path: string }
+}
+
 // Download audio from URL (YouTube, etc.)
 export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; filename: string; url: string }> => {
   const { data } = await api.post('/download-audio', { url })

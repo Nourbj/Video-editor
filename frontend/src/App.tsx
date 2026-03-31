@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon } from 'lucide-react'
+import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Cookie } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -7,9 +7,10 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
+import CookiesUpload from './components/CookiesUpload/CookiesUpload'
 import { createSubtitles, previewVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export'
+type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
@@ -17,6 +18,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
   { id: 'audio', label: 'Audio', icon: <Music size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
+  { id: 'cookies', label: 'Cookies', icon: <Cookie size={15} /> },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
 
@@ -216,6 +218,7 @@ export default function App() {
               {activeTab === 'audio' && <AudioEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
               {activeTab === 'logo' && <LogoEditor />}
+              {activeTab === 'cookies' && <CookiesUpload />}
               {activeTab === 'export' && <ExportPanel />}
             </div>
           </div>

@@ -72,8 +72,8 @@ interface EditorState {
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
 
   // UI
-  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export') => void
+  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export'
+  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'cookies' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
