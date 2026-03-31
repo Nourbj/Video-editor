@@ -57,6 +57,12 @@ export const uploadAudio = async (file: File): Promise<{ id: string; filename: s
   return data
 }
 
+// Download audio from URL (YouTube, etc.)
+export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; filename: string; url: string }> => {
+  const { data } = await api.post('/download-audio', { url })
+  return data
+}
+
 // Cut video
 export const cutVideo = async (filename: string, startTime: number, endTime: number) => {
   const { data } = await api.post('/cut', { filename, startTime, endTime })
@@ -115,6 +121,8 @@ export const exportVideo = async (params: {
   audioFilename?: string
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
+  replaceOriginal?: boolean
+  audioVolume?: number
 }) => {
   const { data } = await api.post('/export', params)
   return data as { url: string; filename: string }

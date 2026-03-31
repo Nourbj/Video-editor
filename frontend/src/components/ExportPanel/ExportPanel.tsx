@@ -44,12 +44,20 @@ export default function ExportPanel() {
       }
 
       setStep('Processing and exporting...')
+      console.log('[ExportPanel] Exporting with params:', {
+        filename: video.filename,
+        audioFilename: audioTrack?.filename,
+        audioVolume,
+        replaceOriginal: replaceOriginalAudio,
+      })
       const result = await exportVideo({
         filename: video.filename,
         quality: exportQuality,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
         audioFilename: audioTrack?.filename,
+        audioVolume: audioVolume,
+        replaceOriginal: replaceOriginalAudio,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
       })

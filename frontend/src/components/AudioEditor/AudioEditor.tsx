@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
-import { Music, Upload, X, Volume2, Replace } from 'lucide-react'
-import { uploadAudio } from '../../api/client'
+import { Music, Upload, X, Volume2, Replace, Link, Loader2 } from 'lucide-react'
+import { uploadAudio, downloadAudioFromUrl } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
 export default function AudioEditor() {
@@ -12,6 +12,8 @@ export default function AudioEditor() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<'file' | 'url'>('file')
+  const [urlInput, setUrlInput] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleAudioUpload = async (file: File) => {
@@ -31,6 +33,21 @@ export default function AudioEditor() {
     }
   }
 
+  const handleAudioUrl = async () => {
+    if (!urlInput.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await downloadAudioFromUrl(urlInput.trim())
+      setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
+      setUrlInput('')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Download failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -40,22 +57,68 @@ export default function AudioEditor() {
 
       {/* Upload zone */}
       {!audioTrack ? (
-        <div
-          onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-zinc-300 hover:border-zinc-400 rounded-2xl p-8 text-center cursor-pointer transition-all hover:bg-zinc-50"
-        >
-          <input
-            ref={fileRef}
-            type="file"
-            accept="audio/*"
-            className="hidden"
-            aria-label="Upload audio file"
-            onChange={e => e.target.files?.[0] && handleAudioUpload(e.target.files[0])}
-          />
-          <Music size={28} className="mx-auto mb-3 text-zinc-400" />
-          <p className="text-zinc-700 font-medium">Upload audio track</p>
-          <p className="text-zinc-500 text-sm mt-1">MP3, WAV, AAC, FLAC</p>
-          {loading && <p className="text-cyan-600 text-sm mt-2 animate-pulse">Uploading...</p>}
+        <div className="space-y-3">
+          {/* Tab switcher */}
+          <div className="flex gap-1 bg-zinc-100 rounded-xl p-1">
+            <button
+              onClick={() => setTab('file')}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'file' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              <Upload size={13} /> File
+            </button>
+            <button
+              onClick={() => setTab('url')}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'url' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              <Link size={13} /> URL
+            </button>
+          </div>
+
+          {tab === 'file' ? (
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="border-2 border-dashed border-zinc-300 hover:border-zinc-400 rounded-2xl p-8 text-center cursor-pointer transition-all hover:bg-zinc-50"
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                aria-label="Upload audio file"
+                onChange={e => e.target.files?.[0] && handleAudioUpload(e.target.files[0])}
+              />
+              <Music size={28} className="mx-auto mb-3 text-zinc-400" />
+              <p className="text-zinc-700 font-medium">Upload audio track</p>
+              <p className="text-zinc-500 text-sm mt-1">MP3, WAV, AAC, FLAC</p>
+              {loading && <p className="text-cyan-600 text-sm mt-2 animate-pulse">Uploading...</p>}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-zinc-500">Paste a YouTube or other URL to extract the audio</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={urlInput}
+                  onChange={e => setUrlInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAudioUrl()}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+                <button
+                  onClick={handleAudioUrl}
+                  disabled={loading || !urlInput.trim()}
+                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5"
+                >
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Link size={14} />}
+                  {loading ? 'Loading...' : 'Import'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-200">
@@ -93,7 +156,7 @@ export default function AudioEditor() {
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={() => setReplaceOriginalAudio(false)}
+                onClick={() => { console.log('[AudioEditor] setReplaceOriginalAudio(false)'); setReplaceOriginalAudio(false) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   !replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'
@@ -103,7 +166,7 @@ export default function AudioEditor() {
                 Mix with original
               </button>
               <button
-                onClick={() => setReplaceOriginalAudio(true)}
+                onClick={() => { console.log('[AudioEditor] setReplaceOriginalAudio(true)'); setReplaceOriginalAudio(true) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'

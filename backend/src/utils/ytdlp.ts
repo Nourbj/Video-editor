@@ -98,3 +98,40 @@ export async function checkYtdlp(): Promise<boolean> {
     return false
   }
 }
+export async function downloadAudio(url: string): Promise<{ id: string; filename: string; url: string }> {
+  const id = uuidv4()
+  const outputDir = path.join(process.cwd(), 'uploads')
+  const outputTemplate = path.join(outputDir, `audio_${id}.%(ext)s`)
+  const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+
+  const dlCmd = [
+    'yt-dlp',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '-x',
+    '--audio-format', 'mp3',
+    '--audio-quality', '0',
+    '-o', `"${outputTemplate}"`,
+    `"${url}"`
+  ].join(' ')
+
+  try {
+    await execAsync(dlCmd, { timeout: 120000 })
+  } catch (err: any) {
+    if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
+      throw new Error('yt-dlp not found on system.')
+    }
+    const stderr = String(err.stderr || '')
+    if (stderr.includes('Unsupported URL') || stderr.toLowerCase().includes('private')) {
+      throw new Error('Unsupported or private URL.')
+    }
+    throw err
+  }
+
+  const files = fs.readdirSync(outputDir).filter(f => f.startsWith(`audio_${id}`))
+  if (files.length === 0) throw new Error('Audio download failed: no file produced')
+
+  const filename = files[0]
+  return { id, filename, url: `/uploads/${filename}` }
+}

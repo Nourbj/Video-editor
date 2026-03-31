@@ -33,6 +33,8 @@ export interface ExportOptions {
   subtitleStyle?: SubtitleStyle
   startTime?: number
   endTime?: number
+  replaceOriginal?: boolean
+  audioVolume?: number
 }
 
 export interface SubtitleStyle {
@@ -157,10 +159,13 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `export_${uuidv4()}.mp4`)
-    const { inputPath, quality = '720p', startTime, endTime, audioPath, subtitlePath } = options
+    const { inputPath, quality = '720p', startTime, endTime, audioPath, subtitlePath, replaceOriginal, audioVolume } = options
+
+    console.log('[exportVideo] options:', { quality, audioPath: !!audioPath, replaceOriginal, audioVolume })
 
     const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
     const targetWidth = scaleMap[quality]
+    const vol = audioVolume ?? 1
 
     let cmd = ffmpeg(inputPath)
 
@@ -168,15 +173,6 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       cmd = cmd.setStartTime(startTime).setDuration(endTime - startTime)
     }
 
-    const filters: string[] = [`scale=${targetWidth}:-2`]
-
-    if (subtitlePath && fs.existsSync(subtitlePath)) {
-      const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
-      const forceStyle = buildSubtitleStyle(options.subtitleStyle)
-      filters.push(`subtitles='${escapedSrt}':force_style='${forceStyle}'`)
-    }
-
-    cmd.videoFilter(filters)
     const crf = process.env.FFMPEG_CRF || '23'
     const preset = process.env.FFMPEG_PRESET || 'fast'
     cmd.videoCodec('libx264')
@@ -185,11 +181,42 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     if (audioPath && fs.existsSync(audioPath)) {
       cmd.input(audioPath)
-      // Build a single audio mix output labeled "aout"
-      cmd.complexFilter(['[0:a][1:a]amix=inputs=2:duration=first[aout]'])
-      // Map video from input 0 and mixed audio from filter graph
-      cmd.outputOptions(['-map 0:v', '-map [aout]', '-c:a aac'])
+
+      // Build subtitle part of the video filter
+      let vfChain = `[0:v]scale=${targetWidth}:-2`
+      if (subtitlePath && fs.existsSync(subtitlePath)) {
+        const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
+        const forceStyle = buildSubtitleStyle(options.subtitleStyle)
+        vfChain += `,subtitles='${escapedSrt}':force_style='${forceStyle}'`
+      }
+      vfChain += '[vout]'
+
+      if (replaceOriginal) {
+        // Video from input 0, Audio ONLY from input 1
+        cmd.complexFilter([
+          `${vfChain}`,
+          `[1:a]volume=${vol}[aout]`
+        ])
+        cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac', '-shortest'])
+      } else {
+        // Video from input 0, Audio mixed from 0 + 1
+        cmd.complexFilter([
+          `${vfChain}`,
+          `[0:a]volume=1[a0]`,
+          `[1:a]volume=${vol}[a1]`,
+          `[a0][a1]amix=inputs=2:duration=first[aout]`
+        ])
+        cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
+      }
     } else {
+      // No new audio — use simple videoFilter
+      const filters: string[] = [`scale=${targetWidth}:-2`]
+      if (subtitlePath && fs.existsSync(subtitlePath)) {
+        const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
+        const forceStyle = buildSubtitleStyle(options.subtitleStyle)
+        filters.push(`subtitles='${escapedSrt}':force_style='${forceStyle}'`)
+      }
+      cmd.videoFilter(filters)
       cmd.audioCodec('aac')
     }
 

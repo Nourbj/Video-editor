@@ -101,6 +101,8 @@ export async function processRoute(app: FastifyInstance) {
         color?: string
         position?: 'bottom' | 'middle' | 'top'
       }
+      replaceOriginal?: boolean
+      audioVolume?: number
     }
 
     const inputPath = path.join(process.cwd(), 'uploads', body.filename)
@@ -115,6 +117,13 @@ export async function processRoute(app: FastifyInstance) {
       : undefined
 
     try {
+      console.log('--- POST /api/export ---')
+      console.log('body:', JSON.stringify({
+        filename: body.filename,
+        audioFilename: body.audioFilename,
+        replaceOriginal: body.replaceOriginal,
+        audioVolume: body.audioVolume,
+      }))
       const outPath = await exportVideo({
         inputPath,
         quality: body.quality || '720p',
@@ -123,6 +132,8 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
+        replaceOriginal: body.replaceOriginal,
+        audioVolume: body.audioVolume,
       })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {

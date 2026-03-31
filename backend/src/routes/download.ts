@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { downloadVideo, getVideoInfo } from '../utils/ytdlp'
+import { downloadVideo, downloadAudio, getVideoInfo } from '../utils/ytdlp'
 import { getVideoMeta, generateThumbnail } from '../utils/ffmpeg'
 import path from 'path'
 
@@ -65,6 +65,21 @@ export async function downloadRoute(app: FastifyInstance) {
       const message = err instanceof Error ? err.message : 'Download failed'
       const isClientError = message.toLowerCase().includes('unsupported') || message.toLowerCase().includes('private')
       return reply.code(isClientError ? 400 : 500).send({ error: message })
+    }
+  })
+
+  // Download audio only from URL
+  app.post('/download-audio', async (req, reply) => {
+    const { url } = req.body as { url: string }
+    if (!url) return reply.code(400).send({ error: 'URL required' })
+
+    try {
+      const result = await downloadAudio(url)
+      return { id: result.id, filename: result.filename, url: result.url }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Audio download failed'
+      return reply.code(500).send({ error: message })
     }
   })
 }
