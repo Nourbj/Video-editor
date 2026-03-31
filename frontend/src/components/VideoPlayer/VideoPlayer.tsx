@@ -9,8 +9,9 @@ function formatTime(s: number) {
 }
 
 export default function VideoPlayer() {
-  const { video, trimStart, trimEnd, setTrimStart, setTrimEnd, processedUrl } = useStore()
+  const { video, trimStart, trimEnd, setTrimStart, setTrimEnd, processedUrl, replaceOriginalAudio, audioTrack, audioVolume } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, setVolume] = useState(1)
@@ -20,16 +21,26 @@ export default function VideoPlayer() {
   const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
 
   const src = processedUrl || video?.url || ''
+  const isMuted = replaceOriginalAudio && !!audioTrack
 
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
   }, [video])
+
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = Math.min(1, Math.max(0, audioVolume || 1))
+    }
+  }, [audioVolume])
+
 
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
     if (v.currentTime < effectiveStart || v.currentTime > effectiveEnd) {
       v.currentTime = effectiveStart
+      if (audioRef.current) audioRef.current.currentTime = effectiveStart
       setCurrentTime(effectiveStart)
     }
   }, [effectiveStart, effectiveEnd])
@@ -39,29 +50,43 @@ export default function VideoPlayer() {
     if (!v) return
     // Reset progress to start of trim when trim bounds change
     v.currentTime = effectiveStart
+    if (audioRef.current) audioRef.current.currentTime = effectiveStart
     setCurrentTime(effectiveStart)
     setPlaying(false)
     v.pause()
+    audioRef.current?.pause()
   }, [effectiveStart, effectiveEnd])
 
   const togglePlay = () => {
     const v = videoRef.current
     if (!v) return
-    if (playing) { v.pause(); setPlaying(false) }
-    else { v.play(); setPlaying(true) }
+    if (playing) {
+      v.pause()
+      audioRef.current?.pause()
+      setPlaying(false)
+    } else {
+      v.play()
+      audioRef.current?.play()
+      setPlaying(true)
+    }
   }
 
   const handleTimeUpdate = () => {
     const v = videoRef.current
     if (!v) return
     setCurrentTime(v.currentTime)
-    if (v.currentTime >= trimEnd) { v.pause(); setPlaying(false) }
+    if (v.currentTime >= trimEnd) {
+      v.pause()
+      audioRef.current?.pause()
+      setPlaying(false)
+    }
   }
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const t = parseFloat(e.target.value)
     const next = effectiveStart + t
     if (videoRef.current) videoRef.current.currentTime = next
+    if (audioRef.current) audioRef.current.currentTime = next
     setCurrentTime(next)
   }
 
@@ -80,11 +105,13 @@ export default function VideoPlayer() {
         <video
           ref={videoRef}
           src={src}
+          muted={isMuted}
           className="w-full h-full object-contain"
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => setPlaying(false)}
           onLoadedMetadata={() => {
             if (videoRef.current) videoRef.current.currentTime = trimStart
+            if (audioRef.current) audioRef.current.currentTime = trimStart
           }}
         />
         {/* Click to play/pause */}
@@ -184,6 +211,15 @@ export default function VideoPlayer() {
           Selection: {formatTime(trimEnd - trimStart)} &nbsp;|&nbsp; {formatTime(trimStart)} → {formatTime(trimEnd)}
         </p>
       </div>
+
+      {audioTrack && (
+        <audio
+          ref={audioRef}
+          src={audioTrack.url}
+          className="hidden"
+          preload="auto"
+        />
+      )}
     </div>
   )
 }
