@@ -40,6 +40,7 @@ export default function CookiesUpload() {
         </div>
 
         <input
+          aria-label='cookies'
           ref={fileRef}
           type="file"
           accept=".txt"
