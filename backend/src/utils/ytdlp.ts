@@ -26,6 +26,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const cookiesPath = process.env.YTDLP_COOKIES || ''
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
 
   // Get video info first
   const infoCmd = [
@@ -83,7 +84,12 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
       stderr.toLowerCase().includes('confirm') ||
       stderr.toLowerCase().includes('not available')
     ) {
-      throw new Error('Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies.')
+      const baseMsg = 'Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies.'
+      const detail = debug && stderr ? ` | ytdlp: ${stderr.slice(0, 800)}` : ''
+      throw new Error(`${baseMsg}${detail}`)
+    }
+    if (debug && stderr) {
+      throw new Error(`yt-dlp error: ${stderr.slice(0, 800)}`)
     }
     throw err
   }
@@ -110,6 +116,7 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const cookiesPath = process.env.YTDLP_COOKIES || ''
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
   const cmd = [
     'yt-dlp',
     '--dump-json',
@@ -120,8 +127,16 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     hasCookies ? `--cookies "${cookiesPath}"` : '',
     `"${url}"`
   ].filter(Boolean).join(' ')
-  const { stdout } = await execAsync(cmd, { timeout: 20000 })
-  return JSON.parse(stdout)
+  try {
+    const { stdout } = await execAsync(cmd, { timeout: 20000 })
+    return JSON.parse(stdout)
+  } catch (err: any) {
+    const stderr = String(err.stderr || '')
+    if (debug && stderr) {
+      throw new Error(`yt-dlp info error: ${stderr.slice(0, 800)}`)
+    }
+    throw err
+  }
 }
 
 export async function checkYtdlp(): Promise<boolean> {

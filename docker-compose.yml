@@ -17,9 +17,12 @@ services:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
       - ./temp:/app/temp
+      - ./cookies/ytdlp_cookies.txt:/app/cookies.txt:ro
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
+      - YTDLP_COOKIES=/app/cookies.txt
+      - YTDLP_DEBUG=true
     depends_on:
       - redis
     restart: unless-stopped

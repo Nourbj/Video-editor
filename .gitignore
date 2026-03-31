@@ -19,6 +19,7 @@ coverage/
 # uploads/
 # outputs/
 # temp/
+# cookies/
 
 # OS / editor
 .DS_Store

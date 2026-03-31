@@ -64,7 +64,8 @@ export async function downloadRoute(app: FastifyInstance) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Download failed'
       const isClientError = message.toLowerCase().includes('unsupported') || message.toLowerCase().includes('private')
-      return reply.code(isClientError ? 400 : 500).send({ error: message })
+      const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+      return reply.code(isClientError ? 400 : 500).send(debug ? { error: message, debug: message } : { error: message })
     }
   })
 
@@ -79,7 +80,8 @@ export async function downloadRoute(app: FastifyInstance) {
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Audio download failed'
-      return reply.code(500).send({ error: message })
+      const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+      return reply.code(500).send(debug ? { error: message, debug: message } : { error: message })
     }
   })
 }
