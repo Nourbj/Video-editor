@@ -24,9 +24,20 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const outputDir = path.join(process.cwd(), 'uploads')
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+  const cookiesPath = process.env.YTDLP_COOKIES || ''
+  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
 
   // Get video info first
-  const infoCmd = `yt-dlp --dump-json --no-playlist --js-runtimes ${jsRuntime} "${url}"`
+  const infoCmd = [
+    'yt-dlp',
+    '--dump-json',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    hasCookies ? `--cookies "${cookiesPath}"` : '',
+    `"${url}"`
+  ].filter(Boolean).join(' ')
   let info: Record<string, unknown> = {}
   try {
     const { stdout } = await execAsync(infoCmd, { timeout: 30000 })
@@ -44,6 +55,9 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     'yt-dlp',
     '--no-playlist',
     '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    hasCookies ? `--cookies "${cookiesPath}"` : '',
     '--match-filter', `"duration < ${maxDuration}"`,
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
@@ -58,13 +72,18 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
       throw new Error('yt-dlp not found on system. Please install it or use docker-compose.')
     }
     const stderr = String(err.stderr || '')
+    if (stderr) {
+      console.error('[yt-dlp] download error:', stderr.slice(0, 2000))
+    }
     if (
       stderr.includes('Unsupported URL') ||
       stderr.includes('login.php') ||
       stderr.toLowerCase().includes('private') ||
-      stderr.toLowerCase().includes('sign in')
+      stderr.toLowerCase().includes('sign in') ||
+      stderr.toLowerCase().includes('confirm') ||
+      stderr.toLowerCase().includes('not available')
     ) {
-      throw new Error('Unsupported or private URL. Please use a public video/reel link.')
+      throw new Error('Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies.')
     }
     throw err
   }
@@ -89,7 +108,19 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 
 export async function getVideoInfo(url: string): Promise<Record<string, unknown>> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
-  const { stdout } = await execAsync(`yt-dlp --dump-json --no-playlist --js-runtimes ${jsRuntime} "${url}"`, { timeout: 20000 })
+  const cookiesPath = process.env.YTDLP_COOKIES || ''
+  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const cmd = [
+    'yt-dlp',
+    '--dump-json',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    hasCookies ? `--cookies "${cookiesPath}"` : '',
+    `"${url}"`
+  ].filter(Boolean).join(' ')
+  const { stdout } = await execAsync(cmd, { timeout: 20000 })
   return JSON.parse(stdout)
 }
 
