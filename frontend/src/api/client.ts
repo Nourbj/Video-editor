@@ -1,6 +1,8 @@
 import axios from 'axios'
+import { withMediaBase } from '../utils/media'
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api' })
+const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
+const api = axios.create({ baseURL: apiBase })
 
 export interface VideoInfo {
   id: string
@@ -27,7 +29,11 @@ export interface SubtitleStyle {
 // Download video from URL
 export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   const { data } = await api.post('/download', { url })
-  return data
+  return {
+    ...data,
+    url: withMediaBase(data.url),
+    thumbnail: withMediaBase(data.thumbnail),
+  }
 }
 
 // Get video info without downloading
@@ -44,7 +50,11 @@ export const uploadVideo = async (file: File, onProgress?: (pct: number) => void
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: e => onProgress?.(Math.round((e.loaded * 100) / (e.total || 1))),
   })
-  return data
+  return {
+    ...data,
+    url: withMediaBase(data.url),
+    thumbnail: withMediaBase(data.thumbnail),
+  }
 }
 
 // Upload audio file
@@ -54,7 +64,7 @@ export const uploadAudio = async (file: File): Promise<{ id: string; filename: s
   const { data } = await api.post('/upload-audio', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return data
+  return { ...data, url: withMediaBase(data.url) }
 }
 
 // Upload image file (logo/watermark)
@@ -70,13 +80,13 @@ export const uploadImage = async (file: File): Promise<{ id: string; filename: s
 // Download audio from URL (YouTube, etc.)
 export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; filename: string; url: string }> => {
   const { data } = await api.post('/download-audio', { url })
-  return data
+  return { ...data, url: withMediaBase(data.url) }
 }
 
 // Cut video
 export const cutVideo = async (filename: string, startTime: number, endTime: number) => {
   const { data } = await api.post('/cut', { filename, startTime, endTime })
-  return data as { url: string; filename: string }
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
 // Merge audio
@@ -87,13 +97,13 @@ export const mergeAudio = async (
   replaceOriginal = false
 ) => {
   const { data } = await api.post('/merge-audio', { videoFilename, audioFilename, volume, replaceOriginal })
-  return data as { url: string; filename: string }
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
 // Create subtitle file from entries
 export const createSubtitles = async (entries: SubtitleEntry[]) => {
   const { data } = await api.post('/subtitle/create', { entries })
-  return data as { id: string; filename: string; url: string }
+  return { ...data, url: withMediaBase(data.url) } as { id: string; filename: string; url: string }
 }
 
 // Upload SRT file
@@ -119,7 +129,7 @@ export const autoSubtitles = async (params: {
 // Burn subtitles
 export const burnSubtitles = async (videoFilename: string, subtitleFilename: string, style?: SubtitleStyle) => {
   const { data } = await api.post('/subtitle/burn', { videoFilename, subtitleFilename, style })
-  return data as { url: string; filename: string }
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
 // Full export
@@ -138,5 +148,24 @@ export const exportVideo = async (params: {
   audioVolume?: number
 }) => {
   const { data } = await api.post('/export', params)
-  return data as { url: string; filename: string }
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
+}
+
+// Preview (renders to temp)
+export const previewVideo = async (params: {
+  filename: string
+  quality: '480p' | '720p' | '1080p'
+  startTime?: number
+  endTime?: number
+  audioFilename?: string
+  subtitleFilename?: string
+  subtitleStyle?: SubtitleStyle
+  logoFilename?: string
+  logoSize?: number
+  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+  replaceOriginal?: boolean
+  audioVolume?: number
+}) => {
+  const { data } = await api.post('/preview', params)
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }

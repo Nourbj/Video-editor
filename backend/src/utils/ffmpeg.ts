@@ -34,6 +34,7 @@ export interface ExportOptions {
   logoPath?: string
   logoSize?: number // percent of video width (5-60)
   logoPosition?: LogoPosition
+  outputDir?: string
   startTime?: number
   endTime?: number
   replaceOriginal?: boolean
@@ -195,7 +196,8 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
 // Full export pipeline: cut + audio + subtitles + quality
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
-    const outFile = path.join(outputDir, `export_${uuidv4()}.mp4`)
+    const outDir = options.outputDir || outputDir
+    const outFile = path.join(outDir, `export_${uuidv4()}.mp4`)
     const {
       inputPath,
       quality = '720p',
@@ -357,4 +359,24 @@ export function checkFfprobe(): Promise<boolean> {
       }
     })
   })
+}
+
+export function cleanupTempPreviews(maxAgeMs?: number): void {
+  const ageMs = maxAgeMs ?? Number(process.env.PREVIEW_TTL_MS || 60 * 60 * 1000)
+  const now = Date.now()
+  try {
+    const files = fs.readdirSync(tempDir)
+    for (const f of files) {
+      if (!f.startsWith('export_') || !f.endsWith('.mp4')) continue
+      const fp = path.join(tempDir, f)
+      try {
+        const stat = fs.statSync(fp)
+        if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)
+      } catch {
+        // ignore per-file errors
+      }
+    }
+  } catch {
+    // ignore cleanup errors
+  }
 }

@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
         '/api': backendUrl,
         '/outputs': backendUrl,
         '/uploads': backendUrl,
+        '/temp': backendUrl,
       },
     },
   }

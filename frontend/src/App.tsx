@@ -7,7 +7,7 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
-import { createSubtitles, exportVideo } from './api/client'
+import { createSubtitles, previewVideo } from './api/client'
 
 type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'export'
 
@@ -60,7 +60,7 @@ export default function App() {
         setSubtitleFilename(res.filename)
       }
 
-      const result = await exportVideo({
+      const result = await previewVideo({
         filename: video.filename,
         quality: exportQuality,
         startTime: hasTrim ? trimStart : undefined,

@@ -2,7 +2,6 @@ pipeline {
   agent any
 
   environment {
-    // Adjust if your compose file or project name differs
     COMPOSE_FILE = 'docker-compose.yml'
   }
 

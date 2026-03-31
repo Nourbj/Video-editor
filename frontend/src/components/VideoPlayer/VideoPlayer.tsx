@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
+import { withMediaBase } from '../../utils/media'
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -20,7 +21,7 @@ export default function VideoPlayer() {
   const effectiveEnd = trimEnd || fullDuration
   const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
 
-  const src = processedUrl || video?.url || ''
+  const src = withMediaBase(processedUrl || video?.url || '')
   const isMuted = replaceOriginalAudio && !!audioTrack
 
   useEffect(() => {
@@ -215,7 +216,7 @@ export default function VideoPlayer() {
       {audioTrack && (
         <audio
           ref={audioRef}
-          src={audioTrack.url}
+          src={withMediaBase(audioTrack.url)}
           className="hidden"
           preload="auto"
         />

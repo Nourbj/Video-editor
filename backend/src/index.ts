@@ -72,6 +72,12 @@ app.register(staticFiles, {
   decorateReply: false,
 })
 
+app.register(staticFiles, {
+  root: path.join(process.cwd(), 'temp'),
+  prefix: '/temp/',
+  decorateReply: false,
+})
+
 // Health check
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 

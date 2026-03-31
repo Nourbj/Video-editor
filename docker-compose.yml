@@ -12,7 +12,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3005:3005"
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
@@ -29,7 +29,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "5175:5175"
     depends_on:
       - backend
     restart: unless-stopped
