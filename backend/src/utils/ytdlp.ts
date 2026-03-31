@@ -46,7 +46,10 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const outputDir = path.join(process.cwd(), 'uploads')
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
-  const cookiesPath = process.env.YTDLP_COOKIES || ''
+  let cookiesPath = process.env.YTDLP_COOKIES || ''
+  if (cookiesPath && fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).isDirectory()) {
+    cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
+  }
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
   const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
@@ -153,7 +156,10 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 
 export async function getVideoInfo(url: string): Promise<Record<string, unknown>> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
-  const cookiesPath = process.env.YTDLP_COOKIES || ''
+  let cookiesPath = process.env.YTDLP_COOKIES || ''
+  if (cookiesPath && fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).isDirectory()) {
+    cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
+  }
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
   const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'

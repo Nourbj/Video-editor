@@ -95,12 +95,34 @@ export async function uploadRoute(app: FastifyInstance) {
     }
 
     const envPath = process.env.YTDLP_COOKIES
-    const targetPath = envPath
+    let targetPath = envPath
       ? envPath
       : path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
+    if (targetPath && fs.existsSync(targetPath)) {
+      try {
+        const stat = fs.statSync(targetPath)
+        if (stat.isDirectory()) {
+          targetPath = path.join(targetPath, 'ytdlp_cookies.txt')
+        }
+      } catch { /* ignore */ }
+    }
+    if (targetPath && !path.extname(targetPath)) {
+      // If env points to a directory path string
+      targetPath = path.join(targetPath, 'ytdlp_cookies.txt')
+    }
 
     const targetDir = path.dirname(targetPath)
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
+
+    // If targetPath is mistakenly a directory, remove it so we can write the file
+    if (fs.existsSync(targetPath)) {
+      try {
+        const stat = fs.statSync(targetPath)
+        if (stat.isDirectory()) {
+          fs.rmSync(targetPath, { recursive: true, force: true })
+        }
+      } catch { /* ignore */ }
+    }
 
     await pipeline(data.file, fs.createWriteStream(targetPath))
 
