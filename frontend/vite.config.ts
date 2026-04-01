@@ -5,7 +5,7 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
   const backendHost = env.BACKEND_HOST || 'localhost'
-  const backendPort = env.BACKEND_PORT || '3001'
+  const backendPort = env.BACKEND_PORT || '3005'
   const backendUrl = `http://${backendHost}:${backendPort}`
 
   return {
