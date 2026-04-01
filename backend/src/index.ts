@@ -90,7 +90,7 @@ app.register(uploadRoute, { prefix: '/api' })
 const start = async () => {
   try {
     await checkDependencies()
-    const port = Number(process.env.BACKEND_PORT || 3001)
+    const port = Number(process.env.BACKEND_PORT || 3005)
     const host = process.env.BACKEND_HOST || '0.0.0.0'
     await app.listen({ port, host })
     console.log(`🚀 Backend running on http://${host}:${port}`)

@@ -40,7 +40,7 @@ node --version   # >= 18
 cd backend
 npm install
 npm run dev
-# → http://localhost:3001
+# → http://localhost:3005
 ```
 
 ### 2. Frontend
