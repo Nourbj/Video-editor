@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Cookie, Type, Square } from 'lucide-react'
+import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -7,12 +7,11 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
-import CookiesUpload from './components/CookiesUpload/CookiesUpload'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
 import { createSubtitles, previewVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'cookies' | 'export'
+type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
@@ -22,7 +21,6 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
   { id: 'title', label: 'Title', icon: <Type size={15} />, requiresVideo: true },
   { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
-  { id: 'cookies', label: 'Cookies', icon: <Cookie size={15} /> },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
 
@@ -206,10 +204,10 @@ export default function App() {
         </div>
       </header>
 
-      <div className="max-w-8xl mx-auto px-8 py-2">
-        <div className="flex flex-col lg:flex-row gap-2">
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-2">
-            <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200">
+      <div className="max-w-[1700px] mx-auto px-4 lg:px-8 py-2">
+        <div className="flex flex-col lg:flex-row gap-3 items-start">
+          <div className="w-full lg:w-52 flex-shrink-0 lg:sticky lg:top-[64px]">
+            <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
                 const disabled = tab.requiresVideo && !video
                 const active = activeTab === tab.id
@@ -240,21 +238,8 @@ export default function App() {
                 )
               })}
             </nav>
-
-            {/* Active panel */}
-            <div className="bg-white rounded-2xl p-5 border border-zinc-200 min-h-[360px] sm:min-h-[400px]">
-              {activeTab === 'import' && <ImportPanel />}
-              {activeTab === 'edit' && <EditPanel />}
-              {activeTab === 'audio' && <AudioEditor />}
-              {activeTab === 'subtitles' && <SubtitleEditor />}
-              {activeTab === 'logo' && <LogoEditor />}
-              {activeTab === 'title' && <TitleEditor />}
-              {activeTab === 'border' && <BorderEditor />}
-              {activeTab === 'cookies' && <CookiesUpload />}
-              {activeTab === 'export' && <ExportPanel />}
-            </div>
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full overflow-hidden">
             {video ? (
               <div className="space-y-2">
                 {/* Video info bar */}
@@ -300,17 +285,17 @@ export default function App() {
 
                 {/* Subtitle preview overlay info */}
                 {subtitles.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-4">
-                    <h3 className="text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Subtitle preview</h3>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-3">
+                    <h3 className="text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">Subtitle preview</h3>
+                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
                       {subtitles.slice(0, 10).map((s, i) => (
-                        <div key={i} className="flex items-start gap-3 text-xs">
-                          <span className="font-mono text-zinc-500 flex-shrink-0">{s.startTime.slice(0, 8)}</span>
-                          <span className="text-zinc-700">{s.text}</span>
+                        <div key={i} className="flex items-start gap-3 text-xs border-b border-zinc-100 pb-1 last:border-0 last:pb-0">
+                          <span className="font-mono text-zinc-400 flex-shrink-0">{s.startTime.slice(0, 8)}</span>
+                          <span className="text-zinc-600 leading-tight">{s.text}</span>
                         </div>
                       ))}
                       {subtitles.length > 10 && (
-                        <p className="text-zinc-500 text-xs">+{subtitles.length - 10} more...</p>
+                        <p className="text-zinc-400 text-xs italic">+{subtitles.length - 10} more...</p>
                       )}
                     </div>
                   </div>
@@ -318,16 +303,30 @@ export default function App() {
               </div>
             ) : (
               /* Empty state */
-              <div className="bg-white rounded-2xl border border-zinc-200 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center text-center p-8 sm:p-10">
+              <div className="bg-white rounded-2xl border border-zinc-200 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center p-8 sm:p-10 text-center">
                 <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
                   <Film size={28} className="text-zinc-500" />
                 </div>
                 <h2 className="text-lg font-semibold text-zinc-700 mb-2">No video loaded</h2>
                 <p className="text-sm text-zinc-500 max-w-xs">
-                  Import a video from YouTube, Instagram, Facebook, or upload a local file to start editing.
+                  Use the Import tab on the right to load a video from YouTube, Instagram, Facebook, or a local file.
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Active Panel (Right) */}
+          <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-[64px]">
+            <div className="bg-white rounded-2xl p-4 border border-zinc-200 min-h-[300px] shadow-sm">
+              {activeTab === 'import' && <ImportPanel />}
+              {activeTab === 'edit' && <EditPanel />}
+              {activeTab === 'audio' && <AudioEditor />}
+              {activeTab === 'subtitles' && <SubtitleEditor />}
+              {activeTab === 'logo' && <LogoEditor />}
+              {activeTab === 'title' && <TitleEditor />}
+              {activeTab === 'border' && <BorderEditor />}
+              {activeTab === 'export' && <ExportPanel />}
+            </div>
           </div>
         </div>
       </div>

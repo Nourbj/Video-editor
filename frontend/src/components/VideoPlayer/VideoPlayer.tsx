@@ -102,7 +102,7 @@ export default function VideoPlayer() {
   return (
     <div className="space-y-3">
       {/* Video */}
-      <div className="relative bg-zinc-100 rounded-xl overflow-hidden aspect-video">
+      <div className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[35vh] min-h-[300px]">
         <video
           ref={videoRef}
           src={src}
@@ -163,11 +163,17 @@ export default function VideoPlayer() {
       </div>
 
       {/* Trim range */}
-      <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
-        <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500 w-12">Start</span>
+      <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
+          <p className="text-xs text-zinc-500">
+            Selection: {formatTime(trimEnd - trimStart)} ({formatTime(trimStart)} → {formatTime(trimEnd)})
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-xs text-zinc-500 w-8">Start</span>
             <input
               type="range" min={0} max={fullDuration} step={0.1} value={trimStart}
               onChange={e => {
@@ -177,10 +183,9 @@ export default function VideoPlayer() {
               aria-label="Trim start"
               className="flex-1 accent-yellow-600 h-1"
             />
-            <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimStart)}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500 w-12">End</span>
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-xs text-zinc-500 w-8">End</span>
             <input
               type="range" min={0} max={fullDuration} step={0.1} value={trimEnd}
               onChange={e => {
@@ -190,12 +195,11 @@ export default function VideoPlayer() {
               aria-label="Trim end"
               className="flex-1 accent-yellow-600 h-1"
             />
-            <span className="text-xs text-zinc-500 font-mono w-12 text-right">{formatTime(trimEnd)}</span>
           </div>
         </div>
 
         {/* Visual trim bar */}
-        <div className="relative h-6 bg-zinc-200 rounded-lg overflow-hidden">
+        <div className="relative h-2 bg-zinc-200 rounded-full overflow-hidden mt-1">
           <div
             className="absolute top-0 h-full bg-cyan-600/60 rounded"
             style={{
@@ -204,13 +208,10 @@ export default function VideoPlayer() {
             }}
           />
           <div
-            className="absolute top-0 h-full w-0.5 bg-zinc-900/70"
+            className="absolute top-0 h-full w-[2px] bg-zinc-900/70"
             style={{ left: `${fullDuration ? (currentTime / fullDuration) * 100 : 0}%` }}
           />
         </div>
-        <p className="text-xs text-zinc-500">
-          Selection: {formatTime(trimEnd - trimStart)} &nbsp;|&nbsp; {formatTime(trimStart)} → {formatTime(trimEnd)}
-        </p>
       </div>
 
       {audioTrack && (

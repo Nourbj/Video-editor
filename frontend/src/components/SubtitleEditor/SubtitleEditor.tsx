@@ -103,10 +103,10 @@ export default function SubtitleEditor() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Subtitles</h2>
-        <p className="text-sm text-zinc-500">Create manually or upload a .srt file</p>
+        <p className="text-xs text-zinc-500">Create manually or upload a .srt file</p>
       </div>
 
       {/* Actions */}
@@ -152,10 +152,10 @@ export default function SubtitleEditor() {
       </div>
 
       {/* Auto subtitles settings */}
-      <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 space-y-3">
+      <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
         <h3 className="text-sm font-medium text-zinc-700">Auto subtitles</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="text-xs text-zinc-500">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label className="text-[11px] text-zinc-500">
             Language
             <select
               value={autoLang}
@@ -170,7 +170,7 @@ export default function SubtitleEditor() {
               <option value="de">German</option>
             </select>
           </label>
-          <label className="text-xs text-zinc-500">
+          <label className="text-[11px] text-zinc-500">
             Model
             <select
               value={autoModel}
@@ -188,10 +188,13 @@ export default function SubtitleEditor() {
       </div>
 
       {/* Style controls */}
-      <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200 space-y-3">
-        <h3 className="text-sm font-medium text-zinc-700">Style</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label className="text-xs text-zinc-500">
+      <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-zinc-700">Style</h3>
+          <p className="text-[10px] text-zinc-400">Changes apply on preview/export.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <label className="text-[11px] text-zinc-500">
             Size
             <input
               type="number"
@@ -202,16 +205,16 @@ export default function SubtitleEditor() {
               className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
             />
           </label>
-          <label className="text-xs text-zinc-500">
+          <label className="text-[11px] text-zinc-500">
             Color
             <input
               type="color"
               value={subtitleStyle.color}
               onChange={e => setSubtitleStyle({ ...subtitleStyle, color: e.target.value })}
-              className="mt-1 w-full h-9 bg-white border border-zinc-200 rounded-lg p-1"
+              className="mt-1 w-full h-7 bg-white border border-zinc-200 rounded-lg p-0.5"
             />
           </label>
-          <label className="text-xs text-zinc-500">
+          <label className="text-[11px] text-zinc-500">
             Position
             <select
               value={subtitleStyle.position}
@@ -224,17 +227,16 @@ export default function SubtitleEditor() {
             </select>
           </label>
         </div>
-        <p className="text-xs text-zinc-500">Changes apply on preview/export.</p>
       </div>
 
       {/* Subtitle list */}
       {subtitles.length === 0 ? (
-        <div className="text-center py-10 text-zinc-500">
-          <FileText size={28} className="mx-auto mb-2" />
+        <div className="text-center py-6 text-zinc-500">
+          <FileText size={24} className="mx-auto mb-2" />
           <p className="text-sm">No subtitles yet. Add an entry or upload a .srt file.</p>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
           {subtitles.map((entry, i) => (
             <div key={i} className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
               <div className="flex items-center gap-2">
