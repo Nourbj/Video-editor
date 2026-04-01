@@ -12,7 +12,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3005:3001"
+      - "3005:3005"
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
@@ -21,6 +21,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
+      - BACKEND_PORT=3005
       - YTDLP_COOKIES=/app/cookies
       - YTDLP_DEBUG=true
     depends_on:
