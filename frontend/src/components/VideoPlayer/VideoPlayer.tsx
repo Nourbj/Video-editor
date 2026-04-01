@@ -100,9 +100,9 @@ export default function VideoPlayer() {
   if (!video) return null
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Video */}
-      <div className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[35vh] min-h-[300px]">
+      <div className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[38vh] min-h-[300px]">
         <video
           ref={videoRef}
           src={src}
@@ -126,7 +126,7 @@ export default function VideoPlayer() {
       </div>
 
       {/* Controls */}
-      <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
+      <div className="bg-zinc-50 rounded-xl px-3 py-2 space-y-2 border border-zinc-200">
         {/* Scrubber */}
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-zinc-900 hover:text-cyan-600 transition-colors flex-shrink-0">
@@ -146,31 +146,31 @@ export default function VideoPlayer() {
             {formatTime(Math.max(0, currentTime - effectiveStart))} / {formatTime(effectiveDuration)}
           </span>
         </div>
-        <div className="text-[11px] text-zinc-500 font-mono text-right">
-          Total: {formatTime(fullDuration)}
-        </div>
-
-        {/* Volume */}
-        <div className="flex items-center gap-2">
-          <Volume2 size={14} className="text-zinc-500" />
-          <input
-            type="range" min={0} max={1} step={0.05} value={volume}
-            onChange={handleVolume}
-            aria-label="Video volume"
-            className="w-24 accent-cyan-600 h-1"
-          />
+        <div className="flex justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Volume2 size={14} className="text-zinc-500" />
+            <input
+              type="range" min={0} max={1} step={0.05} value={volume}
+              onChange={handleVolume}
+              aria-label="Video volume"
+              className="w-24 accent-cyan-600 h-1"
+            />
+          </div>
+          <div className="text-[11px] text-zinc-500 font-mono text-right">
+            Total: {formatTime(fullDuration)}
+          </div>
         </div>
       </div>
 
       {/* Trim range */}
-      <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
+      <div className="bg-zinc-50 rounded-xl px-3 py-2 space-y-2 border border-zinc-200">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
           <p className="text-xs text-zinc-500">
             Selection: {formatTime(trimEnd - trimStart)} ({formatTime(trimStart)} → {formatTime(trimEnd)})
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <div className="flex-1 flex items-center gap-2">
             <span className="text-xs text-zinc-500 w-8">Start</span>
@@ -214,14 +214,16 @@ export default function VideoPlayer() {
         </div>
       </div>
 
-      {audioTrack && (
-        <audio
-          ref={audioRef}
-          src={withMediaBase(audioTrack.url)}
-          className="hidden"
-          preload="auto"
-        />
-      )}
-    </div>
+      {
+        audioTrack && (
+          <audio
+            ref={audioRef}
+            src={withMediaBase(audioTrack.url)}
+            className="hidden"
+            preload="auto"
+          />
+        )
+      }
+    </div >
   )
 }

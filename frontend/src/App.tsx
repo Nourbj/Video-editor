@@ -217,10 +217,10 @@ export default function App() {
                     onClick={() => !disabled && setActiveTab(tab.id)}
                     disabled={disabled}
                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
-                        ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
-                        : disabled
-                          ? 'text-zinc-300 cursor-not-allowed'
-                          : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                      ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
+                      : disabled
+                        ? 'text-zinc-300 cursor-not-allowed'
+                        : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
                       }`}
                   >
                     {tab.icon}
@@ -241,25 +241,22 @@ export default function App() {
           </div>
           <div className="flex-1 min-w-0 w-full overflow-hidden">
             {video ? (
-              <div className="space-y-2">
-                {/* Video info bar */}
-                <div className="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                  {video.thumbnail && (
-                    <img src={video.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
-                    <p className="text-xs text-zinc-500">
-                      {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
-                      {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
-                      {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
-                      {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
-                    </p>
+              <div className='space-y-1'>
+                <div className="justify-between bg-white rounded-2xl border border-zinc-200 px-4 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {video.thumbnail && (
+                      <img src={video.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
+                      <p className="text-xs text-zinc-500">
+                        {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
+                        {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
+                        {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
+                        {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Player */}
-                <div className="bg-white rounded-2xl border border-zinc-200 p-4 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={handlePreview}
@@ -280,6 +277,10 @@ export default function App() {
                       <span className="text-xs text-red-400">{previewError}</span>
                     )}
                   </div>
+                </div>
+
+                {/* Player */}
+                <div className="bg-white rounded-2xl border border-zinc-200 px-4 py-2">
                   <VideoPlayer />
                 </div>
 
@@ -336,7 +337,7 @@ export default function App() {
 
 // Inline edit panel (trim info + quick action)
 function EditPanel() {
-  const { video, trimStart, trimEnd, setActiveTab, setTrimStart, setTrimEnd } = useStore()
+  const { video, trimStart, trimEnd, setTrimStart, setTrimEnd } = useStore()
   if (!video) return null
 
   return (
@@ -377,12 +378,6 @@ function EditPanel() {
         Reset to full video
       </button>
 
-      <button
-        onClick={() => setActiveTab('audio')}
-        className="w-full py-2.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-600 rounded-xl text-sm transition-colors"
-      >
-        Next: Add audio →
-      </button>
     </div>
   )
 }
