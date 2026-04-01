@@ -78,7 +78,7 @@ export default function AudioEditor() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Audio</h2>
         <p className="text-sm text-zinc-500">Add background music or replace the original audio</p>
