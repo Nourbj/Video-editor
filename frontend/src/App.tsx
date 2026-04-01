@@ -34,7 +34,7 @@ export default function App() {
   const {
     video, activeTab, setActiveTab, reset,
     trimStart, trimEnd,
-    audioTrack, subtitles,
+    audioTrack, audioDuration, audioTrimStart, audioTrimEnd, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
@@ -57,6 +57,8 @@ export default function App() {
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasSubtitles = subtitles.length > 0
+    const hasAppliedAudio = !!audioTrack && audioApplied
+    const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
 
     try {
       let subFile = subtitleFilename
@@ -71,7 +73,9 @@ export default function App() {
         quality: exportQuality,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
-        audioFilename: audioTrack?.filename,
+        audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
+        audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
+        audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
         titleStyle: titleText.trim() ? {
@@ -108,7 +112,9 @@ export default function App() {
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && borderSize > 0
-    const hasChanges = hasTrim || hasAudio || hasSubtitles || hasLogo || hasTitle || hasBorder
+    const hasAppliedAudio = !!audioTrack && audioApplied
+    const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
+    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitles || hasLogo || hasTitle || hasBorder
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -120,7 +126,7 @@ export default function App() {
     const sig = JSON.stringify({
       trimStart,
       trimEnd,
-      audio: audioTrack ? { id: audioTrack.id, vol: audioTrack.volume, replace: audioTrack.replaceOriginal } : null,
+      audio: hasAppliedAudio ? { id: audioTrack!.id, vol: appliedAudioVolume, replace: appliedReplaceOriginal, t0: appliedAudioTrimStart, t1: appliedAudioTrimEnd } : null,
       subtitles,
       exportQuality,
       logo: logoImage ? { id: logoImage.id, size: logoSize, pos: logoPosition } : null,
@@ -257,18 +263,18 @@ export default function App() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={handlePreview}
                       disabled={previewLoading}
-                      className="px-3 py-2 rounded-lg text-xs font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
+                      className="px-2 py-2 rounded-lg text-[11px] font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
                     >
                       {previewLoading ? 'Generating preview...' : 'Preview changes'}
                     </button>
                     {processedUrl && (
                       <button
                         onClick={() => setProcessedUrl(null)}
-                        className="px-3 py-2 rounded-lg text-xs font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
+                        className="px-2 py-2 rounded-lg text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
                       >
                         Show original
                       </button>

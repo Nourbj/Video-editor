@@ -54,6 +54,19 @@ interface EditorState {
   setAudioVolume: (v: number) => void
   replaceOriginalAudio: boolean
   setReplaceOriginalAudio: (r: boolean) => void
+  audioDuration: number
+  setAudioDuration: (d: number) => void
+  audioTrimStart: number
+  audioTrimEnd: number
+  setAudioTrimStart: (t: number) => void
+  setAudioTrimEnd: (t: number) => void
+  audioApplied: boolean
+  setAudioApplied: (a: boolean) => void
+  appliedAudioVolume: number
+  appliedReplaceOriginal: boolean
+  appliedAudioTrimStart: number
+  appliedAudioTrimEnd: number
+  setAppliedAudioSettings: (s: { volume: number; replaceOriginal: boolean; trimStart: number; trimEnd: number }) => void
 
   // Subtitles
   subtitles: SubtitleEntry[]
@@ -128,11 +141,40 @@ export const useStore = create<EditorState>((set) => ({
   setTrimEnd: t => set({ trimEnd: t }),
 
   audioTrack: null,
-  setAudioTrack: a => set({ audioTrack: a }),
+  setAudioTrack: a => set({
+    audioTrack: a,
+    audioDuration: a ? 0 : 0,
+    audioTrimStart: 0,
+    audioTrimEnd: 0,
+    audioApplied: false,
+    appliedAudioVolume: 1,
+    appliedReplaceOriginal: false,
+    appliedAudioTrimStart: 0,
+    appliedAudioTrimEnd: 0,
+  }),
   audioVolume: 1,
   setAudioVolume: v => set({ audioVolume: v }),
   replaceOriginalAudio: false,
   setReplaceOriginalAudio: r => set({ replaceOriginalAudio: r }),
+  audioDuration: 0,
+  setAudioDuration: d => set({ audioDuration: d }),
+  audioTrimStart: 0,
+  audioTrimEnd: 0,
+  setAudioTrimStart: t => set({ audioTrimStart: t }),
+  setAudioTrimEnd: t => set({ audioTrimEnd: t }),
+  audioApplied: false,
+  setAudioApplied: a => set({ audioApplied: a }),
+  appliedAudioVolume: 1,
+  appliedReplaceOriginal: false,
+  appliedAudioTrimStart: 0,
+  appliedAudioTrimEnd: 0,
+  setAppliedAudioSettings: s => set({
+    appliedAudioVolume: s.volume,
+    appliedReplaceOriginal: s.replaceOriginal,
+    appliedAudioTrimStart: s.trimStart,
+    appliedAudioTrimEnd: s.trimEnd,
+    audioApplied: true,
+  }),
 
   subtitles: [],
   setSubtitles: s => set({ subtitles: s }),
@@ -178,7 +220,8 @@ export const useStore = create<EditorState>((set) => ({
 
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
-    audioTrack: null, audioVolume: 1, replaceOriginalAudio: false,
+    audioTrack: null, audioVolume: 1, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0,
+    audioApplied: false, appliedAudioVolume: 1, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0,
     subtitles: [], subtitleFilename: null,
     subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
     logoImage: null,

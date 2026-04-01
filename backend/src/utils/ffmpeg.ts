@@ -41,6 +41,8 @@ export interface ExportOptions {
   endTime?: number
   replaceOriginal?: boolean
   audioVolume?: number
+  audioStartTime?: number
+  audioEndTime?: number
 }
 
 export interface SubtitleStyle {
@@ -274,6 +276,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       subtitlePath,
       replaceOriginal,
       audioVolume,
+      audioStartTime,
+      audioEndTime,
       titleStyle,
       borderStyle,
       logoPath,
@@ -309,6 +313,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
     const titleFilter = buildTitleDrawtext(titleStyle)
     const borderFilter = buildBorderFilter(borderStyle)
+    const hasAudioTrim = audioStartTime !== undefined && audioEndTime !== undefined && audioEndTime > audioStartTime
+    const audioTrimFilter = hasAudioTrim ? `atrim=start=${audioStartTime}:end=${audioEndTime},asetpts=PTS-STARTPTS` : null
 
     if (hasAudio) cmd.input(audioPath!)
     if (hasLogo) cmd.input(logoPath!).inputOptions(['-loop 1'])
@@ -342,11 +348,13 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
       if (hasAudio) {
         if (replaceOriginal) {
-          filters.push(`[1:a]volume=${vol}[aout]`)
-          cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac', '-shortest'])
+          const chain = `${hasAudioTrim ? `${audioTrimFilter},` : ''}volume=${vol}`
+          filters.push(`[1:a]${chain}[aout]`)
+          cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         } else {
           filters.push(`[0:a]volume=1[a0]`)
-          filters.push(`[1:a]volume=${vol}[a1]`)
+          const chain = `${hasAudioTrim ? `${audioTrimFilter},` : ''}volume=${vol}`
+          filters.push(`[1:a]${chain}[a1]`)
           filters.push(`[a0][a1]amix=inputs=2:duration=first[aout]`)
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         }

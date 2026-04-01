@@ -163,6 +163,8 @@ export const exportVideo = async (params: {
   startTime?: number
   endTime?: number
   audioFilename?: string
+  audioStartTime?: number
+  audioEndTime?: number
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
   titleStyle?: TitleStyle
@@ -184,6 +186,8 @@ export const previewVideo = async (params: {
   startTime?: number
   endTime?: number
   audioFilename?: string
+  audioStartTime?: number
+  audioEndTime?: number
   subtitleFilename?: string
   subtitleStyle?: SubtitleStyle
   titleStyle?: TitleStyle

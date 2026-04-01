@@ -12,7 +12,8 @@ function formatTime(s: number) {
 export default function ExportPanel() {
   const {
     video, trimStart, trimEnd,
-    audioTrack, audioVolume, replaceOriginalAudio,
+    audioTrack, audioVolume, replaceOriginalAudio, audioDuration, audioTrimStart, audioTrimEnd,
+    audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     subtitles, subtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
@@ -31,6 +32,8 @@ export default function ExportPanel() {
   const hasAudio = !!audioTrack
   const hasSubtitles = subtitles.length > 0
   const hasLogo = !!logoImage
+  const hasAppliedAudio = !!audioTrack && audioApplied
+  const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
 
   const handleExport = async () => {
     if (!video) return
@@ -60,8 +63,10 @@ export default function ExportPanel() {
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
         audioFilename: audioTrack?.filename,
-        audioVolume: audioVolume,
-        replaceOriginal: replaceOriginalAudio,
+        audioVolume: hasAppliedAudio ? appliedAudioVolume : undefined,
+        audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
+        audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
+        replaceOriginal: hasAppliedAudio ? appliedReplaceOriginal : undefined,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
         titleStyle: titleText.trim() ? {
@@ -120,7 +125,9 @@ export default function ExportPanel() {
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2 text-zinc-500"><Music size={13} /> Audio</span>
             <span className="text-zinc-700 text-xs">
-              {hasAudio ? `${audioTrack!.filename} (${Math.round(audioVolume * 100)}%, ${replaceOriginalAudio ? 'replace' : 'mix'})` : 'Original'}
+              {hasAppliedAudio
+                ? `${audioTrack!.filename} (${Math.round(appliedAudioVolume * 100)}%, ${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}`
+                : hasAudio ? 'Not applied' : 'Original'}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
