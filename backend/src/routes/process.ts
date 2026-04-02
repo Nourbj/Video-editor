@@ -1,19 +1,24 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
 
 export async function processRoute(app: FastifyInstance) {
+  const resolveMediaPath = (filename: string) => {
+    const candidates = [
+      path.join(process.cwd(), 'uploads', filename),
+      path.join(process.cwd(), 'outputs', filename),
+      path.join(process.cwd(), 'temp', filename),
+    ]
+
+    return candidates.find(candidate => fs.existsSync(candidate)) || null
+  }
+
   // Get video metadata
   app.post('/meta', async (req, reply) => {
     const { filename } = req.body as { filename: string }
-    const filepath = path.join(process.cwd(), 'uploads', filename)
-
-    if (!fs.existsSync(filepath)) {
-      // Try outputs
-      const outPath = path.join(process.cwd(), 'outputs', filename)
-      if (!fs.existsSync(outPath)) return reply.code(404).send({ error: 'File not found' })
-    }
+    const filepath = resolveMediaPath(filename)
+    if (!filepath) return reply.code(404).send({ error: 'File not found' })
 
     try {
       const meta = await getVideoMeta(filepath)
@@ -49,8 +54,8 @@ export async function processRoute(app: FastifyInstance) {
       endTime: number
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', filename)
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'File not found' })
+    const inputPath = resolveMediaPath(filename)
+    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
 
     try {
       const outPath = await cutVideo({ inputPath, startTime, endTime })
@@ -58,6 +63,64 @@ export async function processRoute(app: FastifyInstance) {
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Cut failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  app.post('/split-video', async (req, reply) => {
+    const { filename, segments } = req.body as {
+      filename: string
+      segments: { startTime: number; endTime: number; label?: string }[]
+    }
+
+    const inputPath = resolveMediaPath(filename)
+    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
+    if (!Array.isArray(segments) || segments.length === 0) {
+      return reply.code(400).send({ error: 'No segments provided' })
+    }
+
+    const invalidSegment = segments.find(segment => (
+      typeof segment.startTime !== 'number'
+      || typeof segment.endTime !== 'number'
+      || segment.endTime <= segment.startTime
+    ))
+    if (invalidSegment) {
+      return reply.code(400).send({ error: 'Invalid segment range' })
+    }
+
+    try {
+      const outPaths = await splitVideo(inputPath, segments)
+      return {
+        segments: outPaths.map((outPath, index) => ({
+          filename: path.basename(outPath),
+          url: `/outputs/${path.basename(outPath)}`,
+          label: segments[index]?.label,
+        })),
+      }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Split failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  app.post('/merge-videos', async (req, reply) => {
+    const { filenames } = req.body as { filenames: string[] }
+    if (!Array.isArray(filenames) || filenames.length < 2) {
+      return reply.code(400).send({ error: 'At least two segments are required' })
+    }
+
+    const inputPaths = filenames.map(resolveMediaPath)
+    if (inputPaths.some(inputPath => !inputPath)) {
+      return reply.code(404).send({ error: 'One or more segments were not found' })
+    }
+
+    try {
+      const outPath = await mergeVideos({ inputPaths: inputPaths as string[] })
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Merge failed'
       return reply.code(500).send({ error: message })
     }
   })
@@ -71,11 +134,11 @@ export async function processRoute(app: FastifyInstance) {
       replaceOriginal?: boolean
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', videoFilename)
-    const audioPath = path.join(process.cwd(), 'uploads', audioFilename)
+    const inputPath = resolveMediaPath(videoFilename)
+    const audioPath = resolveMediaPath(audioFilename)
 
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'Video not found' })
-    if (!fs.existsSync(audioPath)) return reply.code(404).send({ error: 'Audio not found' })
+    if (!inputPath) return reply.code(404).send({ error: 'Video not found' })
+    if (!audioPath) return reply.code(404).send({ error: 'Audio not found' })
 
     try {
       const outPath = await mergeAudio({ inputPath, audioPath, volume, replaceOriginal })
@@ -122,19 +185,19 @@ export async function processRoute(app: FastifyInstance) {
       audioVolume?: number
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', body.filename)
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'File not found' })
+    const inputPath = resolveMediaPath(body.filename)
+    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
 
     const audioPath = body.audioFilename
-      ? path.join(process.cwd(), 'uploads', body.audioFilename)
+      ? resolveMediaPath(body.audioFilename) || path.join(process.cwd(), 'uploads', body.audioFilename)
       : undefined
 
     const subtitlePath = body.subtitleFilename
-      ? path.join(process.cwd(), 'uploads', body.subtitleFilename)
+      ? resolveMediaPath(body.subtitleFilename) || path.join(process.cwd(), 'uploads', body.subtitleFilename)
       : undefined
 
     const logoPath = body.logoFilename
-      ? path.join(process.cwd(), 'uploads', body.logoFilename)
+      ? resolveMediaPath(body.logoFilename) || path.join(process.cwd(), 'uploads', body.logoFilename)
       : undefined
 
     if (logoPath && !fs.existsSync(logoPath)) {
@@ -213,19 +276,19 @@ export async function processRoute(app: FastifyInstance) {
       audioVolume?: number
     }
 
-    const inputPath = path.join(process.cwd(), 'uploads', body.filename)
-    if (!fs.existsSync(inputPath)) return reply.code(404).send({ error: 'File not found' })
+    const inputPath = resolveMediaPath(body.filename)
+    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
 
     const audioPath = body.audioFilename
-      ? path.join(process.cwd(), 'uploads', body.audioFilename)
+      ? resolveMediaPath(body.audioFilename) || path.join(process.cwd(), 'uploads', body.audioFilename)
       : undefined
 
     const subtitlePath = body.subtitleFilename
-      ? path.join(process.cwd(), 'uploads', body.subtitleFilename)
+      ? resolveMediaPath(body.subtitleFilename) || path.join(process.cwd(), 'uploads', body.subtitleFilename)
       : undefined
 
     const logoPath = body.logoFilename
-      ? path.join(process.cwd(), 'uploads', body.logoFilename)
+      ? resolveMediaPath(body.logoFilename) || path.join(process.cwd(), 'uploads', body.logoFilename)
       : undefined
 
     if (logoPath && !fs.existsSync(logoPath)) {

@@ -20,7 +20,8 @@ export default function VideoPlayer() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, setVolume] = useState(1)
-  const fullDuration = video?.duration || 0
+  const [mediaDuration, setMediaDuration] = useState(0)
+  const fullDuration = mediaDuration || video?.duration || 0
   const effectiveStart = trimStart
   const effectiveEnd = trimEnd || fullDuration
   const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
@@ -33,6 +34,12 @@ export default function VideoPlayer() {
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
   }, [video])
+
+  useEffect(() => {
+    setMediaDuration(0)
+    setCurrentTime(0)
+    setPlaying(false)
+  }, [src])
 
 
   useEffect(() => {
@@ -83,7 +90,7 @@ export default function VideoPlayer() {
     const v = videoRef.current
     if (!v) return
     setCurrentTime(v.currentTime)
-    if (v.currentTime >= trimEnd) {
+    if (v.currentTime >= effectiveEnd) {
       v.pause()
       audioRef.current?.pause()
       setPlaying(false)
@@ -126,7 +133,13 @@ export default function VideoPlayer() {
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => setPlaying(false)}
           onLoadedMetadata={() => {
-            if (videoRef.current) videoRef.current.currentTime = trimStart
+            if (videoRef.current) {
+              const actualDuration = Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : 0
+              setMediaDuration(actualDuration)
+              const nextStart = Math.min(trimStart, actualDuration || trimStart)
+              videoRef.current.currentTime = nextStart
+              setCurrentTime(nextStart)
+            }
             if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
           }}
         />

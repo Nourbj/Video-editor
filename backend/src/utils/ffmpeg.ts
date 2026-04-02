@@ -12,6 +12,16 @@ export interface CutOptions {
   endTime: number     // seconds
 }
 
+export interface SegmentDefinition {
+  startTime: number
+  endTime: number
+  label?: string
+}
+
+export interface MergeVideosOptions {
+  inputPaths: string[]
+}
+
 export interface AudioOptions {
   inputPath: string
   audioPath: string
@@ -204,6 +214,59 @@ export function cutVideo({ inputPath, startTime, endTime }: CutOptions): Promise
       .output(outFile)
       .on('end', () => resolve(outFile))
       .on('error', reject)
+      .run()
+  })
+}
+
+export async function splitVideo(inputPath: string, segments: SegmentDefinition[]): Promise<string[]> {
+  const outputs: string[] = []
+  for (const segment of segments) {
+    const outPath = await cutVideo({
+      inputPath,
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+    })
+    outputs.push(outPath)
+  }
+  return outputs
+}
+
+export function mergeVideos({ inputPaths }: MergeVideosOptions): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!inputPaths.length) {
+      reject(new Error('No segments provided for merge'))
+      return
+    }
+
+    const listFile = path.join(tempDir, `concat_${uuidv4()}.txt`)
+    const outFile = path.join(outputDir, `merge_${uuidv4()}.mp4`)
+    const fileList = inputPaths
+      .map(filePath => `file '${filePath.replace(/'/g, "'\\''").replace(/\\/g, '/')}'`)
+      .join('\n')
+
+    fs.writeFileSync(listFile, fileList, 'utf8')
+
+    ffmpeg()
+      .input(listFile)
+      .inputOptions(['-f concat', '-safe 0'])
+      .outputOptions(['-c copy'])
+      .output(outFile)
+      .on('end', () => {
+        try {
+          fs.unlinkSync(listFile)
+        } catch {
+          // ignore cleanup error
+        }
+        resolve(outFile)
+      })
+      .on('error', (err) => {
+        try {
+          fs.unlinkSync(listFile)
+        } catch {
+          // ignore cleanup error
+        }
+        reject(err)
+      })
       .run()
   })
 }

@@ -30,6 +30,15 @@ export interface LogoAsset {
   url: string
 }
 
+export interface VideoSegment {
+  id: string
+  label: string
+  start: number
+  end: number
+  outputFilename: string | null
+  outputUrl: string | null
+}
+
 export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 export type TitlePosition =
   | 'top-left' | 'top' | 'top-right'
@@ -46,6 +55,12 @@ interface EditorState {
   trimEnd: number
   setTrimStart: (t: number) => void
   setTrimEnd: (t: number) => void
+  segments: VideoSegment[]
+  addSegment: (segment: Omit<VideoSegment, 'id' | 'outputFilename' | 'outputUrl'>) => void
+  removeSegment: (id: string) => void
+  clearSegments: () => void
+  resetSegmentOutputs: () => void
+  setSegmentOutput: (id: string, output: { filename: string; url: string }) => void
 
   // Audio
   audioTrack: AudioTrack | null
@@ -133,12 +148,38 @@ const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
-  setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null }),
+  setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null, segments: [] }),
 
   trimStart: 0,
   trimEnd: 0,
   setTrimStart: t => set({ trimStart: t }),
   setTrimEnd: t => set({ trimEnd: t }),
+  segments: [],
+  addSegment: segment => set(state => ({
+    segments: [
+      ...state.segments,
+      {
+        ...segment,
+        id: crypto.randomUUID(),
+        outputFilename: null,
+        outputUrl: null,
+      },
+    ],
+  })),
+  removeSegment: id => set(state => ({ segments: state.segments.filter(segment => segment.id !== id) })),
+  clearSegments: () => set({ segments: [] }),
+  resetSegmentOutputs: () => set(state => ({
+    segments: state.segments.map(segment => ({
+      ...segment,
+      outputFilename: null,
+      outputUrl: null,
+    })),
+  })),
+  setSegmentOutput: (id, output) => set(state => ({
+    segments: state.segments.map(segment => segment.id === id
+      ? { ...segment, outputFilename: output.filename, outputUrl: output.url }
+      : segment),
+  })),
 
   audioTrack: null,
   setAudioTrack: a => set({
@@ -220,6 +261,7 @@ export const useStore = create<EditorState>((set) => ({
 
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
+    segments: [],
     audioTrack: null, audioVolume: 1, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0,
     audioApplied: false, appliedAudioVolume: 1, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0,
     subtitles: [], subtitleFilename: null,

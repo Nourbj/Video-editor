@@ -40,6 +40,12 @@ export interface BorderStyle {
   color: string
 }
 
+export interface SegmentDefinition {
+  startTime: number
+  endTime: number
+  label?: string
+}
+
 // Download video from URL
 export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   const { data } = await api.post('/download', { url })
@@ -110,6 +116,24 @@ export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; f
 // Cut video
 export const cutVideo = async (filename: string, startTime: number, endTime: number) => {
   const { data } = await api.post('/cut', { filename, startTime, endTime })
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
+}
+
+export const splitVideo = async (filename: string, segments: SegmentDefinition[]) => {
+  const { data } = await api.post('/split-video', { filename, segments })
+  return {
+    ...data,
+    segments: data.segments.map((segment: { url: string; filename: string; label?: string }) => ({
+      ...segment,
+      url: withMediaBase(segment.url),
+    })),
+  } as {
+    segments: { url: string; filename: string; label?: string }[]
+  }
+}
+
+export const mergeVideos = async (filenames: string[]) => {
+  const { data } = await api.post('/merge-videos', { filenames })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 

@@ -9,7 +9,7 @@ import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
-import { createSubtitles, previewVideo } from './api/client'
+import { createSubtitles, mergeVideos, previewVideo, splitVideo } from './api/client'
 
 type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -34,6 +34,7 @@ export default function App() {
   const {
     video, activeTab, setActiveTab, reset,
     trimStart, trimEnd,
+    segments,
     audioTrack, audioDuration, audioTrimStart, audioTrimEnd, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
@@ -257,6 +258,7 @@ export default function App() {
                       <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
                       <p className="text-xs text-zinc-500">
                         {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
+                        {segments.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{segments.length} segments</span></>}
                         {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
                         {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
                         {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
@@ -343,47 +345,314 @@ export default function App() {
 
 // Inline edit panel (trim info + quick action)
 function EditPanel() {
-  const { video, trimStart, trimEnd, setTrimStart, setTrimEnd } = useStore()
+  const {
+    video,
+    trimStart,
+    trimEnd,
+    setTrimStart,
+    setTrimEnd,
+    setVideo,
+    segments,
+    addSegment,
+    removeSegment,
+    clearSegments,
+    resetSegmentOutputs,
+    setSegmentOutput,
+    setProcessedUrl,
+  } = useStore()
+  const [splitLoading, setSplitLoading] = useState(false)
+  const [mergeLoading, setMergeLoading] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+  const selectionDuration = Math.max(0, trimEnd - trimStart)
+  const readySegments = segments.filter(segment => segment.outputFilename)
+  const totalPreparedDuration = segments.reduce((total, segment) => total + Math.max(0, segment.end - segment.start), 0)
+  const mergedDuration = readySegments.reduce((total, segment) => total + Math.max(0, segment.end - segment.start), 0)
   if (!video) return null
 
+  const handleAddSegment = () => {
+    if (selectionDuration <= 0) {
+      setStatus("Choose a valid range before adding a segment.")
+      return
+    }
+
+    addSegment({
+      label: `Segment ${segments.length + 1}`,
+      start: trimStart,
+      end: trimEnd,
+    })
+    setTrimStart(0)
+    setTrimEnd(video.duration)
+    setStatus(`Segment ${segments.length + 1} added.`)
+  }
+
+  const handleSplit = async () => {
+    if (segments.length === 0) {
+      setStatus('Add at least one segment before splitting.')
+      return
+    }
+
+    setSplitLoading(true)
+    setStatus('Splitting segments...')
+    resetSegmentOutputs()
+
+    try {
+      const result = await splitVideo(
+        video.filename,
+        segments.map(segment => ({
+          startTime: segment.start,
+          endTime: segment.end,
+          label: segment.label,
+        })),
+      )
+
+      result.segments.forEach((segmentResult, index) => {
+        const segment = segments[index]
+        if (!segment) return
+        setSegmentOutput(segment.id, {
+          filename: segmentResult.filename,
+          url: segmentResult.url,
+        })
+      })
+
+      setStatus(`${result.segments.length} segment(s) generated.`)
+    } catch (error: unknown) {
+      setStatus(error instanceof Error ? error.message : 'Split failed.')
+    } finally {
+      setSplitLoading(false)
+    }
+  }
+
+  const handleMerge = async () => {
+    if (readySegments.length < 2) {
+      setStatus('At least two generated segments are required to merge.')
+      return
+    }
+
+    setMergeLoading(true)
+    setStatus('Merging segments...')
+
+    try {
+      const result = await mergeVideos(readySegments.map(segment => segment.outputFilename!).filter(Boolean))
+      const mergedDuration = readySegments.reduce((total, segment) => total + Math.max(0, segment.end - segment.start), 0)
+      setVideo({
+        ...video,
+        id: crypto.randomUUID(),
+        filename: result.filename,
+        url: result.url,
+        duration: mergedDuration,
+      })
+      setProcessedUrl(null)
+      setStatus('Merge complete. The merged video is now the current project source.')
+    } catch (error: unknown) {
+      setStatus(error instanceof Error ? error.message : 'Merge failed.')
+    } finally {
+      setMergeLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Edit</h2>
-        <p className="text-sm text-zinc-500">Use the player on the right to set trim points</p>
+        <p className="text-sm text-zinc-500">Create a selection, add it as a segment, then split and merge your generated clips.</p>
       </div>
 
-      <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
-        <h3 className="text-sm font-medium text-zinc-700">Current selection</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-lg p-3 border border-zinc-200">
-            <p className="text-xs text-zinc-500 mb-1">Start</p>
-            <p className="text-lg font-mono font-semibold text-yellow-600">
-              {formatTime2(trimStart)}
-            </p>
+      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-cyan-50 via-white to-white p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-700">Step 1</p>
+            <h3 className="text-sm font-semibold text-zinc-900 mt-1">Current selection</h3>
+            <p className="text-xs text-zinc-500 mt-1">Set the trim handles in the player, then save this range as a segment.</p>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-zinc-200">
-            <p className="text-xs text-zinc-500 mb-1">End</p>
-            <p className="text-lg font-mono font-semibold text-yellow-600">
-              {formatTime2(trimEnd)}
-            </p>
+          <div className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-medium text-cyan-800">
+            {formatTime2(selectionDuration)}
           </div>
         </div>
-        <div className="bg-white rounded-lg p-3 border border-zinc-200">
-          <p className="text-xs text-zinc-500 mb-1">Duration</p>
-          <p className="text-lg font-mono font-semibold text-zinc-900">
-            {formatTime2(trimEnd - trimStart)}
+
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="rounded-xl border border-white/80 bg-white p-3 shadow-sm">
+            <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">Start</p>
+            <p className="text-lg font-mono font-semibold text-zinc-900">{formatTime2(trimStart)}</p>
+          </div>
+          <div className="rounded-xl border border-white/80 bg-white p-3 shadow-sm">
+            <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">End</p>
+            <p className="text-lg font-mono font-semibold text-zinc-900">{formatTime2(trimEnd)}</p>
+          </div>
+          <div className="rounded-xl border border-white/80 bg-white p-3 shadow-sm">
+            <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">Duration</p>
+            <p className="text-lg font-mono font-semibold text-cyan-700">{formatTime2(selectionDuration)}</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-3">
+          <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
+            <span>Selection preview</span>
+            <span>{formatTime2(trimStart)} {'->'} {formatTime2(trimEnd)}</span>
+          </div>
+          <div className="relative h-3 rounded-full bg-zinc-100 overflow-hidden">
+            <div
+              className="absolute inset-y-0 rounded-full bg-gradient-to-r from-cyan-500 to-teal-400"
+              style={{
+                left: `${video.duration ? (trimStart / video.duration) * 100 : 0}%`,
+                width: `${video.duration ? ((trimEnd - trimStart) / video.duration) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={handleAddSegment}
+          className="py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-cyan-500/20"
+        >
+          Add Current Range
+        </button>
+        <button
+          onClick={() => { setTrimStart(0); setTrimEnd(video.duration) }}
+          className="py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm font-medium transition-colors"
+        >
+          Use Full Clip
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-700">Step 2</p>
+            <h3 className="text-sm font-semibold text-zinc-900 mt-1">Build your segment list</h3>
+            <p className="text-xs text-zinc-500 mt-1">{segments.length} segment(s) prepared, total runtime {formatTime2(totalPreparedDuration)}</p>
+          </div>
+          {segments.length > 0 && (
+            <button
+              onClick={() => {
+                clearSegments()
+                setStatus('Segment list cleared.')
+              }}
+              className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 mb-3">
+          <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
+            <span>Timeline map</span>
+            <span>{formatTime2(video.duration)} source clip</span>
+          </div>
+          <div className="relative h-5 rounded-full bg-zinc-200 overflow-hidden">
+            {segments.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center text-[11px] text-zinc-400">
+                No saved ranges yet
+              </div>
+            ) : (
+              segments.map((segment, index) => (
+                <div
+                  key={segment.id}
+                  className={`absolute inset-y-0 flex items-center justify-center text-[10px] font-semibold text-white ${segment.outputFilename ? 'bg-emerald-500' : 'bg-cyan-600'}`}
+                  style={{
+                    left: `${video.duration ? (segment.start / video.duration) * 100 : 0}%`,
+                    width: `${video.duration ? ((segment.end - segment.start) / video.duration) * 100 : 0}%`,
+                    minWidth: '24px',
+                  }}
+                  title={`${segment.label} | ${formatTime2(segment.start)} -> ${formatTime2(segment.end)}`}
+                >
+                  {index + 1}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {segments.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-6 text-sm text-zinc-500">
+            No segments yet. Use the player selection, then click Add segment.
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {segments.map((segment, index) => (
+              <div key={segment.id} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-zinc-900">{segment.label || `Segment ${index + 1}`}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${segment.outputFilename ? 'bg-emerald-100 text-emerald-700' : 'bg-cyan-100 text-cyan-700'}`}>
+                        {segment.outputFilename ? 'Generated' : 'Draft'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">{formatTime2(segment.start)} {'->'} {formatTime2(segment.end)}</p>
+                    <p className="text-xs text-zinc-400 mt-1">Length {formatTime2(segment.end - segment.start)}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      removeSegment(segment.id)
+                      setStatus(`Segment ${index + 1} removed.`)
+                    }}
+                    className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="relative h-2 rounded-full bg-white overflow-hidden mt-3 mb-2">
+                  <div
+                    className={`absolute inset-y-0 rounded-full ${segment.outputFilename ? 'bg-emerald-500' : 'bg-cyan-500'}`}
+                    style={{
+                      left: `${video.duration ? (segment.start / video.duration) * 100 : 0}%`,
+                      width: `${video.duration ? ((segment.end - segment.start) / video.duration) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                {segment.outputFilename ? (
+                  <p className="text-xs text-emerald-600 break-all">Ready: {segment.outputFilename}</p>
+                ) : (
+                  <p className="text-xs text-zinc-400">Not generated yet</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Step 3 and 4</p>
+          <h3 className="text-sm font-semibold text-zinc-900 mt-1">Generate clips, then merge them</h3>
+          <p className="text-xs text-zinc-500 mt-1">
+            Split exports each saved range as its own clip. Merge stitches the generated clips together in list order.
           </p>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={handleSplit}
+            disabled={splitLoading || segments.length === 0}
+            className="py-3 bg-yellow-500 hover:bg-yellow-400 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-950 rounded-xl text-sm font-semibold transition-colors"
+          >
+            {splitLoading ? 'Splitting...' : 'Generate Clips'}
+          </button>
+          <button
+            onClick={handleMerge}
+            disabled={mergeLoading || readySegments.length < 2}
+            className="py-3 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-semibold transition-colors"
+          >
+            {mergeLoading ? 'Merging...' : 'Merge Generated Clips'}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2 text-zinc-600">
+            Ready clips: <span className="font-semibold text-zinc-900">{readySegments.length}</span>
+          </div>
+          <div className="rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2 text-zinc-600">
+            Merged runtime: <span className="font-semibold text-zinc-900">{formatTime2(mergedDuration)}</span>
+          </div>
+        </div>
       </div>
 
-      <button
-        onClick={() => { setTrimStart(0); setTrimEnd(video.duration) }}
-        className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm transition-colors"
-      >
-        Reset to full video
-      </button>
-
+      {status && (
+        <div className="rounded-xl border border-zinc-200 bg-cyan-50 px-3 py-2 text-sm text-zinc-700">
+          {status}
+        </div>
+      )}
     </div>
   )
 }
@@ -393,3 +662,5 @@ function formatTime2(s: number) {
   const sec = Math.floor(s % 60)
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
+
+
