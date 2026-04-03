@@ -22,6 +22,11 @@ export interface MergeVideosOptions {
   inputPaths: string[]
 }
 
+export interface MergeSegmentsOptions {
+  inputPath: string
+  segments: SegmentDefinition[]
+}
+
 export interface AudioOptions {
   inputPath: string
   audioPath: string
@@ -269,6 +274,14 @@ export function mergeVideos({ inputPaths }: MergeVideosOptions): Promise<string>
       })
       .run()
   })
+}
+
+export async function mergeSegments({ inputPath, segments }: MergeSegmentsOptions): Promise<string> {
+  if (!segments.length) {
+    throw new Error('No segments provided for merge')
+  }
+  const outputs = await splitVideo(inputPath, segments)
+  return mergeVideos({ inputPaths: outputs })
 }
 
 // Add / replace audio track

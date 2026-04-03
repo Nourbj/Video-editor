@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
+import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -11,7 +12,7 @@ function formatTime(s: number) {
 
 export default function VideoPlayer() {
   const {
-    video, trimStart, trimEnd, setTrimStart, setTrimEnd, processedUrl,
+    video, trimStart, trimEnd, setTrimEnd, processedUrl,
     audioTrack, audioVolume, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
   } = useStore()
@@ -113,6 +114,16 @@ export default function VideoPlayer() {
     setCurrentTime(next)
   }
 
+  const handleTimelineSeek = (t: number) => {
+    const next = Math.min(Math.max(t, 0), fullDuration)
+    if (videoRef.current) videoRef.current.currentTime = next
+    if (audioRef.current && audioApplied) {
+      const offset = Math.max(0, next - effectiveStart)
+      audioRef.current.currentTime = audioSegStart + offset
+    }
+    setCurrentTime(next)
+  }
+
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value)
     setVolume(v)
@@ -185,57 +196,7 @@ export default function VideoPlayer() {
         </div>
       </div>
 
-      {/* Trim range */}
-      <div className="bg-zinc-50 rounded-xl px-3 py-2 space-y-2 border border-zinc-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
-          <p className="text-xs text-zinc-500">
-            Selection: {formatTime(trimEnd - trimStart)} ({formatTime(trimStart)} → {formatTime(trimEnd)})
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-xs text-zinc-500 w-8">Start</span>
-            <input
-              type="range" min={0} max={fullDuration} step={0.1} value={trimStart}
-              onChange={e => {
-                const v = parseFloat(e.target.value)
-                if (v < trimEnd) setTrimStart(v)
-              }}
-              aria-label="Trim start"
-              className="flex-1 accent-yellow-600 h-1"
-            />
-          </div>
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-xs text-zinc-500 w-8">End</span>
-            <input
-              type="range" min={0} max={fullDuration} step={0.1} value={trimEnd}
-              onChange={e => {
-                const v = parseFloat(e.target.value)
-                if (v > trimStart) setTrimEnd(v)
-              }}
-              aria-label="Trim end"
-              className="flex-1 accent-yellow-600 h-1"
-            />
-          </div>
-        </div>
-
-        {/* Visual trim bar */}
-        <div className="relative h-2 bg-zinc-200 rounded-full overflow-hidden mt-1">
-          <div
-            className="absolute top-0 h-full bg-cyan-600/60 rounded"
-            style={{
-              left: `${fullDuration ? (trimStart / fullDuration) * 100 : 0}%`,
-              right: `${fullDuration ? 100 - (trimEnd / fullDuration) * 100 : 0}%`,
-            }}
-          />
-          <div
-            className="absolute top-0 h-full w-[2px] bg-zinc-900/70"
-            style={{ left: `${fullDuration ? (currentTime / fullDuration) * 100 : 0}%` }}
-          />
-        </div>
-      </div>
+      <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
 
       {audioTrack && audioApplied && (
         <audio

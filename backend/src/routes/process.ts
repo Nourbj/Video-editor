@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, splitVideo, mergeVideos, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
 
@@ -117,6 +117,37 @@ export async function processRoute(app: FastifyInstance) {
 
     try {
       const outPath = await mergeVideos({ inputPaths: inputPaths as string[] })
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Merge failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  app.post('/merge-segments', async (req, reply) => {
+    const { filename, segments } = req.body as {
+      filename: string
+      segments: { startTime: number; endTime: number; label?: string }[]
+    }
+
+    const inputPath = resolveMediaPath(filename)
+    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
+    if (!Array.isArray(segments) || segments.length < 2) {
+      return reply.code(400).send({ error: 'At least two segments are required' })
+    }
+
+    const invalidSegment = segments.find(segment => (
+      typeof segment.startTime !== 'number'
+      || typeof segment.endTime !== 'number'
+      || segment.endTime <= segment.startTime
+    ))
+    if (invalidSegment) {
+      return reply.code(400).send({ error: 'Invalid segment range' })
+    }
+
+    try {
+      const outPath = await mergeSegments({ inputPath, segments })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
       app.log.error(err)

@@ -59,6 +59,7 @@ interface EditorState {
   addSegment: (segment: Omit<VideoSegment, 'id' | 'outputFilename' | 'outputUrl'>) => void
   removeSegment: (id: string) => void
   clearSegments: () => void
+  reorderSegments: (activeId: string, overId: string) => void
   resetSegmentOutputs: () => void
   setSegmentOutput: (id: string, output: { filename: string; url: string }) => void
 
@@ -168,6 +169,16 @@ export const useStore = create<EditorState>((set) => ({
   })),
   removeSegment: id => set(state => ({ segments: state.segments.filter(segment => segment.id !== id) })),
   clearSegments: () => set({ segments: [] }),
+  reorderSegments: (activeId, overId) => set(state => {
+    if (activeId === overId) return state
+    const fromIndex = state.segments.findIndex(segment => segment.id === activeId)
+    const toIndex = state.segments.findIndex(segment => segment.id === overId)
+    if (fromIndex < 0 || toIndex < 0) return state
+    const next = [...state.segments]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    return { segments: next }
+  }),
   resetSegmentOutputs: () => set(state => ({
     segments: state.segments.map(segment => ({
       ...segment,

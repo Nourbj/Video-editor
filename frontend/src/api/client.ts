@@ -137,6 +137,11 @@ export const mergeVideos = async (filenames: string[]) => {
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
+export const mergeSegments = async (filename: string, segments: SegmentDefinition[]) => {
+  const { data } = await api.post('/merge-segments', { filename, segments })
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
+}
+
 // Merge audio
 export const mergeAudio = async (
   videoFilename: string,
