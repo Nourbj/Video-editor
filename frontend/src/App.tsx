@@ -357,10 +357,10 @@ function EditPanel() {
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Edit</h2>
-        <p className="text-sm text-zinc-500">All clip cutting, ordering, and merging is now handled directly in the timeline under the player.</p>
+        <p className="text-sm text-zinc-500">Use the timeline under the player to set In/Out points, cut the current range, or split directly at the playhead.</p>
       </div>
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-600">
-        Current selection: <span className="font-semibold text-zinc-900">{formatTime2(trimStart)} → {formatTime2(trimEnd)}</span>
+        Current selection: <span className="font-semibold text-zinc-900">{formatTime2(trimStart)} {'->'} {formatTime2(trimEnd)}</span>
         <div className="text-xs text-zinc-500 mt-1">Timeline clips: <span className="font-semibold text-zinc-900">{segments.length}</span></div>
       </div>
     </div>

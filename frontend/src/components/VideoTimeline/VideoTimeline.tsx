@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Scissors, GripVertical, Trash2, GitMerge, Wand2 } from 'lucide-react'
+import { Scissors, GripVertical, Trash2, GitMerge, Wand2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { mergeSegments, mergeVideos, splitVideo } from '../../api/client'
 
@@ -46,6 +46,7 @@ export default function VideoTimeline({
   const duration = video?.duration || 0
   const selectionDuration = Math.max(0, trimEnd - trimStart)
   const minGap = 0.1
+  const canSplitAtPlayhead = currentTime > trimStart + minGap && currentTime < trimEnd - minGap
 
   const readySegments = useMemo(
     () => segments.filter(segment => segment.outputFilename),
@@ -67,6 +68,23 @@ export default function VideoTimeline({
     if (!rect || duration <= 0) return 0
     const x = Math.min(rect.width, Math.max(0, clientX - rect.left))
     return (x / rect.width) * duration
+  }
+
+  const applySelection = (start: number, end: number) => {
+    const nextStart = Math.max(0, Math.min(start, Math.max(0, duration - minGap)))
+    const nextEnd = Math.min(duration, Math.max(end, nextStart + minGap))
+    setTrimStart(nextStart)
+    setTrimEnd(nextEnd)
+  }
+
+  const nudgeStart = (delta: number) => {
+    const nextStart = Math.max(0, Math.min(trimStart + delta, trimEnd - minGap))
+    setTrimStart(nextStart)
+  }
+
+  const nudgeEnd = (delta: number) => {
+    const nextEnd = Math.min(duration, Math.max(trimEnd + delta, trimStart + minGap))
+    setTrimEnd(nextEnd)
   }
 
   useEffect(() => {
@@ -120,7 +138,38 @@ export default function VideoTimeline({
       start: trimStart,
       end: trimEnd,
     })
-    setStatus(`Clip ${segments.length + 1} added.`)
+    setStatus(`Clip ${segments.length + 1} added from the current selection.`)
+  }
+
+  const handleSetStartToPlayhead = () => {
+    const nextStart = Math.min(Math.max(0, currentTime), Math.max(0, trimEnd - minGap))
+    setTrimStart(nextStart)
+    setStatus(`Selection start moved to ${formatTime(nextStart)}.`)
+  }
+
+  const handleSetEndToPlayhead = () => {
+    const nextEnd = Math.max(Math.min(duration, currentTime), Math.min(duration, trimStart + minGap))
+    setTrimEnd(nextEnd)
+    setStatus(`Selection end moved to ${formatTime(nextEnd)}.`)
+  }
+
+  const handleSplitAtPlayhead = () => {
+    if (!canSplitAtPlayhead) {
+      setStatus('Move the playhead inside the selection to split it.')
+      return
+    }
+
+    addSegment({
+      label: `Clip ${segments.length + 1}`,
+      start: trimStart,
+      end: currentTime,
+    })
+    addSegment({
+      label: `Clip ${segments.length + 2}`,
+      start: currentTime,
+      end: trimEnd,
+    })
+    setStatus(`Selection split at ${formatTime(currentTime)}.`)
   }
 
   const handleSplit = async () => {
@@ -201,31 +250,105 @@ export default function VideoTimeline({
 
   return (
     <div className="space-y-3">
-      <div className="bg-zinc-50 rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
+      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Timeline</p>
-            <p className="text-sm font-medium text-zinc-700">Drag handles to select, click to scrub</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-cyan-700/60">Timeline</p>
+            <p className="text-sm font-medium text-zinc-700">Click anywhere to scrub, drag handles to refine, use quick start/end controls for faster selection.</p>
           </div>
-          <div className="text-xs text-zinc-500 text-right">
-            Selection: {formatTime(selectionDuration)}
-            <div className="text-[11px] text-zinc-400">{formatTime(trimStart)} → {formatTime(trimEnd)}</div>
+          <div className="text-xs text-cyan-900 text-right">
+            <span className="font-medium">Selection:</span> {formatTime(selectionDuration)}
+            <div className="text-[11px] text-cyan-700/70">{formatTime(trimStart)} {'->'} {formatTime(trimEnd)}</div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-cyan-200 bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-700/60">Start</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-zinc-900">{formatTime(trimStart)}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => nudgeStart(-1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move start earlier by one second"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <button
+                  onClick={() => nudgeStart(1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move start later by one second"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={handleSetStartToPlayhead}
+              className="mt-2 w-full rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
+            >
+              Set Start To Playhead
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-cyan-200 bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-700/60">End</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-zinc-900">{formatTime(trimEnd)}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => nudgeEnd(-1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move end earlier by one second"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <button
+                  onClick={() => nudgeEnd(1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move end later by one second"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={handleSetEndToPlayhead}
+              className="mt-2 w-full rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
+            >
+              Set End To Playhead
+            </button>
+          </div>
+
+          <button
+            onClick={handleSplitAtPlayhead}
+            disabled={!canSplitAtPlayhead}
+            className="px-3 py-2 text-left text-zinc-900 hover:text-cyan-700 disabled:text-zinc-400 transition-colors"
+          />
         </div>
 
         <div
           ref={timelineRef}
-          className="relative h-12 rounded-lg bg-zinc-200 overflow-hidden cursor-crosshair select-none"
+          className="relative h-14 rounded-xl overflow-hidden cursor-crosshair select-none border border-cyan-200 bg-[linear-gradient(90deg,#dff7fb_0%,#d8f4fb_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
           onMouseDown={e => {
-            if (e.target !== timelineRef.current) return
             const next = getTimeFromClientX(e.clientX)
-            const clamped = Math.min(Math.max(next, trimStart), trimEnd)
-            onSeek(clamped)
+            onSeek(next)
           }}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.3)_1px,transparent_1px)] bg-[length:40px_100%] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[length:36px_100%] pointer-events-none" />
+
           <div
-            className="absolute inset-y-0 rounded-md bg-cyan-500/70 border border-cyan-600 cursor-grab"
+            className="absolute inset-y-0 bg-zinc-950/18 pointer-events-none"
+            style={{ width: `${duration ? (trimStart / duration) * 100 : 0}%` }}
+          />
+          <div
+            className="absolute inset-y-0 right-0 bg-zinc-950/18 pointer-events-none"
+            style={{ width: `${duration ? ((duration - trimEnd) / duration) * 100 : 0}%` }}
+          />
+
+          <div
+            className="absolute inset-y-1 rounded-lg border border-cyan-600/90 bg-[linear-gradient(90deg,rgba(6,182,212,0.80)_0%,rgba(34,211,238,0.72)_52%,rgba(14,165,233,0.80)_100%)] shadow-[0_8px_20px_rgba(8,145,178,0.18)] cursor-grab"
             style={{
               left: `${duration ? (trimStart / duration) * 100 : 0}%`,
               width: `${duration ? ((trimEnd - trimStart) / duration) * 100 : 0}%`,
@@ -235,11 +358,13 @@ export default function VideoTimeline({
               dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
               setDragging('range')
             }}
-          />
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.28)_50%,rgba(255,255,255,0.12)_100%)]" />
+          </div>
 
           <div
-            className="absolute top-0 bottom-0 w-2 bg-white border border-zinc-400 rounded-sm cursor-ew-resize"
-            style={{ left: `${duration ? (trimStart / duration) * 100 : 0}%` }}
+            className="absolute top-1 bottom-1 w-3 rounded-lg bg-white border border-cyan-700 shadow-sm cursor-ew-resize"
+            style={{ left: `${duration ? (trimStart / duration) * 100 : 0}%`, transform: 'translateX(-35%)' }}
             onMouseDown={e => {
               e.stopPropagation()
               dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
@@ -247,8 +372,8 @@ export default function VideoTimeline({
             }}
           />
           <div
-            className="absolute top-0 bottom-0 w-2 bg-white border border-zinc-400 rounded-sm cursor-ew-resize"
-            style={{ left: `${duration ? (trimEnd / duration) * 100 : 0}%` }}
+            className="absolute top-1 bottom-1 w-3 rounded-lg bg-white border border-cyan-700 shadow-sm cursor-ew-resize"
+            style={{ left: `${duration ? (trimEnd / duration) * 100 : 0}%`, transform: 'translateX(-65%)' }}
             onMouseDown={e => {
               e.stopPropagation()
               dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
@@ -257,9 +382,11 @@ export default function VideoTimeline({
           />
 
           <div
-            className="absolute top-0 bottom-0 w-[2px] bg-zinc-900/80"
+            className="absolute top-0 bottom-0 w-[2px] bg-zinc-950/85 pointer-events-none"
             style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-          />
+          >
+            <div className="absolute left-1/2 top-1 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -270,12 +397,12 @@ export default function VideoTimeline({
             <Scissors size={14} /> Cut Selection
           </button>
           <button
-            onClick={() => { setTrimStart(0); setTrimEnd(duration) }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-100"
+            onClick={() => applySelection(0, duration)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-cyan-200 text-cyan-800 text-xs font-medium hover:bg-cyan-50"
           >
             Full Range
           </button>
-          <div className="text-[11px] text-zinc-400">Drag the blue range to move, grab edges to resize.</div>
+          <div className="text-[11px] text-cyan-800/70">Playhead: {formatTime(currentTime)}. Drag the cyan range to move it, or drag either handle to adjust start and end.</div>
         </div>
       </div>
 
@@ -330,7 +457,7 @@ export default function VideoTimeline({
                   className="text-left flex-1"
                 >
                   <p className="text-sm font-medium text-zinc-800">{segment.label || `Clip ${index + 1}`}</p>
-                  <p className="text-xs text-zinc-500">{formatTime(segment.start)} → {formatTime(segment.end)} · {formatTime(segment.end - segment.start)}</p>
+                  <p className="text-xs text-zinc-500">{formatTime(segment.start)} {'->'} {formatTime(segment.end)} · {formatTime(segment.end - segment.start)}</p>
                 </button>
                 <button
                   onClick={() => removeSegment(segment.id)}
