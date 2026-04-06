@@ -284,12 +284,6 @@ export default function VideoTimeline({
                 </button>
               </div>
             </div>
-            <button
-              onClick={handleSetStartToPlayhead}
-              className="mt-2 w-full rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
-            >
-              Set Start To Playhead
-            </button>
           </div>
 
           <div className="rounded-xl border border-cyan-200 bg-white/80 px-3 py-2">
@@ -313,12 +307,6 @@ export default function VideoTimeline({
                 </button>
               </div>
             </div>
-            <button
-              onClick={handleSetEndToPlayhead}
-              className="mt-2 w-full rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500 transition-colors"
-            >
-              Set End To Playhead
-            </button>
           </div>
 
           <button
