@@ -15,6 +15,7 @@ export default function VideoPlayer() {
     video, trimStart, trimEnd, setTrimEnd, processedUrl,
     audioTrack, audioVolume, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
+    activeTab,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -196,7 +197,9 @@ export default function VideoPlayer() {
         </div>
       </div>
 
-      <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
+      {activeTab === 'edit' && (
+        <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
+      )}
 
       {audioTrack && audioApplied && (
         <audio

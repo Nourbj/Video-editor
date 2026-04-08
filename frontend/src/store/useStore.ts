@@ -131,6 +131,8 @@ interface EditorState {
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
   setProcessedUrl: (u: string | null) => void
+  editStatus: string | null
+  setEditStatus: (s: string | null) => void
 
   reset: () => void
 }
@@ -149,7 +151,7 @@ const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
-  setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null, segments: [] }),
+  setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null, segments: [], editStatus: null }),
 
   trimStart: 0,
   trimEnd: 0,
@@ -269,6 +271,8 @@ export const useStore = create<EditorState>((set) => ({
   setIsProcessing: p => set({ isProcessing: p }),
   processedUrl: null,
   setProcessedUrl: u => set({ processedUrl: u }),
+  editStatus: null,
+  setEditStatus: s => set({ editStatus: s }),
 
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
@@ -288,6 +292,6 @@ export const useStore = create<EditorState>((set) => ({
     borderEnabled: defaultBorderSize > 0,
     borderSize: defaultBorderSize,
     borderColor: defaultBorderColor,
-    processedUrl: null, activeTab: 'import',
+    processedUrl: null, activeTab: 'import', editStatus: null,
   }),
 }))

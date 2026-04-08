@@ -12,7 +12,7 @@ function formatTime(s: number) {
 export default function ExportPanel() {
   const {
     video, trimStart, trimEnd,
-    audioTrack, audioVolume, replaceOriginalAudio, audioDuration, audioTrimStart, audioTrimEnd,
+    audioTrack, audioVolume, replaceOriginalAudio, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     subtitles, subtitleFilename,
     subtitleStyle,

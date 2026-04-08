@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square } from 'lucide-react'
+import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -9,6 +9,7 @@ import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
+import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { createSubtitles, previewVideo } from './api/client'
 
 type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
@@ -35,7 +36,7 @@ export default function App() {
     video, activeTab, setActiveTab, reset,
     trimStart, trimEnd,
     segments,
-    audioTrack, audioDuration, audioTrimStart, audioTrimEnd, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
+    audioTrack, audioDuration, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
@@ -350,19 +351,85 @@ function EditPanel() {
     trimStart,
     trimEnd,
     segments,
+    setTrimStart,
+    setTrimEnd,
   } = useStore()
   if (!video) return null
+
+  const minGap = 0.1
+  const duration = video.duration || 0
+
+  const nudgeStart = (delta: number) => {
+    const nextStart = Math.max(0, Math.min(trimStart + delta, trimEnd - minGap))
+    setTrimStart(nextStart)
+  }
+
+  const nudgeEnd = (delta: number) => {
+    const nextEnd = Math.min(duration, Math.max(trimEnd + delta, trimStart + minGap))
+    setTrimEnd(nextEnd)
+  }
 
   return (
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Edit</h2>
-        <p className="text-sm text-zinc-500">Use the timeline under the player to set In/Out points, cut the current range, or split directly at the playhead.</p>
+        <p className="text-sm text-zinc-500">
+          Use the timeline to set In/Out points, scrub, refine with handles, and quickly adjust start/end for faster cuts and splits.
+        </p>
       </div>
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-600">
-        Current selection: <span className="font-semibold text-zinc-900">{formatTime2(trimStart)} {'->'} {formatTime2(trimEnd)}</span>
-        <div className="text-xs text-zinc-500 mt-1">Timeline clips: <span className="font-semibold text-zinc-900">{segments.length}</span></div>
+      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+        <div>
+          <p className="text-xs text-cyan-700/60">Timeline — Current Selection</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-cyan-200 bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-700/60">Start</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-zinc-900">{formatTime2(trimStart)}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => nudgeStart(-1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move start earlier by one second"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <button
+                  onClick={() => nudgeStart(1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move start later by one second"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-cyan-200 bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-700/60">End</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-zinc-900">{formatTime2(trimEnd)}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => nudgeEnd(-1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move end earlier by one second"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <button
+                  onClick={() => nudgeEnd(1)}
+                  className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
+                  aria-label="Move end later by one second"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <EditSidebar />
     </div>
   )
 }
