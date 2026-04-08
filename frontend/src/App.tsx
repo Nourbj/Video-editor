@@ -215,8 +215,8 @@ export default function App() {
       </header>
 
       <div className="max-w-[1700px] mx-auto px-4 lg:px-8 py-2">
-        <div className="flex flex-col lg:flex-row gap-3 items-start">
-          <div className="w-full lg:w-52 flex-shrink-0 lg:sticky lg:top-[64px]">
+        <div className="flex flex-col lg:flex-row gap-2 items-start">
+          <div className="w-full lg:w-44 flex-shrink-0 lg:sticky lg:top-[64px]">
             <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
                 const disabled = tab.requiresVideo && !video
@@ -326,9 +326,8 @@ export default function App() {
               </div>
             )}
           </div>
-
           {/* Active Panel (Right) */}
-          <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-[64px]">
+          <div className="w-full lg:w-96 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px]">
             <div className="bg-white rounded-2xl p-4 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'edit' && <EditPanel />}
