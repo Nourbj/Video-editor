@@ -123,6 +123,10 @@ interface EditorState {
   // Export
   exportQuality: '480p' | '720p' | '1080p'
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
+  exportAspectRatio: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+  setExportAspectRatio: (r: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2') => void
+  exportFilename: string
+  setExportFilename: (name: string) => void
 
   // UI
   activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'cookies' | 'export'
@@ -264,6 +268,10 @@ export const useStore = create<EditorState>((set) => ({
 
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
+  exportAspectRatio: 'original',
+  setExportAspectRatio: r => set({ exportAspectRatio: r }),
+  exportFilename: '',
+  setExportFilename: name => set({ exportFilename: name }),
 
   activeTab: 'import',
   setActiveTab: t => set({ activeTab: t }),
@@ -292,6 +300,9 @@ export const useStore = create<EditorState>((set) => ({
     borderEnabled: defaultBorderSize > 0,
     borderSize: defaultBorderSize,
     borderColor: defaultBorderColor,
+    exportQuality: '720p',
+    exportAspectRatio: 'original',
+    exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
   }),
 }))

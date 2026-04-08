@@ -189,6 +189,8 @@ export const burnSubtitles = async (videoFilename: string, subtitleFilename: str
 export const exportVideo = async (params: {
   filename: string
   quality: '480p' | '720p' | '1080p'
+  aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+  outputName?: string
   startTime?: number
   endTime?: number
   audioFilename?: string
@@ -212,6 +214,7 @@ export const exportVideo = async (params: {
 export const previewVideo = async (params: {
   filename: string
   quality: '480p' | '720p' | '1080p'
+  aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
   startTime?: number
   endTime?: number
   audioFilename?: string

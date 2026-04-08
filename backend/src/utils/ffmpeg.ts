@@ -43,6 +43,8 @@ export interface SubtitleOptions {
 export interface ExportOptions {
   inputPath: string
   quality?: '480p' | '720p' | '1080p'
+  aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+  outputName?: string
   audioPath?: string
   subtitlePath?: string
   subtitleStyle?: SubtitleStyle
@@ -84,6 +86,53 @@ export interface BorderStyle {
   enabled?: boolean
   size?: number
   color?: string // hex
+}
+
+const aspectRatioMap: Record<NonNullable<ExportOptions['aspectRatio']>, { w: number; h: number }> = {
+  original: { w: 16, h: 9 },
+  '16:9': { w: 16, h: 9 },
+  '9:16': { w: 9, h: 16 },
+  '1:1': { w: 1, h: 1 },
+  '4:5': { w: 4, h: 5 },
+  '5:4': { w: 5, h: 4 },
+  '4:3': { w: 4, h: 3 },
+  '3:2': { w: 3, h: 2 },
+}
+
+function makeEven(n: number) {
+  const next = Math.max(2, Math.round(n))
+  return next % 2 === 0 ? next : next - 1
+}
+
+function sanitizeBasename(name: string) {
+  const cleaned = name
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^\w\- ]+/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+  return cleaned.slice(0, 80)
+}
+
+function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspectRatio?: ExportOptions['aspectRatio']) {
+  const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
+  const baseLong = scaleMap[quality]
+  if (!aspectRatio || aspectRatio === 'original') {
+    return `scale=${baseLong}:-2`
+  }
+
+  const { w, h } = aspectRatioMap[aspectRatio] || aspectRatioMap['16:9']
+  const ratio = w / h
+  let targetWidth = baseLong
+  let targetHeight = baseLong
+  if (ratio >= 1) {
+    targetWidth = makeEven(baseLong)
+    targetHeight = makeEven(baseLong / ratio)
+  } else {
+    targetHeight = makeEven(baseLong)
+    targetWidth = makeEven(baseLong * ratio)
+  }
+
+  return `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=increase,crop=${targetWidth}:${targetHeight}`
 }
 
 function toAssColor(hex?: string) {
@@ -342,10 +391,17 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const outDir = options.outputDir || outputDir
-    const outFile = path.join(outDir, `export_${uuidv4()}.mp4`)
+    const baseName = options.outputName ? sanitizeBasename(options.outputName) : ''
+    const initialName = baseName ? `${baseName}.mp4` : `export_${uuidv4()}.mp4`
+    let outFile = path.join(outDir, initialName)
+    if (fs.existsSync(outFile)) {
+      const fallback = baseName ? `${baseName}_${uuidv4()}.mp4` : `export_${uuidv4()}.mp4`
+      outFile = path.join(outDir, fallback)
+    }
     const {
       inputPath,
       quality = '720p',
+      aspectRatio,
       startTime,
       endTime,
       audioPath,
@@ -363,14 +419,14 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     console.log('[exportVideo] options:', {
       quality,
+      aspectRatio,
       audioPath: !!audioPath,
       replaceOriginal,
       audioVolume,
       logoPath: !!logoPath,
     })
 
-    const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
-    const targetWidth = scaleMap[quality]
+    const scaleFilter = buildScaleFilter(quality, aspectRatio)
     const vol = audioVolume ?? 1
 
     let cmd = ffmpeg(inputPath)
@@ -406,7 +462,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     if (hasAudio || hasLogo) {
       const filters: string[] = []
       const baseLabel = hasLogo ? 'vbase' : 'vout'
-      const vfParts: string[] = [`scale=${targetWidth}:-2`]
+      const vfParts: string[] = [scaleFilter]
       if (borderFilter) vfParts.push(borderFilter)
       if (subtitleFilter) vfParts.push(subtitleFilter.slice(1))
       if (titleFilter) vfParts.push(titleFilter)
@@ -442,7 +498,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       cmd.complexFilter(filters)
     } else {
       // No new audio or logo — use simple videoFilter
-      const filters: string[] = [`scale=${targetWidth}:-2`]
+      const filters: string[] = [scaleFilter]
       if (borderFilter) filters.push(borderFilter)
       if (subtitleFilter) filters.push(subtitleFilter.slice(1))
       if (titleFilter) filters.push(titleFilter)

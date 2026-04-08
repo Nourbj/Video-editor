@@ -43,6 +43,7 @@ export default function App() {
     titleText, titleFont, titleSize, titleColor, titlePosition,
     borderEnabled, borderSize, borderColor,
     exportQuality,
+    exportAspectRatio,
     processedUrl, setProcessedUrl,
   } = useStore()
 
@@ -73,6 +74,7 @@ export default function App() {
       const result = await previewVideo({
         filename: video.filename,
         quality: exportQuality,
+        aspectRatio: exportAspectRatio,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
         audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,

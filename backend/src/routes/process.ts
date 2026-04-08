@@ -186,6 +186,8 @@ export async function processRoute(app: FastifyInstance) {
     const body = req.body as {
       filename: string
       quality?: '480p' | '720p' | '1080p'
+      aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+      outputName?: string
       startTime?: number
       endTime?: number
       audioFilename?: string
@@ -249,6 +251,8 @@ export async function processRoute(app: FastifyInstance) {
       const outPath = await exportVideo({
         inputPath,
         quality: body.quality || '720p',
+        aspectRatio: body.aspectRatio,
+        outputName: body.outputName,
         startTime: body.startTime,
         endTime: body.endTime,
         audioPath,
@@ -277,6 +281,8 @@ export async function processRoute(app: FastifyInstance) {
     const body = req.body as {
       filename: string
       quality?: '480p' | '720p' | '1080p'
+      aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+      outputName?: string
       startTime?: number
       endTime?: number
       audioFilename?: string
@@ -331,6 +337,8 @@ export async function processRoute(app: FastifyInstance) {
       const outPath = await exportVideo({
         inputPath,
         quality: body.quality || '720p',
+        aspectRatio: body.aspectRatio,
+        outputName: body.outputName,
         startTime: body.startTime,
         endTime: body.endTime,
         audioPath,
