@@ -37,17 +37,24 @@ export default function VideoTimeline({
   const duration = video?.duration || 0
   const selectionDuration = Math.max(0, trimEnd - trimStart)
   const minGap = 0.1
-  const tickStep = 1
+  const rulerStep = useMemo(() => {
+    if (duration <= 15) return { minor: 0.5, major: 2 }
+    if (duration <= 45) return { minor: 1, major: 5 }
+    if (duration <= 120) return { minor: 2, major: 10 }
+    if (duration <= 300) return { minor: 5, major: 15 }
+    if (duration <= 900) return { minor: 10, major: 30 }
+    return { minor: 15, major: 60 }
+  }, [duration])
 
   const timelineTicks = useMemo(() => {
     if (duration <= 0 || !Number.isFinite(duration)) return []
     const ticks: number[] = []
-    for (let t = 0; t <= duration; t += tickStep) {
+    for (let t = 0; t <= duration; t += rulerStep.minor) {
       ticks.push(t)
     }
     if (ticks[ticks.length - 1] !== duration) ticks.push(duration)
     return ticks
-  }, [duration, tickStep])
+  }, [duration, rulerStep])
 
   const getTimeFromClientX = (clientX: number) => {
     const rect = timelineRef.current?.getBoundingClientRect()
@@ -135,45 +142,46 @@ export default function VideoTimeline({
       <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
         <div
           ref={timelineRef}
-          className="relative h-14 rounded-xl overflow-hidden cursor-crosshair select-none border border-cyan-200 bg-[linear-gradient(90deg,#dff7fb_0%,#d8f4fb_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
+          className="relative h-[72px] rounded-2xl overflow-hidden cursor-crosshair select-none border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
           onMouseDown={e => {
             const next = getTimeFromClientX(e.clientX)
             onSeek(next)
           }}
         >
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[length:36px_100%] pointer-events-none" />
-          <div className="absolute inset-0 pointer-events-none z-20">
+          <div className="absolute inset-x-3 top-8 h-6 rounded-full border border-cyan-200/80 bg-cyan-50/70 pointer-events-none" />
+          <div className="absolute inset-x-3 top-8 h-6 rounded-full bg-[linear-gradient(90deg,rgba(8,145,178,0.05)_1px,transparent_1px)] bg-[length:18px_100%] pointer-events-none opacity-50" />
+          <div className="absolute inset-x-0 top-0 h-8 pointer-events-none z-20">
             {timelineTicks.map(t => {
-              const labelSecond = Math.round(t)
-              const isMajor = labelSecond % 5 === 0 || t === duration
+              const rounded = Math.round(t * 100) / 100
+              const isMajor = Math.abs(rounded % rulerStep.major) < 0.01 || Math.abs(duration - t) < rulerStep.minor / 2 || t === 0
               return (
                 <div
                   key={t}
-                  className="absolute inset-y-0 flex flex-col items-center"
+                  className="absolute top-0 bottom-0 flex flex-col items-center"
                   style={{ left: `${duration ? (t / duration) * 100 : 0}%`, transform: 'translateX(-50%)' }}
                 >
                   {isMajor && (
-                    <div className="text-[9px] text-cyan-950 leading-none pt-1 bg-white/70 px-1 rounded-sm">
-                      {formatTime(labelSecond)}
+                    <div className="mt-1 px-1 text-[10px] font-medium text-cyan-900/75 leading-none">
+                      {formatTime(t)}
                     </div>
                   )}
-                  <div className={`mt-auto w-px bg-cyan-950/70 ${isMajor ? 'h-4' : 'h-2.5'}`} />
+                  <div className={`mt-auto w-px rounded-full bg-cyan-900/45 ${isMajor ? 'h-3.5' : 'h-2'}`} />
                 </div>
               )
             })}
           </div>
 
           <div
-            className="absolute inset-y-0 bg-zinc-950/18 pointer-events-none"
-            style={{ width: `${duration ? (trimStart / duration) * 100 : 0}%` }}
+            className="absolute left-3 top-8 bottom-3 bg-slate-950/10 rounded-l-full pointer-events-none"
+            style={{ width: `calc(${duration ? (trimStart / duration) * 100 : 0}% - 0.75rem)` }}
           />
           <div
-            className="absolute inset-y-0 right-0 bg-zinc-950/18 pointer-events-none"
-            style={{ width: `${duration ? ((duration - trimEnd) / duration) * 100 : 0}%` }}
+            className="absolute right-3 top-8 bottom-3 bg-slate-950/10 rounded-r-full pointer-events-none"
+            style={{ width: `calc(${duration ? ((duration - trimEnd) / duration) * 100 : 0}% - 0.75rem)` }}
           />
 
           <div
-            className="absolute inset-y-1 rounded-lg border border-cyan-600/90 bg-[linear-gradient(90deg,rgba(6,182,212,0.55)_0%,rgba(34,211,238,0.5)_52%,rgba(14,165,233,0.55)_100%)] shadow-[0_8px_20px_rgba(8,145,178,0.14)] cursor-grab"
+            className="absolute top-8 bottom-3 rounded-full border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_6px_14px_rgba(8,145,178,0.10)] cursor-grab"
             style={{
               left: `${duration ? (trimStart / duration) * 100 : 0}%`,
               width: `${duration ? ((trimEnd - trimStart) / duration) * 100 : 0}%`,
@@ -184,33 +192,41 @@ export default function VideoTimeline({
               setDragging('range')
             }}
           >
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.28)_50%,rgba(255,255,255,0.12)_100%)]" />
+            <div className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.10)_0%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.10)_100%)]" />
           </div>
 
           <div
-            className="absolute top-1 bottom-1 w-3 rounded-lg bg-white border border-cyan-700 shadow-sm cursor-ew-resize"
+            className="absolute top-[28px] bottom-[12px] w-3 rounded-full bg-white border border-cyan-700/80 shadow-[0_3px_10px_rgba(8,145,178,0.14)] cursor-ew-resize"
             style={{ left: `${duration ? (trimStart / duration) * 100 : 0}%`, transform: 'translateX(-35%)' }}
             onMouseDown={e => {
               e.stopPropagation()
               dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
               setDragging('start')
             }}
-          />
+          >
+            <div className="flex h-full items-center justify-center text-cyan-700">
+              <GripVertical size={10} />
+            </div>
+          </div>
           <div
-            className="absolute top-1 bottom-1 w-3 rounded-lg bg-white border border-cyan-700 shadow-sm cursor-ew-resize"
+            className="absolute top-[28px] bottom-[12px] w-3 rounded-full bg-white border border-cyan-700/80 shadow-[0_3px_10px_rgba(8,145,178,0.14)] cursor-ew-resize"
             style={{ left: `${duration ? (trimEnd / duration) * 100 : 0}%`, transform: 'translateX(-65%)' }}
             onMouseDown={e => {
               e.stopPropagation()
               dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
               setDragging('end')
             }}
-          />
+          >
+            <div className="flex h-full items-center justify-center text-cyan-700">
+              <GripVertical size={10} />
+            </div>
+          </div>
 
           <div
-            className="absolute top-0 bottom-0 w-[2px] bg-zinc-950/85 pointer-events-none"
+            className="absolute top-2.5 bottom-2 w-[2px] bg-cyan-900/70 pointer-events-none z-30"
             style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
           >
-            <div className="absolute left-1/2 top-1 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
+            <div className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
           </div>
         </div>
 
