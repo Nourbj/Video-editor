@@ -141,7 +141,7 @@ export default function ExportPanel() {
         <div className="flex gap-2">
           {([
             { id: 'name', label: 'File name' },
-            { id: 'quality', label: 'Quality' },
+            // { id: 'quality', label: 'Quality' },
             { id: 'ratio', label: 'Aspect ratio' },
             { id: 'summary', label: 'Summary' },
           ] as const).map(tab => (
@@ -176,6 +176,7 @@ export default function ExportPanel() {
         </div>
       )}
 
+      {/*
       {exportTab === 'quality' && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-700">Output quality</label>
@@ -196,6 +197,7 @@ export default function ExportPanel() {
           </div>
         </div>
       )}
+      */}
 
       {exportTab === 'ratio' && (
         <div className="space-y-2">

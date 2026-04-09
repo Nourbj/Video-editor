@@ -174,8 +174,9 @@ export default function AudioEditor() {
           <audio
             ref={audioRef}
             controls
+            controlsList="noplaybackrate nodownload"
             src={audioTrack.url}
-            className="w-full h-8"
+            className="audio-editor-player w-full h-8"
             style={{ height: 32 }}
             onLoadedMetadata={() => {
               const d = audioRef.current?.duration || 0
@@ -301,7 +302,7 @@ export default function AudioEditor() {
             </div>
           </div>
 
-          {/* Volume */}
+          {/*
           <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
             <h3 className="text-sm font-medium text-zinc-700 flex items-center gap-2">
               <Volume2 size={14} />
@@ -317,6 +318,7 @@ export default function AudioEditor() {
               <span>Mute</span><span>Normal</span><span>Boost ×2</span>
             </div>
           </div>
+          */}
 
           {/* Apply audio */}
           <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">

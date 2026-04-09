@@ -237,6 +237,7 @@ export default function VideoPlayer() {
             {formatTime(Math.max(0, currentTime - effectiveStart))} / {formatTime(effectiveDuration)}
           </span>
         </div>
+        {/*
         <div className="flex items-center gap-2">
           <Volume2 size={14} className="text-zinc-500" />
           <input
@@ -246,6 +247,7 @@ export default function VideoPlayer() {
             className="w-24 accent-cyan-600 h-1"
           />
         </div>
+        */}
       </div>
 
       {activeTab === 'edit' && (

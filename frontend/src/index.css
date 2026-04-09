@@ -51,3 +51,11 @@ audio {
   filter: invert(1) hue-rotate(180deg);
   border-radius: 8px;
 }
+
+/* Trim native audio controls in Chromium-based browsers for the import preview. */
+audio.audio-editor-player::-webkit-media-controls-volume-slider,
+audio.audio-editor-player::-webkit-media-controls-mute-button,
+audio.audio-editor-player::-webkit-media-controls-overflow-button,
+audio.audio-editor-player::-webkit-media-controls-download-button {
+  display: none;
+}
