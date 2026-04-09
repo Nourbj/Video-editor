@@ -27,6 +27,7 @@ export default function SubtitleEditor() {
   const [uploadLoading, setUploadLoading] = useState(false)
   const [autoLang, setAutoLang] = useState('auto')
   const [autoModel, setAutoModel] = useState<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'>('small')
+  const [autoFast, setAutoFast] = useState(true)
   const [activeMode, setActiveMode] = useState<'manual' | 'import' | 'ai'>('manual')
   const [pendingSrt, setPendingSrt] = useState<File | null>(null)
   const [pendingSubtitleFilename, setPendingSubtitleFilename] = useState<string | null>(null)
@@ -107,6 +108,7 @@ export default function SubtitleEditor() {
         videoFilename: video.filename,
         language: autoLang === 'auto' ? undefined : autoLang,
         model: autoModel,
+        fast: autoFast,
       })
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
@@ -329,6 +331,15 @@ export default function SubtitleEditor() {
               </select>
             </label>
           </div>
+          <label className="flex items-center gap-2 text-[11px] text-zinc-500">
+            <input
+              type="checkbox"
+              checked={autoFast}
+              onChange={e => setAutoFast(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-600"
+            />
+            Mode rapide (moins précis)
+          </label>
           <button
             onClick={handleAutoSubtitles}
             disabled={!video || autoLoading}

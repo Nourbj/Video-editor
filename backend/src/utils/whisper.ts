@@ -12,8 +12,9 @@ export async function generateSrtWithWhisper(params: {
   model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
   startTime?: number
   endTime?: number
+  fast?: boolean
 }) {
-  const { inputPath, language, model = 'small', startTime, endTime } = params
+  const { inputPath, language, model = 'small', startTime, endTime, fast } = params
 
   const tempDir = path.join(process.cwd(), 'temp')
   const uploadsDir = path.join(process.cwd(), 'uploads')
@@ -73,6 +74,9 @@ export async function generateSrtWithWhisper(params: {
 
   if (language && language !== 'auto') {
     args.push('--language', language)
+  }
+  if (fast) {
+    args.push('--fast')
   }
 
   try {

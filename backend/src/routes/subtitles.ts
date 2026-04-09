@@ -101,12 +101,13 @@ export async function subtitleRoute(app: FastifyInstance) {
 
   // Auto-generate subtitles using local Whisper
   app.post('/subtitle/auto', async (req, reply) => {
-    const { videoFilename, language, model, startTime, endTime } = req.body as {
+    const { videoFilename, language, model, startTime, endTime, fast } = req.body as {
       videoFilename: string
       language?: string
       model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
       startTime?: number
       endTime?: number
+      fast?: boolean
     }
 
     const inputPath = resolveVideoPath(videoFilename)
@@ -119,6 +120,7 @@ export async function subtitleRoute(app: FastifyInstance) {
         model,
         startTime,
         endTime,
+        fast,
       })
       const content = fs.readFileSync(filepath, 'utf-8')
       const entries = parseSRT(content)
