@@ -18,6 +18,9 @@ export default function VideoPlayer() {
     activeTab,
     titleText, titleFont, titleSize, titleColor, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
     titleDraftText,
+    isApplyingTitle,
+    previewLoading,
+    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, setLogoDraftXY,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -137,6 +140,7 @@ export default function VideoPlayer() {
 
   const overlayRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
+  const logoDraggingRef = useRef(false)
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -147,16 +151,30 @@ export default function VideoPlayer() {
       const y = (e.clientY - rect.top) / rect.height
       setTitleDraftXY(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)))
     }
+    const handleLogoMove = (e: MouseEvent) => {
+      if (!logoDraggingRef.current) return
+      const rect = overlayRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const x = (e.clientX - rect.left) / rect.width
+      const y = (e.clientY - rect.top) / rect.height
+      setLogoDraftXY(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)))
+    }
     const handleUp = () => {
       draggingRef.current = false
+      logoDraggingRef.current = false
     }
     window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mousemove', handleLogoMove)
     window.addEventListener('mouseup', handleUp)
     return () => {
       window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mousemove', handleLogoMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [setTitleDraftXY])
+  }, [setTitleDraftXY, setLogoDraftXY])
+
+  const logoX = logoDraftX ?? 0.9
+  const logoY = logoDraftY ?? 0.1
 
   return (
     <div className="space-y-2">
@@ -198,8 +216,13 @@ export default function VideoPlayer() {
             style={{ pointerEvents: 'none' }}
           >
             <div
-              onMouseDown={() => { draggingRef.current = true }}
-              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold cursor-move ${((titleDraftText || titleText).trim() ? '' : 'opacity-60 italic')}`}
+              onMouseDown={() => {
+                if (previewLoading || isApplyingTitle) return
+                draggingRef.current = true
+              }}
+              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${
+                (previewLoading || isApplyingTitle) ? 'cursor-not-allowed' : 'cursor-move'
+              } ${((titleDraftText || titleText).trim() ? '' : 'opacity-60 italic')}`}
               style={{
                 left: `${(titleDraftX ?? titleX ?? 0.5) * 100}%`,
                 top: `${(titleDraftY ?? titleY ?? 0.2) * 100}%`,
@@ -212,6 +235,28 @@ export default function VideoPlayer() {
             >
               {((titleDraftText || titleText).trim() || 'Title')}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'logo' && logoDraftImage && (
+          <div
+            className="absolute inset-0"
+            style={{ pointerEvents: 'none' }}
+          >
+            <img
+              src={logoDraftImage.url}
+              alt="Logo preview"
+              onMouseDown={() => { logoDraggingRef.current = true }}
+              className="absolute cursor-move select-none"
+              style={{
+                left: `${logoX * 100}%`,
+                top: `${logoY * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                width: `${logoDraftSize}%`,
+                height: 'auto',
+                pointerEvents: 'auto',
+              }}
+            />
           </div>
         )}
       </div>

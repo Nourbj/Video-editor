@@ -207,7 +207,8 @@ export const exportVideo = async (params: {
   borderStyle?: BorderStyle
   logoFilename?: string
   logoSize?: number
-  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+  logoX?: number
+  logoY?: number
   replaceOriginal?: boolean
   audioVolume?: number
 }) => {
@@ -231,7 +232,8 @@ export const previewVideo = async (params: {
   borderStyle?: BorderStyle
   logoFilename?: string
   logoSize?: number
-  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+  logoX?: number
+  logoY?: number
   replaceOriginal?: boolean
   audioVolume?: number
 }) => {

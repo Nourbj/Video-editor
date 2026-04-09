@@ -218,7 +218,8 @@ export async function processRoute(app: FastifyInstance) {
       }
       logoFilename?: string
       logoSize?: number
-      logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+      logoX?: number
+      logoY?: number
       replaceOriginal?: boolean
       audioVolume?: number
     }
@@ -251,7 +252,8 @@ export async function processRoute(app: FastifyInstance) {
         audioVolume: body.audioVolume,
         logoFilename: body.logoFilename,
         logoSize: body.logoSize,
-        logoPosition: body.logoPosition,
+        logoX: body.logoX,
+        logoY: body.logoY,
       }))
       const outPath = await exportVideo({
         inputPath,
@@ -269,7 +271,8 @@ export async function processRoute(app: FastifyInstance) {
         borderStyle: body.borderStyle,
         logoPath,
         logoSize: body.logoSize,
-        logoPosition: body.logoPosition,
+        logoX: body.logoX,
+        logoY: body.logoY,
         replaceOriginal: body.replaceOriginal,
         audioVolume: body.audioVolume,
       })
@@ -318,7 +321,8 @@ export async function processRoute(app: FastifyInstance) {
       }
       logoFilename?: string
       logoSize?: number
-      logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+      logoX?: number
+      logoY?: number
       replaceOriginal?: boolean
       audioVolume?: number
     }
@@ -360,7 +364,8 @@ export async function processRoute(app: FastifyInstance) {
         borderStyle: body.borderStyle,
         logoPath,
         logoSize: body.logoSize,
-        logoPosition: body.logoPosition,
+        logoX: body.logoX,
+        logoY: body.logoY,
         replaceOriginal: body.replaceOriginal,
         audioVolume: body.audioVolume,
         outputDir: path.join(process.cwd(), 'temp'),

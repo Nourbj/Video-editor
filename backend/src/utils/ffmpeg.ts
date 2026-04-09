@@ -52,7 +52,8 @@ export interface ExportOptions {
   borderStyle?: BorderStyle
   logoPath?: string
   logoSize?: number // percent of video width (5-60)
-  logoPosition?: LogoPosition
+  logoX?: number
+  logoY?: number
   outputDir?: string
   startTime?: number
   endTime?: number
@@ -68,7 +69,6 @@ export interface SubtitleStyle {
   position?: 'bottom' | 'middle' | 'top'
 }
 
-export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 export type TitlePosition =
   | 'top-left' | 'top' | 'top-right'
   | 'middle-left' | 'middle' | 'middle-right'
@@ -266,22 +266,14 @@ function buildLogoOverlayFilters(params: {
   logoInputIndex: number
   baseLabel: string
   size?: number
-  position?: LogoPosition
+  x?: number
+  y?: number
 }) {
   const sizePct = clamp(params.size ?? 15, 5, 60)
-  const position = params.position ?? 'top-right'
-  const margin = Number(process.env.LOGO_MARGIN || 24)
-
-  const posMap: Record<LogoPosition, { x: string; y: string }> = {
-    'top-left': { x: `${margin}`, y: `${margin}` },
-    'top-right': { x: `main_w-overlay_w-${margin}`, y: `${margin}` },
-    'bottom-left': { x: `${margin}`, y: `main_h-overlay_h-${margin}` },
-    'bottom-right': { x: `main_w-overlay_w-${margin}`, y: `main_h-overlay_h-${margin}` },
-    'center': { x: `(main_w-overlay_w)/2`, y: `(main_h-overlay_h)/2` },
-  }
 
   const logoIn = `[${params.logoInputIndex}:v]`
-  const { x, y } = posMap[position]
+  const x = `((${clamp(params.x ?? 0.9, 0, 1)}*main_w)-(overlay_w/2))`
+  const y = `((${clamp(params.y ?? 0.1, 0, 1)}*main_h)-(overlay_h/2))`
 
   return [
     `${logoIn}format=rgba[logo]`,
@@ -467,7 +459,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       borderStyle,
       logoPath,
       logoSize,
-      logoPosition,
+      logoX,
+      logoY,
     } = options
 
     console.log('[exportVideo] options:', {
@@ -477,6 +470,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       replaceOriginal,
       audioVolume,
       logoPath: !!logoPath,
+      logoX,
+      logoY,
     })
 
     const scaleFilter = buildScaleFilter(quality, aspectRatio)
@@ -527,7 +522,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
           logoInputIndex,
           baseLabel,
           size: logoSize,
-          position: logoPosition,
+          x: options.logoX,
+          y: options.logoY,
         }))
       }
 

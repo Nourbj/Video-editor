@@ -370,11 +370,11 @@ export function EditSidebar() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-yellow-600">Clips</p>
+            <p className="text-xs tracking-[0.2em] text-yellow-600">Clips</p>
             <p className="text-sm font-semibold text-zinc-900">Drag to reorder your clips</p>
           </div>
           {segments.length > 0 && (

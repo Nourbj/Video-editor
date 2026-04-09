@@ -32,7 +32,7 @@ export default function ExportPanel() {
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     subtitles, subtitleFilename,
     subtitleStyle,
-    logoImage, logoSize, logoPosition,
+    logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     exportQuality, setExportQuality,
@@ -107,7 +107,8 @@ export default function ExportPanel() {
         },
         logoFilename: logoImage?.filename,
         logoSize,
-        logoPosition,
+        logoX: logoX ?? undefined,
+        logoY: logoY ?? undefined,
       })
 
       setProcessedUrl(result.url)
@@ -354,7 +355,9 @@ export default function ExportPanel() {
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><ImageIcon size={13} /> Logo</span>
               <span className="text-zinc-700 text-xs">
-                {hasLogo ? `${logoImage!.filename} (${logoSize}%, ${logoPosition})` : 'None'}
+                {hasLogo
+                  ? `${logoImage!.filename} (${logoSize}%, x:${Math.round((logoX ?? 0) * 100)}%, y:${Math.round((logoY ?? 0) * 100)}%)`
+                  : 'None'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

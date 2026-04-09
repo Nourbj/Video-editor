@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Image as ImageIcon, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Image as ImageIcon, X, CheckCircle2 } from 'lucide-react'
 import { uploadImage } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -7,7 +7,12 @@ export default function LogoEditor() {
   const {
     logoImage, setLogoImage,
     logoSize, setLogoSize,
-    logoPosition, setLogoPosition,
+    logoDraftImage, setLogoDraftImage,
+    logoDraftSize, setLogoDraftSize,
+    logoDraftX, logoDraftY, setLogoDraftXY,
+    logoX, logoY, setLogoXY,
+    isApplyingLogo, setIsApplyingLogo,
+    previewLoading,
   } = useStore()
 
   const [logoUploading, setLogoUploading] = useState(false)
@@ -16,7 +21,18 @@ export default function LogoEditor() {
   const logoFileInputId = 'logo-file-input'
   const logoSizeInputId = 'logo-size-input'
 
-  const hasLogo = !!logoImage
+  const hasLogo = !!logoDraftImage
+  const hasChanges =
+    (logoDraftImage?.id || null) !== (logoImage?.id || null) ||
+    logoDraftSize !== logoSize ||
+    logoDraftX !== logoX ||
+    logoDraftY !== logoY
+
+  useEffect(() => {
+    setLogoDraftImage(logoImage)
+    setLogoDraftSize(logoSize)
+    setLogoDraftXY(logoX, logoY)
+  }, [logoImage, logoSize, logoX, logoY, setLogoDraftImage, setLogoDraftSize, setLogoDraftXY])
 
   const handleLogoUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -27,12 +43,21 @@ export default function LogoEditor() {
     setError(null)
     try {
       const res = await uploadImage(file)
-      setLogoImage(res)
+      setLogoDraftImage(res)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Logo upload failed')
     } finally {
       setLogoUploading(false)
     }
+  }
+
+  const applyLogo = () => {
+    if (isApplyingLogo || previewLoading) return
+    setIsApplyingLogo(true)
+    setLogoImage(logoDraftImage)
+    setLogoSize(logoDraftSize)
+    setLogoXY(logoDraftX ?? null, logoDraftY ?? null)
+    window.setTimeout(() => setIsApplyingLogo(false), 0)
   }
 
   return (
@@ -64,10 +89,15 @@ export default function LogoEditor() {
           </button>
           {hasLogo && (
             <div className="flex items-center gap-2 text-xs text-zinc-600">
-              <img src={logoImage!.url} alt="" className="w-10 h-10 rounded-md object-contain bg-white border border-zinc-200" />
-              <span className="truncate max-w-[160px]">{logoImage!.filename}</span>
+              <img src={logoDraftImage!.url} alt="" className="w-10 h-10 rounded-md object-contain bg-white border border-zinc-200" />
+              <span className="truncate max-w-[160px]">{logoDraftImage!.filename}</span>
               <button
-                onClick={() => setLogoImage(null)}
+                onClick={() => {
+                  setLogoImage(null)
+                  setLogoDraftImage(null)
+                  setLogoXY(null, null)
+                  setLogoDraftXY(null, null)
+                }}
                 className="text-zinc-400 hover:text-zinc-600"
                 aria-label="Remove logo"
               >
@@ -81,8 +111,8 @@ export default function LogoEditor() {
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-500">
-            <label htmlFor={logoSizeInputId}>Size ({logoSize}% of video width)</label>
-            <span className="font-mono">{logoSize}%</span>
+            <label htmlFor={logoSizeInputId}>Size ({logoDraftSize}% of video width)</label>
+            <span className="font-mono">{logoDraftSize}%</span>
           </div>
           <input
             id={logoSizeInputId}
@@ -90,8 +120,8 @@ export default function LogoEditor() {
             min={5}
             max={60}
             step={1}
-            value={logoSize}
-            onChange={e => setLogoSize(Number(e.target.value))}
+            value={logoDraftSize}
+            onChange={e => setLogoDraftSize(Number(e.target.value))}
             disabled={!hasLogo}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
@@ -99,24 +129,20 @@ export default function LogoEditor() {
 
         <div className="space-y-2">
           <div className="text-xs text-zinc-500">Position</div>
-          <div className="grid grid-cols-3 gap-2">
-            {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as const).map(pos => (
-              <button
-                key={pos}
-                onClick={() => setLogoPosition(pos)}
-                disabled={!hasLogo}
-                className={`px-2 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                  logoPosition === pos
-                    ? 'bg-cyan-600 text-white border-cyan-600'
-                    : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-100'
-                } ${!hasLogo ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {pos.replace('-', ' ')}
-              </button>
-            ))}
+          <div className="text-xs text-zinc-500">
+            Déplace le logo directement sur la vidéo (drag &amp; drop). La position sera appliquée après “Appliquer le logo”.
           </div>
         </div>
       </div>
+
+      <button
+        onClick={applyLogo}
+        disabled={!hasLogo || !hasChanges || logoUploading || isApplyingLogo || previewLoading}
+        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+      >
+        <CheckCircle2 size={16} />
+        {previewLoading || isApplyingLogo ? 'Application en cours...' : 'Appliquer le logo'}
+      </button>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">

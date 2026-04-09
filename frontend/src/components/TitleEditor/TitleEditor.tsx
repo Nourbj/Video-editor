@@ -23,6 +23,7 @@ export default function TitleEditor() {
     titleX, titleY, setTitleXY,
     titleDraftX, titleDraftY, setTitleDraftXY,
     isApplyingTitle, setIsApplyingTitle,
+    previewLoading,
   } = useStore()
 
   const [draftText, setDraftText] = useState(titleDraftText || titleText)
@@ -50,7 +51,7 @@ export default function TitleEditor() {
     draftY !== titleY
 
   const applyChanges = () => {
-    if (isApplyingTitle) return
+    if (isApplyingTitle || previewLoading) return
     setIsApplyingTitle(true)
     setTitleText(draftText)
     setTitleDraftText(draftText)
@@ -140,11 +141,11 @@ export default function TitleEditor() {
 
       <button
         onClick={applyChanges}
-        disabled={!hasChanges || isApplyingTitle}
+        disabled={!hasChanges || isApplyingTitle || previewLoading}
         className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
       >
         <CheckCircle2 size={15} />
-        {isApplyingTitle ? 'Application en cours...' : 'Appliquer le titre'}
+        {isApplyingTitle || previewLoading ? 'Application en cours...' : 'Appliquer le titre'}
       </button>
     </div>
   )

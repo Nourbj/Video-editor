@@ -39,7 +39,6 @@ export interface VideoSegment {
   outputUrl: string | null
 }
 
-export type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 export type TitlePosition =
   | 'top-left' | 'top' | 'top-right'
   | 'middle-left' | 'middle' | 'middle-right'
@@ -95,10 +94,20 @@ interface EditorState {
   // Logo
   logoImage: LogoAsset | null
   setLogoImage: (l: LogoAsset | null) => void
+  logoDraftImage: LogoAsset | null
+  setLogoDraftImage: (l: LogoAsset | null) => void
   logoSize: number
   setLogoSize: (s: number) => void
-  logoPosition: LogoPosition
-  setLogoPosition: (p: LogoPosition) => void
+  logoDraftSize: number
+  setLogoDraftSize: (s: number) => void
+  logoX: number | null
+  logoY: number | null
+  setLogoXY: (x: number | null, y: number | null) => void
+  logoDraftX: number | null
+  logoDraftY: number | null
+  setLogoDraftXY: (x: number | null, y: number | null) => void
+  isApplyingLogo: boolean
+  setIsApplyingLogo: (v: boolean) => void
 
   // Title text
   titleText: string
@@ -111,6 +120,12 @@ interface EditorState {
   setTitleSize: (s: number) => void
   titleColor: string
   setTitleColor: (c: string) => void
+  titleBgColor: string
+  setTitleBgColor: (c: string) => void
+  titleBorderColor: string
+  setTitleBorderColor: (c: string) => void
+  titleBorderWidth: number
+  setTitleBorderWidth: (s: number) => void
   titleX: number | null
   titleY: number | null
   setTitleXY: (x: number | null, y: number | null) => void
@@ -149,6 +164,8 @@ interface EditorState {
   setProcessedUrl: (u: string | null) => void
   editStatus: string | null
   setEditStatus: (s: string | null) => void
+  previewLoading: boolean
+  setPreviewLoading: (p: boolean) => void
 
   reset: () => void
 }
@@ -157,10 +174,12 @@ const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE ||
 const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ffffff'
 const defaultSubtitlePosition = (import.meta.env.VITE_SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
 const defaultLogoSize = Number(import.meta.env.VITE_LOGO_DEFAULT_SIZE || 15)
-const defaultLogoPosition = (import.meta.env.VITE_LOGO_DEFAULT_POSITION as LogoPosition) || 'top-right'
 const defaultTitleFont = import.meta.env.VITE_TITLE_DEFAULT_FONT || 'Arial'
 const defaultTitleSize = Number(import.meta.env.VITE_TITLE_DEFAULT_SIZE || 42)
 const defaultTitleColor = import.meta.env.VITE_TITLE_DEFAULT_COLOR || '#ffffff'
+const defaultTitleBgColor = import.meta.env.VITE_TITLE_DEFAULT_BG || '#000000'
+const defaultTitleBorderColor = import.meta.env.VITE_TITLE_DEFAULT_BORDER_COLOR || '#000000'
+const defaultTitleBorderWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_BORDER_WIDTH || 0)
 const defaultTitlePosition = (import.meta.env.VITE_TITLE_DEFAULT_POSITION as TitlePosition) || 'top'
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
@@ -255,10 +274,20 @@ export const useStore = create<EditorState>((set) => ({
 
   logoImage: null,
   setLogoImage: l => set({ logoImage: l }),
+  logoDraftImage: null,
+  setLogoDraftImage: l => set({ logoDraftImage: l }),
   logoSize: defaultLogoSize,
   setLogoSize: s => set({ logoSize: s }),
-  logoPosition: defaultLogoPosition,
-  setLogoPosition: p => set({ logoPosition: p }),
+  logoDraftSize: defaultLogoSize,
+  setLogoDraftSize: s => set({ logoDraftSize: s }),
+  logoX: null,
+  logoY: null,
+  setLogoXY: (x, y) => set({ logoX: x, logoY: y }),
+  logoDraftX: null,
+  logoDraftY: null,
+  setLogoDraftXY: (x, y) => set({ logoDraftX: x, logoDraftY: y }),
+  isApplyingLogo: false,
+  setIsApplyingLogo: v => set({ isApplyingLogo: v }),
 
   titleText: '',
   setTitleText: t => set({ titleText: t }),
@@ -270,6 +299,12 @@ export const useStore = create<EditorState>((set) => ({
   setTitleSize: s => set({ titleSize: s }),
   titleColor: defaultTitleColor,
   setTitleColor: c => set({ titleColor: c }),
+  titleBgColor: defaultTitleBgColor,
+  setTitleBgColor: c => set({ titleBgColor: c }),
+  titleBorderColor: defaultTitleBorderColor,
+  setTitleBorderColor: c => set({ titleBorderColor: c }),
+  titleBorderWidth: defaultTitleBorderWidth,
+  setTitleBorderWidth: s => set({ titleBorderWidth: s }),
   titleX: null,
   titleY: null,
   setTitleXY: (x, y) => set({ titleX: x, titleY: y }),
@@ -305,6 +340,8 @@ export const useStore = create<EditorState>((set) => ({
   setProcessedUrl: u => set({ processedUrl: u }),
   editStatus: null,
   setEditStatus: s => set({ editStatus: s }),
+  previewLoading: false,
+  setPreviewLoading: p => set({ previewLoading: p }),
 
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
@@ -314,13 +351,22 @@ export const useStore = create<EditorState>((set) => ({
     subtitles: [], subtitleFilename: null,
     subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
     logoImage: null,
+    logoDraftImage: null,
     logoSize: defaultLogoSize,
-    logoPosition: defaultLogoPosition,
+    logoDraftSize: defaultLogoSize,
+    logoX: null,
+    logoY: null,
+    logoDraftX: null,
+    logoDraftY: null,
+    isApplyingLogo: false,
     titleText: '',
     titleDraftText: '',
     titleFont: defaultTitleFont,
     titleSize: defaultTitleSize,
     titleColor: defaultTitleColor,
+    titleBgColor: defaultTitleBgColor,
+    titleBorderColor: defaultTitleBorderColor,
+    titleBorderWidth: defaultTitleBorderWidth,
     titleX: null,
     titleY: null,
     titleDraftX: null,
@@ -335,5 +381,6 @@ export const useStore = create<EditorState>((set) => ({
     exportAspectRatio: 'original',
     exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
+    previewLoading: false,
   }),
 }))

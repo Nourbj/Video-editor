@@ -39,15 +39,15 @@ export default function App() {
     audioTrack, audioDuration, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
-    logoImage, logoSize, logoPosition,
+    logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     exportQuality,
     exportAspectRatio,
     processedUrl, setProcessedUrl,
+    previewLoading, setPreviewLoading,
   } = useStore()
 
-  const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
@@ -99,7 +99,8 @@ export default function App() {
         },
         logoFilename: logoImage?.filename,
         logoSize,
-        logoPosition,
+        logoX: logoX ?? undefined,
+        logoY: logoY ?? undefined,
       })
 
       setProcessedUrl(result.url)
@@ -136,7 +137,7 @@ export default function App() {
       audio: hasAppliedAudio ? { id: audioTrack!.id, vol: appliedAudioVolume, replace: appliedReplaceOriginal, t0: appliedAudioTrimStart, t1: appliedAudioTrimEnd } : null,
       subtitles,
       exportQuality,
-      logo: logoImage ? { id: logoImage.id, size: logoSize, pos: logoPosition } : null,
+      logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor } : null,
       titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
       border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor } : null,
@@ -166,7 +167,8 @@ export default function App() {
     exportQuality,
     logoImage,
     logoSize,
-    logoPosition,
+    logoX,
+    logoY,
     titleText,
     titleFont,
     titleSize,
@@ -377,7 +379,7 @@ function EditPanel() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Edit</h2>
         <p className="text-xs text-zinc-500">
