@@ -16,7 +16,7 @@ export default function VideoPlayer() {
     audioTrack, audioVolume, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     activeTab,
-    titleText, titleColor, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
+    titleText, titleFont, titleSize, titleColor, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
     titleDraftText,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -205,6 +205,8 @@ export default function VideoPlayer() {
                 top: `${(titleDraftY ?? titleY ?? 0.2) * 100}%`,
                 transform: 'translate(-50%, -50%)',
                 color: titleColor,
+                fontFamily: titleFont,
+                fontSize: `${titleSize}px`,
                 pointerEvents: 'auto',
               }}
             >
