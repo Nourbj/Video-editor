@@ -191,7 +191,7 @@ function buildSubtitleStyle(style?: SubtitleStyle) {
   const color = toAssColor(style?.color || defaultColor)
   const position = style?.position ?? defaultPosition
   const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
-  const marginV = position === 'top' ? 24 : position === 'middle' ? 0 : 24
+  const marginV = position === 'bottom' ? 24 : 0
   return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
 }
 

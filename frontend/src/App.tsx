@@ -10,7 +10,7 @@ import LogoEditor from './components/LogoEditor/LogoEditor'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
-import { createSubtitles, previewVideo } from './api/client'
+import { previewVideo } from './api/client'
 
 type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -59,18 +59,10 @@ export default function App() {
     setPreviewError(null)
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
-    const hasSubtitles = subtitles.length > 0
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
 
     try {
-      let subFile = subtitleFilename
-      if (hasSubtitles && !subFile) {
-        const res = await createSubtitles(subtitles)
-        subFile = res.filename
-        setSubtitleFilename(res.filename)
-      }
-
       const result = await previewVideo({
         filename: video.filename,
         quality: exportQuality,
@@ -80,7 +72,7 @@ export default function App() {
         audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
-        subtitleFilename: subFile || undefined,
+        subtitleFilename: subtitleFilename || undefined,
         subtitleStyle,
         titleStyle: titleText.trim() ? {
           text: titleText.trim(),
@@ -122,13 +114,13 @@ export default function App() {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasAudio = !!audioTrack
-    const hasSubtitles = subtitles.length > 0
+    const hasSubtitlesApplied = subtitles.length > 0 && !!subtitleFilename
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitles || hasLogo || hasTitle || hasBorder
+    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -142,6 +134,8 @@ export default function App() {
       trimEnd,
       audio: hasAppliedAudio ? { id: audioTrack!.id, vol: appliedAudioVolume, replace: appliedReplaceOriginal, t0: appliedAudioTrimStart, t1: appliedAudioTrimEnd } : null,
       subtitles,
+      subtitleFilename,
+      subtitleStyle,
       exportQuality,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding } : null,
@@ -170,6 +164,8 @@ export default function App() {
     trimEnd,
     audioTrack,
     subtitles,
+    subtitleFilename,
+    subtitleStyle,
     exportQuality,
     logoImage,
     logoSize,

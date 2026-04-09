@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Plus, Trash2, Upload, FileText } from 'lucide-react'
 import { autoSubtitles, createSubtitles, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
@@ -19,13 +19,18 @@ function srtToSeconds(t: string): number {
 }
 
 export default function SubtitleEditor() {
-  const { video, subtitles, setSubtitles, setSubtitleFilename, subtitleStyle, setSubtitleStyle } = useStore()
+  const { video, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle, setSubtitleStyle } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [autoLoading, setAutoLoading] = useState(false)
+  const [uploadLoading, setUploadLoading] = useState(false)
   const [autoLang, setAutoLang] = useState('auto')
   const [autoModel, setAutoModel] = useState<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'>('small')
+  const [activeMode, setActiveMode] = useState<'manual' | 'import' | 'ai'>('manual')
+  const [pendingSrt, setPendingSrt] = useState<File | null>(null)
+  const [pendingSubtitleFilename, setPendingSubtitleFilename] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   const addEntry = () => {
@@ -40,6 +45,8 @@ export default function SubtitleEditor() {
     }
     setSubtitles([...subtitles, newEntry])
     setSaved(false)
+    setPendingSubtitleFilename(null)
+    setSubtitleFilename(null)
   }
 
   const updateEntry = (i: number, field: keyof SubtitleEntry, value: string) => {
@@ -47,6 +54,8 @@ export default function SubtitleEditor() {
     updated[i] = { ...updated[i], [field]: value }
     setSubtitles(updated)
     setSaved(false)
+    setPendingSubtitleFilename(null)
+    setSubtitleFilename(null)
   }
 
   const removeEntry = (i: number) => {
@@ -54,6 +63,8 @@ export default function SubtitleEditor() {
       .map((e, idx) => ({ ...e, index: idx + 1 }))
     setSubtitles(updated)
     setSaved(false)
+    setPendingSubtitleFilename(null)
+    setSubtitleFilename(null)
   }
 
   const handleSave = async () => {
@@ -64,6 +75,7 @@ export default function SubtitleEditor() {
       const result = await createSubtitles(subtitles)
       setSubtitleFilename(result.filename)
       setSaved(true)
+      setPendingSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Save failed')
     } finally {
@@ -72,13 +84,17 @@ export default function SubtitleEditor() {
   }
 
   const handleUploadSRT = async (file: File) => {
+    setUploadLoading(true)
     try {
       const result = await uploadSubtitle(file)
       setSubtitles(result.entries)
-      setSubtitleFilename(result.filename)
-      setSaved(true)
+      setPendingSubtitleFilename(result.filename)
+      setSaved(false)
+      setSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setUploadLoading(false)
     }
   }
 
@@ -93,8 +109,9 @@ export default function SubtitleEditor() {
         model: autoModel,
       })
       setSubtitles(result.entries)
-      setSubtitleFilename(result.filename)
-      setSaved(true)
+      setPendingSubtitleFilename(result.filename)
+      setSaved(false)
+      setSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Auto subtitles failed')
     } finally {
@@ -102,89 +119,32 @@ export default function SubtitleEditor() {
     }
   }
 
+  const handleApply = async () => {
+    if (subtitles.length === 0) return
+    if (pendingSubtitleFilename) {
+      setSubtitleFilename(pendingSubtitleFilename)
+      setSaved(true)
+      setPendingSubtitleFilename(null)
+      return
+    }
+    await handleSave()
+  }
+
+  const isApplying = saving || autoLoading || uploadLoading
+  const canApply =
+    subtitles.length > 0 && (!saved || !subtitleFilename)
+
+  useEffect(() => {
+    if (!subtitleFilename || subtitles.length === 0) {
+      setSaved(false)
+    }
+  }, [subtitleFilename, subtitles.length])
+
   return (
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Subtitles</h2>
-        <p className="text-xs text-zinc-500">Create manually or upload a .srt file</p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={addEntry}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
-        >
-          <Plus size={15} /> Add entry
-        </button>
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm font-medium transition-colors border border-zinc-200"
-        >
-          <Upload size={15} /> Import .srt
-        </button>
-        <button
-          onClick={handleAutoSubtitles}
-          disabled={!video || autoLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm font-medium transition-colors border border-zinc-200 disabled:opacity-60"
-        >
-          <FileText size={15} /> {autoLoading ? 'Generating...' : 'Auto subtitles'}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".srt"
-          className="hidden"
-          aria-label="Upload subtitles file (.srt)"
-          onChange={e => e.target.files?.[0] && handleUploadSRT(e.target.files[0])} />
-
-        {subtitles.length > 0 && (
-          <button
-            onClick={handleSave}
-            disabled={saving || saved}
-            className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${saved ? 'bg-green-600/20 text-green-600' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200'
-              }`}
-          >
-            <FileText size={15} />
-            {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save SRT'}
-          </button>
-        )}
-      </div>
-
-      {/* Auto subtitles settings */}
-      <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
-        <h3 className="text-sm font-medium text-zinc-700">Auto subtitles</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <label className="text-[11px] text-zinc-500">
-            Language
-            <select
-              value={autoLang}
-              onChange={e => setAutoLang(e.target.value)}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
-            >
-              <option value="auto">Auto detect</option>
-              <option value="fr">French</option>
-              <option value="en">English</option>
-              <option value="ar">Arabic</option>
-              <option value="es">Spanish</option>
-              <option value="de">German</option>
-            </select>
-          </label>
-          <label className="text-[11px] text-zinc-500">
-            Model
-            <select
-              value={autoModel}
-              onChange={e => setAutoModel(e.target.value as typeof autoModel)}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
-            >
-              <option value="tiny">tiny (fast)</option>
-              <option value="base">base</option>
-              <option value="small">small (balanced)</option>
-              <option value="medium">medium</option>
-              <option value="large">large (slow)</option>
-            </select>
-          </label>
-        </div>
+        <p className="text-xs text-zinc-500">Choisissez une méthode puis appliquez les sous-titres</p>
       </div>
 
       {/* Style controls */}
@@ -228,6 +188,171 @@ export default function SubtitleEditor() {
           </label>
         </div>
       </div>
+
+      <div className="flex items-center gap-3 text-zinc-500">
+        <div className="flex-1 h-px bg-zinc-200" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider">Méthode</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-zinc-100 rounded-2xl p-1 border border-zinc-200">
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            { id: 'manual', label: 'Manuel' },
+            { id: 'import', label: 'Importer .srt' },
+            { id: 'ai', label: 'IA' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveMode(tab.id as typeof activeMode)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                activeMode === tab.id
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab content */}
+      {activeMode === 'manual' && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={addEntry}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            <Plus size={15} /> Add entry
+          </button>
+          {subtitles.length > 0 && !saved && (
+            <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 self-center">
+              Prêt
+            </span>
+          )}
+        </div>
+      )}
+
+      {activeMode === 'import' && (
+        <div className="space-y-3">
+          <div
+            onDrop={e => {
+              e.preventDefault()
+              setDragOver(false)
+              const file = e.dataTransfer.files?.[0]
+              if (file) {
+                setPendingSrt(file)
+                setSaved(false)
+                setSubtitleFilename(null)
+                setPendingSubtitleFilename(null)
+              }
+            }}
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onClick={() => fileRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+              dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
+            }`}
+          >
+            <Upload size={28} className={`mx-auto mb-3 ${dragOver ? 'text-cyan-600' : 'text-zinc-400'}`} />
+            <p className="text-zinc-700 font-medium">{dragOver ? 'Drop file here' : 'Importer un fichier .srt'}</p>
+            <p className="text-zinc-500 text-sm mt-1">SRT uniquement</p>
+            {pendingSrt && (
+              <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-xs text-zinc-500 truncate max-w-[220px]">{pendingSrt.name}</span>
+                <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
+                  Prêt
+                </span>
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".srt"
+              className="hidden"
+              aria-label="Upload subtitles file (.srt)"
+              onChange={e => {
+                const file = e.target.files?.[0] || null
+                setPendingSrt(file)
+                if (file) {
+                  setSaved(false)
+                  setSubtitleFilename(null)
+                  setPendingSubtitleFilename(null)
+                }
+              }}
+            />
+          </div>
+          <button
+            onClick={() => pendingSrt && handleUploadSRT(pendingSrt)}
+            disabled={!pendingSrt || uploadLoading}
+            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
+          >
+            <FileText size={14} />
+            {uploadLoading ? 'Chargement...' : 'Afficher la liste'}
+          </button>
+        </div>
+      )}
+
+      {activeMode === 'ai' && (
+        <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
+          <h3 className="text-sm font-medium text-zinc-700">Auto subtitles</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="text-[11px] text-zinc-500">
+              Language
+              <select
+                value={autoLang}
+                onChange={e => setAutoLang(e.target.value)}
+                className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+              >
+                <option value="auto">Auto detect</option>
+                <option value="fr">French</option>
+                <option value="en">English</option>
+                <option value="ar">Arabic</option>
+                <option value="es">Spanish</option>
+                <option value="de">German</option>
+              </select>
+            </label>
+            <label className="text-[11px] text-zinc-500">
+              Model
+              <select
+                value={autoModel}
+                onChange={e => setAutoModel(e.target.value as typeof autoModel)}
+                className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+              >
+                <option value="tiny">tiny (fast)</option>
+                <option value="base">base</option>
+                <option value="small">small (balanced)</option>
+                <option value="medium">medium</option>
+                <option value="large">large (slow)</option>
+              </select>
+            </label>
+          </div>
+          <button
+            onClick={handleAutoSubtitles}
+            disabled={!video || autoLoading}
+            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
+          >
+            <FileText size={14} />
+            {autoLoading ? 'Génération...' : 'Générer la liste'}
+          </button>
+        </div>
+      )}
+
+      <button
+        onClick={handleApply}
+        disabled={!canApply || isApplying}
+        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+      >
+        <FileText size={16} />
+      {isApplying ? 'Application en cours...' : 'Appliquer les sous-titres'}
+      </button>
+      {pendingSubtitleFilename && !saved && (
+        <div className="text-xs text-zinc-500 text-center">
+          Liste chargée. Cliquez sur “Appliquer les sous-titres” pour prévisualiser.
+        </div>
+      )}
 
       {/* Subtitle list */}
       {subtitles.length === 0 ? (
