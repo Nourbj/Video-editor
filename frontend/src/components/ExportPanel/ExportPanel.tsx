@@ -133,7 +133,7 @@ export default function ExportPanel() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Export</h2>
-        <p className="text-sm text-zinc-500">Review settings and export your final video</p>
+        <p className="text-xs text-zinc-500">Review settings and export your final video</p>
       </div>
 
       {/* Export tabs */}

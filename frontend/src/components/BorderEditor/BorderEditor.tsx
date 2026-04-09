@@ -44,7 +44,7 @@ export default function BorderEditor() {
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Cadre</h2>
-        <p className="text-sm text-zinc-500">Ajoutez un cadre coloré autour de la vidéo</p>
+        <p className="text-xs text-zinc-500">Ajoutez un cadre coloré autour de la vidéo</p>
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">

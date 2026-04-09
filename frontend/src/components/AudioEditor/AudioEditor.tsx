@@ -81,7 +81,7 @@ export default function AudioEditor() {
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Audio</h2>
-        <p className="text-sm text-zinc-500">Add background music or replace the original audio</p>
+        <p className="text-xs text-zinc-500">Add background music or replace the original audio</p>
       </div>
 
       {/* Upload zone */}

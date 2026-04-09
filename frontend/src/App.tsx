@@ -380,7 +380,7 @@ function EditPanel() {
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Edit</h2>
-        <p className="text-sm text-zinc-500">
+        <p className="text-xs text-zinc-500">
           Use the timeline to set In/Out points, scrub, refine with handles, and quickly adjust start/end for faster cuts and splits.
         </p>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { Link, Upload, Loader2, Youtube, Instagram, Facebook } from 'lucide-react'
+import { Link, Upload, Loader2, Youtube, Instagram, Facebook, Download } from 'lucide-react'
 import { downloadFromUrl, uploadVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -93,13 +93,13 @@ export default function ImportPanel() {
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900">Import video</h2>
-        <p className="text-sm text-zinc-500">Paste a link or upload a local file</p>
+        <p className="text-xs text-zinc-500">Paste a link or upload a local file</p>
       </div>
 
       {/* URL input */}
-      <div className="space-y-3">
+      <div className="space-y-1">
         <label htmlFor="video-url" className="block text-sm font-medium text-zinc-700">Video URL</label>
-        <div className="flex flex-col sm:flex-row gap-1">
+        <div className="flex flex-col gap-2">
           <div className="relative flex-1">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
               {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-400" />}
@@ -117,13 +117,12 @@ export default function ImportPanel() {
           <button
             onClick={handleUrlDownload}
             disabled={loading || !url.trim()}
-            className="px-5 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 sm:w-auto w-full"
+            className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             {loading ? 'Downloading...' : 'Download'}
           </button>
         </div>
-
         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
           <span className="flex items-center gap-1"><Youtube size={12} className="text-red-400" /> YouTube</span>
           <span className="flex items-center gap-1"><Instagram size={12} className="text-pink-400" /> Instagram</span>

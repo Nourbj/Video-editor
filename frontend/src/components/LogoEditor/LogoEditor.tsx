@@ -13,6 +13,8 @@ export default function LogoEditor() {
   const [logoUploading, setLogoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const logoFileRef = useRef<HTMLInputElement>(null)
+  const logoFileInputId = 'logo-file-input'
+  const logoSizeInputId = 'logo-size-input'
 
   const hasLogo = !!logoImage
 
@@ -37,16 +39,17 @@ export default function LogoEditor() {
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Logo</h2>
-        <p className="text-sm text-zinc-500">Upload a logo/watermark and choose its size and position</p>
+        <p className="text-xs text-zinc-500">Upload a logo/watermark and choose its size and position</p>
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
-        <label className="text-sm font-medium text-zinc-700 flex items-center gap-2">
+        <label htmlFor={logoFileInputId} className="text-sm font-medium text-zinc-700 flex items-center gap-2">
           <ImageIcon size={16} /> Logo file
         </label>
         <div className="flex items-center gap-3">
           <input
             ref={logoFileRef}
+            id={logoFileInputId}
             type="file"
             accept="image/*"
             className="hidden"
@@ -78,10 +81,11 @@ export default function LogoEditor() {
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-500">
-            <span>Size ({logoSize}% of video width)</span>
+            <label htmlFor={logoSizeInputId}>Size ({logoSize}% of video width)</label>
             <span className="font-mono">{logoSize}%</span>
           </div>
           <input
+            id={logoSizeInputId}
             type="range"
             min={5}
             max={60}
