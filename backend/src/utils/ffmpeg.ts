@@ -80,12 +80,17 @@ export interface TitleStyle {
   size?: number
   color?: string // hex
   position?: TitlePosition
+  frameMode?: 'inside' | 'outside'
+  x?: number
+  y?: number
 }
 
 export interface BorderStyle {
   enabled?: boolean
-  size?: number
+  sizeX?: number
+  sizeY?: number
   color?: string // hex
+  mode?: 'inside' | 'outside'
 }
 
 const aspectRatioMap: Record<NonNullable<ExportOptions['aspectRatio']>, { w: number; h: number }> = {
@@ -167,7 +172,7 @@ function escapeDrawtext(text: string) {
     .replace(/\n/g, '\\n')
 }
 
-function buildTitleDrawtext(style?: TitleStyle) {
+function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const text = (style?.text || '').trim()
   if (!text) return null
 
@@ -176,8 +181,16 @@ function buildTitleDrawtext(style?: TitleStyle) {
   const color = style?.color || '#ffffff'
   const position = style?.position || 'top'
   const margin = Number(process.env.TITLE_MARGIN || 36)
+  const frameMode = style?.frameMode || 'inside'
+  const padX = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeX ?? 0), 0, 300) : 0
+  const padY = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeY ?? 0), 0, 300) : 0
 
-  const posMap: Record<TitlePosition, { x: string; y: string }> = {
+  const outsideXLeft = `max((${padX}-text_w)/2,0)`
+  const outsideXRight = `w-${padX}+max((${padX}-text_w)/2,0)`
+  const outsideYTop = `max((${padY}-text_h)/2,0)`
+  const outsideYBottom = `h-${padY}+max((${padY}-text_h)/2,0)`
+
+  const insidePosMap: Record<TitlePosition, { x: string; y: string }> = {
     'top-left': { x: `${margin}`, y: `${margin}` },
     'top': { x: `(w-text_w)/2`, y: `${margin}` },
     'top-right': { x: `w-text_w-${margin}`, y: `${margin}` },
@@ -189,7 +202,38 @@ function buildTitleDrawtext(style?: TitleStyle) {
     'bottom-right': { x: `w-text_w-${margin}`, y: `h-text_h-${margin}` },
   }
 
-  const { x, y } = posMap[position]
+  const outsidePosMap: Record<TitlePosition, { x: string; y: string }> = {
+    'top-left': { x: outsideXLeft, y: outsideYTop },
+    'top': { x: `(w-text_w)/2`, y: outsideYTop },
+    'top-right': { x: outsideXRight, y: outsideYTop },
+    'middle-left': { x: outsideXLeft, y: `(h-text_h)/2` },
+    'middle': { x: `(w-text_w)/2`, y: `(h-text_h)/2` },
+    'middle-right': { x: outsideXRight, y: `(h-text_h)/2` },
+    'bottom-left': { x: outsideXLeft, y: outsideYBottom },
+    'bottom': { x: `(w-text_w)/2`, y: outsideYBottom },
+    'bottom-right': { x: outsideXRight, y: outsideYBottom },
+  }
+
+  if (typeof style?.x === 'number' && typeof style?.y === 'number') {
+    const safeX = clamp(style.x, 0, 1)
+    const safeY = clamp(style.y, 0, 1)
+    const x = `(${safeX}*w-text_w/2)`
+    const y = `(${safeY}*h-text_h/2)`
+    const safeText = escapeDrawtext(text)
+    const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
+    return `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=black@0.45:boxborderw=8`
+  }
+
+  const normalizedPosition = frameMode === 'outside'
+    ? (position.startsWith('top')
+        ? 'top'
+        : position.startsWith('bottom')
+          ? 'bottom'
+          : 'middle')
+    : position
+
+  const posMap = frameMode === 'outside' ? outsidePosMap : insidePosMap
+  const { x, y } = posMap[normalizedPosition as TitlePosition]
   const safeText = escapeDrawtext(text)
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
@@ -198,11 +242,20 @@ function buildTitleDrawtext(style?: TitleStyle) {
 
 function buildBorderFilter(style?: BorderStyle) {
   if (!style?.enabled) return null
-  const size = clamp(Number(style.size ?? 0), 0, 120)
-  if (size <= 0) return null
+  const sizeX = clamp(Number(style.sizeX ?? 0), 0, 300)
+  const sizeY = clamp(Number(style.sizeY ?? 0), 0, 300)
+  if (sizeX <= 0 && sizeY <= 0) return null
   const color = style.color || '#ffffff'
-  // Shrink video to create border padding, then pad to original size
-  return `scale=iw-${size * 2}:ih-${size * 2},pad=iw+${size * 2}:ih+${size * 2}:${size}:${size}:color=${color}`
+  const mode = style.mode || 'inside'
+  if (mode === 'outside') {
+    return `pad=iw+${sizeX * 2}:ih+${sizeY * 2}:${sizeX}:${sizeY}:color=${color}`
+  }
+  // Crop edges, then pad back to original size
+  const sx = sizeX
+  const sy = sizeY
+  const safeX = `min(${sx}\\,max(iw/2-2\\,0))`
+  const safeY = `min(${sy}\\,max(ih/2-2\\,0))`
+  return `crop=iw-2*${safeX}:ih-2*${safeY}:${safeX}:${safeY},pad=iw+${sx * 2}:ih+${sy * 2}:${sx}:${sy}:color=${color}`
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -443,7 +496,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     const hasAudio = !!(audioPath && fs.existsSync(audioPath))
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
-    const titleFilter = buildTitleDrawtext(titleStyle)
+    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle)
     const borderFilter = buildBorderFilter(borderStyle)
     const hasAudioTrim = audioStartTime !== undefined && audioEndTime !== undefined && audioEndTime > audioStartTime
     const audioTrimFilter = hasAudioTrim ? `atrim=start=${audioStartTime}:end=${audioEndTime},asetpts=PTS-STARTPTS` : null

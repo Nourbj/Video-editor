@@ -5,70 +5,125 @@ import { useStore } from '../../store/useStore'
 export default function BorderEditor() {
   const {
     borderEnabled, setBorderEnabled,
-    borderSize, setBorderSize,
+    borderWidth, setBorderWidth,
+    borderHeight, setBorderHeight,
     borderColor, setBorderColor,
+    borderMode, setBorderMode,
   } = useStore()
 
   const [draftEnabled, setDraftEnabled] = useState(borderEnabled)
-  const [draftSize, setDraftSize] = useState(borderSize)
+  const [draftWidth, setDraftWidth] = useState(borderWidth)
+  const [draftHeight, setDraftHeight] = useState(borderHeight)
   const [draftColor, setDraftColor] = useState(borderColor)
+  const [draftMode, setDraftMode] = useState(borderMode)
 
   useEffect(() => {
     setDraftEnabled(borderEnabled)
-    setDraftSize(borderSize)
+    setDraftWidth(borderWidth)
+    setDraftHeight(borderHeight)
     setDraftColor(borderColor)
-  }, [borderEnabled, borderSize, borderColor])
+    setDraftMode(borderMode)
+  }, [borderEnabled, borderWidth, borderHeight, borderColor, borderMode])
 
   const hasChanges =
     draftEnabled !== borderEnabled ||
-    draftSize !== borderSize ||
-    draftColor !== borderColor
+    draftWidth !== borderWidth ||
+    draftHeight !== borderHeight ||
+    draftColor !== borderColor ||
+    draftMode !== borderMode
 
   const applyChanges = () => {
     setBorderEnabled(draftEnabled)
-    setBorderSize(draftSize)
+    setBorderWidth(draftWidth)
+    setBorderHeight(draftHeight)
     setBorderColor(draftColor)
+    setBorderMode(draftMode)
   }
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Border</h2>
-        <p className="text-sm text-zinc-500">Add a colored frame around the video</p>
+        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Cadre</h2>
+        <p className="text-sm text-zinc-500">Ajoutez un cadre coloré autour de la vidéo</p>
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input
+            id="border-enabled"
             type="checkbox"
             checked={draftEnabled}
             onChange={e => setDraftEnabled(e.target.checked)}
             className="accent-cyan-600"
           />
-          <Square size={16} /> Enable border
+          <Square size={16} /> <label htmlFor="border-enabled">Activer le cadre</label>
         </label>
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
+          <label className="text-xs text-zinc-500">Position du cadre</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { id: 'inside', label: 'Intérieur (crop)' },
+              { id: 'outside', label: 'Extérieur (pad)' },
+            ] as const).map(option => (
+              <button
+                key={option.id}
+                onClick={() => setDraftMode(option.id)}
+                disabled={!draftEnabled}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  draftMode === option.id
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
-            <span>Border size</span>
-            <span className="font-mono">{draftSize}px</span>
+            <span>Largeur du cadre</span>
+            <span className="font-mono">{draftWidth}px</span>
           </div>
           <input
+            aria-label="Border width"
             type="range"
             min={0}
-            max={120}
+            max={300}
             step={1}
-            value={draftSize}
-            onChange={e => setDraftSize(Number(e.target.value))}
+            value={draftWidth}
+            onChange={e => setDraftWidth(Number(e.target.value))}
             disabled={!draftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
         </div>
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
-          <label className="text-xs text-zinc-500">Border color</label>
+          <div className="flex items-center justify-between text-xs text-zinc-500">
+            <span>Hauteur du cadre</span>
+            <span className="font-mono">{draftHeight}px</span>
+          </div>
+          <input
+            aria-label="Border height"
+            type="range"
+            min={0}
+            max={300}
+            step={1}
+            value={draftHeight}
+            onChange={e => setDraftHeight(Number(e.target.value))}
+            disabled={!draftEnabled}
+            className="w-full accent-cyan-600 h-1 disabled:opacity-50"
+          />
+        </div>
+
+        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
+          <label htmlFor="border-color" className="text-xs text-zinc-500">Couleur du cadre</label>
           <div className="flex items-center gap-2">
             <input
+              id="border-color"
+              aria-label="Border color"
               type="color"
               value={draftColor}
               onChange={e => setDraftColor(e.target.value)}
@@ -76,6 +131,7 @@ export default function BorderEditor() {
               className="w-10 h-9 p-0 border border-zinc-200 rounded-lg bg-white"
             />
             <input
+              aria-label="Border color value"
               value={draftColor}
               onChange={e => setDraftColor(e.target.value)}
               disabled={!draftEnabled}
@@ -91,7 +147,7 @@ export default function BorderEditor() {
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <CheckCircle2 size={16} />
-        Apply border
+        Appliquer le cadre
       </button>
     </div>
   )

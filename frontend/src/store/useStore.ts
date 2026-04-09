@@ -103,22 +103,34 @@ interface EditorState {
   // Title text
   titleText: string
   setTitleText: (t: string) => void
+  titleDraftText: string
+  setTitleDraftText: (t: string) => void
   titleFont: string
   setTitleFont: (f: string) => void
   titleSize: number
   setTitleSize: (s: number) => void
   titleColor: string
   setTitleColor: (c: string) => void
-  titlePosition: TitlePosition
-  setTitlePosition: (p: TitlePosition) => void
+  titleX: number | null
+  titleY: number | null
+  setTitleXY: (x: number | null, y: number | null) => void
+  titleDraftX: number | null
+  titleDraftY: number | null
+  setTitleDraftXY: (x: number | null, y: number | null) => void
+  isApplyingTitle: boolean
+  setIsApplyingTitle: (v: boolean) => void
 
   // Border
   borderEnabled: boolean
   setBorderEnabled: (e: boolean) => void
-  borderSize: number
-  setBorderSize: (s: number) => void
+  borderWidth: number
+  setBorderWidth: (s: number) => void
+  borderHeight: number
+  setBorderHeight: (s: number) => void
   borderColor: string
   setBorderColor: (c: string) => void
+  borderMode: 'inside' | 'outside'
+  setBorderMode: (m: 'inside' | 'outside') => void
 
   // Export
   exportQuality: '480p' | '720p' | '1080p'
@@ -250,21 +262,33 @@ export const useStore = create<EditorState>((set) => ({
 
   titleText: '',
   setTitleText: t => set({ titleText: t }),
+  titleDraftText: '',
+  setTitleDraftText: t => set({ titleDraftText: t }),
   titleFont: defaultTitleFont,
   setTitleFont: f => set({ titleFont: f }),
   titleSize: defaultTitleSize,
   setTitleSize: s => set({ titleSize: s }),
   titleColor: defaultTitleColor,
   setTitleColor: c => set({ titleColor: c }),
-  titlePosition: defaultTitlePosition,
-  setTitlePosition: p => set({ titlePosition: p }),
+  titleX: null,
+  titleY: null,
+  setTitleXY: (x, y) => set({ titleX: x, titleY: y }),
+  titleDraftX: null,
+  titleDraftY: null,
+  setTitleDraftXY: (x, y) => set({ titleDraftX: x, titleDraftY: y }),
+  isApplyingTitle: false,
+  setIsApplyingTitle: v => set({ isApplyingTitle: v }),
 
   borderEnabled: defaultBorderSize > 0,
   setBorderEnabled: e => set({ borderEnabled: e }),
-  borderSize: defaultBorderSize,
-  setBorderSize: s => set({ borderSize: s }),
+  borderWidth: defaultBorderSize,
+  setBorderWidth: s => set({ borderWidth: s }),
+  borderHeight: defaultBorderSize,
+  setBorderHeight: s => set({ borderHeight: s }),
   borderColor: defaultBorderColor,
   setBorderColor: c => set({ borderColor: c }),
+  borderMode: 'inside',
+  setBorderMode: m => set({ borderMode: m }),
 
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
@@ -293,13 +317,20 @@ export const useStore = create<EditorState>((set) => ({
     logoSize: defaultLogoSize,
     logoPosition: defaultLogoPosition,
     titleText: '',
+    titleDraftText: '',
     titleFont: defaultTitleFont,
     titleSize: defaultTitleSize,
     titleColor: defaultTitleColor,
-    titlePosition: defaultTitlePosition,
+    titleX: null,
+    titleY: null,
+    titleDraftX: null,
+    titleDraftY: null,
+    isApplyingTitle: false,
     borderEnabled: defaultBorderSize > 0,
-    borderSize: defaultBorderSize,
+    borderWidth: defaultBorderSize,
+    borderHeight: defaultBorderSize,
     borderColor: defaultBorderColor,
+    borderMode: 'inside',
     exportQuality: '720p',
     exportAspectRatio: 'original',
     exportFilename: '',

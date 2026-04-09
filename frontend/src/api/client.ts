@@ -31,13 +31,18 @@ export interface TitleStyle {
   font: string
   size: number
   color: string
-  position: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+  position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+  frameMode?: 'inside' | 'outside'
+  x?: number
+  y?: number
 }
 
 export interface BorderStyle {
   enabled: boolean
-  size: number
+  sizeX?: number
+  sizeY?: number
   color: string
+  mode?: 'inside' | 'outside'
 }
 
 export interface SegmentDefinition {

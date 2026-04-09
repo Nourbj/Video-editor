@@ -205,11 +205,16 @@ export async function processRoute(app: FastifyInstance) {
         size?: number
         color?: string
         position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+        frameMode?: 'inside' | 'outside'
+        x?: number
+        y?: number
       }
       borderStyle?: {
         enabled?: boolean
-        size?: number
+        sizeX?: number
+        sizeY?: number
         color?: string
+        mode?: 'inside' | 'outside'
       }
       logoFilename?: string
       logoSize?: number
@@ -300,11 +305,16 @@ export async function processRoute(app: FastifyInstance) {
         size?: number
         color?: string
         position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
+        frameMode?: 'inside' | 'outside'
+        x?: number
+        y?: number
       }
       borderStyle?: {
         enabled?: boolean
-        size?: number
+        sizeX?: number
+        sizeY?: number
         color?: string
+        mode?: 'inside' | 'outside'
       }
       logoFilename?: string
       logoSize?: number

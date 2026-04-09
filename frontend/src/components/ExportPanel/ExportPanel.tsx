@@ -33,8 +33,8 @@ export default function ExportPanel() {
     subtitles, subtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
-    titleText, titleFont, titleSize, titleColor, titlePosition,
-    borderEnabled, borderSize, borderColor,
+    titleText, titleFont, titleSize, titleColor, titleX, titleY,
+    borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     exportQuality, setExportQuality,
     exportAspectRatio, setExportAspectRatio,
     exportFilename, setExportFilename,
@@ -95,12 +95,15 @@ export default function ExportPanel() {
           font: titleFont,
           size: titleSize,
           color: titleColor,
-          position: titlePosition,
+          x: titleX ?? undefined,
+          y: titleY ?? undefined,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,
-          size: borderSize,
+          sizeX: borderWidth,
+          sizeY: borderHeight,
           color: borderColor,
+          mode: borderMode,
         },
         logoFilename: logoImage?.filename,
         logoSize,
@@ -359,11 +362,13 @@ export default function ExportPanel() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
-              <span className="text-zinc-700 text-xs">
-                {borderEnabled && borderSize > 0 ? `${borderSize}px ${borderColor}` : 'None'}
-              </span>
-            </div>
+            <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Cadre</span>
+            <span className="text-zinc-700 text-xs">
+              {borderEnabled && (borderWidth > 0 || borderHeight > 0)
+                ? `${borderWidth}px × ${borderHeight}px ${borderColor} (${borderMode})`
+                : 'None'}
+            </span>
+          </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Aspect</span>
               <span className="text-zinc-700 text-xs">

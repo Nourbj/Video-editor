@@ -16,6 +16,8 @@ export default function VideoPlayer() {
     audioTrack, audioVolume, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     activeTab,
+    titleText, titleColor, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
+    titleDraftText,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -133,10 +135,36 @@ export default function VideoPlayer() {
 
   if (!video) return null
 
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef(false)
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return
+      const rect = overlayRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const x = (e.clientX - rect.left) / rect.width
+      const y = (e.clientY - rect.top) / rect.height
+      setTitleDraftXY(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)))
+    }
+    const handleUp = () => {
+      draggingRef.current = false
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [setTitleDraftXY])
+
   return (
     <div className="space-y-2">
       {/* Video */}
-      <div className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[38vh] min-h-[300px]">
+      <div
+        ref={overlayRef}
+        className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[38vh] min-h-[300px]"
+      >
         <video
           ref={videoRef}
           src={src}
@@ -163,6 +191,27 @@ export default function VideoPlayer() {
             </div>
           )}
         </div>
+
+        {activeTab === 'title' && (
+          <div
+            className="absolute inset-0"
+            style={{ pointerEvents: 'none' }}
+          >
+            <div
+              onMouseDown={() => { draggingRef.current = true }}
+              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold cursor-move ${((titleDraftText || titleText).trim() ? '' : 'opacity-60 italic')}`}
+              style={{
+                left: `${(titleDraftX ?? titleX ?? 0.5) * 100}%`,
+                top: `${(titleDraftY ?? titleY ?? 0.2) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                color: titleColor,
+                pointerEvents: 'auto',
+              }}
+            >
+              {((titleDraftText || titleText).trim() || 'Title')}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controls */}

@@ -20,8 +20,8 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
   { id: 'audio', label: 'Audio', icon: <Music size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
+  { id: 'border', label: 'Cadre', icon: <Square size={15} />, requiresVideo: true },
   { id: 'title', label: 'Title', icon: <Type size={15} />, requiresVideo: true },
-  { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
 
@@ -40,8 +40,8 @@ export default function App() {
     subtitleFilename, setSubtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoPosition,
-    titleText, titleFont, titleSize, titleColor, titlePosition,
-    borderEnabled, borderSize, borderColor,
+    titleText, titleFont, titleSize, titleColor, titleX, titleY,
+    borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     exportQuality,
     exportAspectRatio,
     processedUrl, setProcessedUrl,
@@ -87,12 +87,15 @@ export default function App() {
           font: titleFont,
           size: titleSize,
           color: titleColor,
-          position: titlePosition,
+          x: titleX ?? undefined,
+          y: titleY ?? undefined,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,
-          size: borderSize,
+          sizeX: borderWidth,
+          sizeY: borderHeight,
           color: borderColor,
+          mode: borderMode,
         },
         logoFilename: logoImage?.filename,
         logoSize,
@@ -115,7 +118,7 @@ export default function App() {
     const hasSubtitles = subtitles.length > 0
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
-    const hasBorder = borderEnabled && borderSize > 0
+    const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
     const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitles || hasLogo || hasTitle || hasBorder
@@ -134,8 +137,9 @@ export default function App() {
       subtitles,
       exportQuality,
       logo: logoImage ? { id: logoImage.id, size: logoSize, pos: logoPosition } : null,
-      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, pos: titlePosition } : null,
-      border: borderEnabled ? { size: borderSize, color: borderColor } : null,
+      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor } : null,
+      titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
+      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor } : null,
     })
 
     if (sig === lastPreviewSig.current) return
@@ -167,9 +171,11 @@ export default function App() {
     titleFont,
     titleSize,
     titleColor,
-    titlePosition,
+    titleX,
+    titleY,
     borderEnabled,
-    borderSize,
+    borderWidth,
+    borderHeight,
     borderColor,
     previewLoading,
     processedUrl,

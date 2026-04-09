@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Type, AlignLeft, AlignCenter, AlignRight, CheckCircle2 } from 'lucide-react'
+import { Type, CheckCircle2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
 const fonts = [
@@ -13,48 +13,53 @@ const fonts = [
   'Comic Sans MS',
 ]
 
-const positions = [
-  'top-left', 'top', 'top-right',
-  'middle-left', 'middle', 'middle-right',
-  'bottom-left', 'bottom', 'bottom-right',
-] as const
-
 export default function TitleEditor() {
   const {
     titleText, setTitleText,
+    titleDraftText, setTitleDraftText,
     titleFont, setTitleFont,
     titleSize, setTitleSize,
     titleColor, setTitleColor,
-    titlePosition, setTitlePosition,
+    titleX, titleY, setTitleXY,
+    titleDraftX, titleDraftY, setTitleDraftXY,
+    isApplyingTitle, setIsApplyingTitle,
   } = useStore()
 
-  const [draftText, setDraftText] = useState(titleText)
+  const [draftText, setDraftText] = useState(titleDraftText || titleText)
   const [draftFont, setDraftFont] = useState(titleFont)
   const [draftSize, setDraftSize] = useState(titleSize)
   const [draftColor, setDraftColor] = useState(titleColor)
-  const [draftPosition, setDraftPosition] = useState(titlePosition)
+  const [draftX, setDraftX] = useState(titleDraftX ?? titleX)
+  const [draftY, setDraftY] = useState(titleDraftY ?? titleY)
 
   useEffect(() => {
-    setDraftText(titleText)
+    setDraftText(titleDraftText || titleText)
     setDraftFont(titleFont)
     setDraftSize(titleSize)
     setDraftColor(titleColor)
-    setDraftPosition(titlePosition)
-  }, [titleText, titleFont, titleSize, titleColor, titlePosition])
+    setDraftX(titleDraftX ?? titleX)
+    setDraftY(titleDraftY ?? titleY)
+  }, [titleText, titleDraftText, titleFont, titleSize, titleColor, titleDraftX, titleDraftY, titleX, titleY])
 
   const hasChanges =
     draftText !== titleText ||
     draftFont !== titleFont ||
     draftSize !== titleSize ||
     draftColor !== titleColor ||
-    draftPosition !== titlePosition
+    draftX !== titleX ||
+    draftY !== titleY
 
   const applyChanges = () => {
+    if (isApplyingTitle) return
+    setIsApplyingTitle(true)
     setTitleText(draftText)
+    setTitleDraftText(draftText)
     setTitleFont(draftFont)
     setTitleSize(draftSize)
     setTitleColor(draftColor)
-    setTitlePosition(draftPosition)
+    setTitleXY(draftX ?? null, draftY ?? null)
+    setTitleDraftXY(draftX ?? null, draftY ?? null)
+    window.setTimeout(() => setIsApplyingTitle(false), 0)
   }
 
   return (
@@ -73,7 +78,10 @@ export default function TitleEditor() {
         </div>
         <input
           value={draftText}
-          onChange={e => setDraftText(e.target.value)}
+          onChange={e => {
+            setDraftText(e.target.value)
+            setTitleDraftText(e.target.value)
+          }}
           placeholder="Write your title here"
           className="w-full bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-cyan-400"
         />
@@ -124,38 +132,19 @@ export default function TitleEditor() {
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-3 space-y-2">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-[11px] text-zinc-500">Position</div>
-          <div className="flex items-center gap-2 text-zinc-400">
-            <AlignLeft size={12} />
-            <AlignCenter size={12} />
-            <AlignRight size={12} />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {positions.map(pos => (
-            <button
-              key={pos}
-              onClick={() => setDraftPosition(pos)}
-              className={`px-1 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
-                draftPosition === pos
-                  ? 'bg-cyan-600 text-white border-cyan-600'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-100'
-              }`}
-            >
-              {pos.replace('-', ' ')}
-            </button>
-          ))}
+        <div className="text-[11px] text-zinc-500">Position</div>
+        <div className="text-xs text-zinc-500">
+          Déplace le texte directement sur la vidéo (drag &amp; drop). La position sera appliquée après “Appliquer le titre”.
         </div>
       </div>
 
       <button
         onClick={applyChanges}
-        disabled={!hasChanges}
+        disabled={!hasChanges || isApplyingTitle}
         className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
       >
         <CheckCircle2 size={15} />
-        Apply title
+        {isApplyingTitle ? 'Application en cours...' : 'Appliquer le titre'}
       </button>
     </div>
   )
