@@ -16,7 +16,7 @@ export default function VideoPlayer() {
     audioTrack, audioVolume, audioDuration,
     audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     activeTab,
-    titleText, titleFont, titleSize, titleColor, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
+    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
     titleDraftText,
     isApplyingTitle,
     previewLoading,
@@ -230,6 +230,11 @@ export default function VideoPlayer() {
                 color: titleColor,
                 fontFamily: titleFont,
                 fontSize: `${titleSize}px`,
+                backgroundColor: titleBgColor,
+                border: titleFrameWidth > 0 ? `${titleFrameWidth}px solid ${titleFrameColor}` : 'none',
+                WebkitTextStrokeWidth: titleBorderWidth > 0 ? `${titleBorderWidth}px` : '0px',
+                WebkitTextStrokeColor: titleBorderColor,
+                padding: `${titlePadding}px`,
                 pointerEvents: 'auto',
               }}
             >

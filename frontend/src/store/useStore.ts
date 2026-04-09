@@ -126,6 +126,12 @@ interface EditorState {
   setTitleBorderColor: (c: string) => void
   titleBorderWidth: number
   setTitleBorderWidth: (s: number) => void
+  titleFrameColor: string
+  setTitleFrameColor: (c: string) => void
+  titleFrameWidth: number
+  setTitleFrameWidth: (s: number) => void
+  titlePadding: number
+  setTitlePadding: (s: number) => void
   titleX: number | null
   titleY: number | null
   setTitleXY: (x: number | null, y: number | null) => void
@@ -180,6 +186,9 @@ const defaultTitleColor = import.meta.env.VITE_TITLE_DEFAULT_COLOR || '#ffffff'
 const defaultTitleBgColor = import.meta.env.VITE_TITLE_DEFAULT_BG || '#000000'
 const defaultTitleBorderColor = import.meta.env.VITE_TITLE_DEFAULT_BORDER_COLOR || '#000000'
 const defaultTitleBorderWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_BORDER_WIDTH || 0)
+const defaultTitleFrameColor = import.meta.env.VITE_TITLE_DEFAULT_FRAME_COLOR || '#000000'
+const defaultTitleFrameWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_FRAME_WIDTH || 0)
+const defaultTitlePadding = Number(import.meta.env.VITE_TITLE_DEFAULT_PADDING || 8)
 const defaultTitlePosition = (import.meta.env.VITE_TITLE_DEFAULT_POSITION as TitlePosition) || 'top'
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
@@ -305,6 +314,12 @@ export const useStore = create<EditorState>((set) => ({
   setTitleBorderColor: c => set({ titleBorderColor: c }),
   titleBorderWidth: defaultTitleBorderWidth,
   setTitleBorderWidth: s => set({ titleBorderWidth: s }),
+  titleFrameColor: defaultTitleFrameColor,
+  setTitleFrameColor: c => set({ titleFrameColor: c }),
+  titleFrameWidth: defaultTitleFrameWidth,
+  setTitleFrameWidth: s => set({ titleFrameWidth: s }),
+  titlePadding: defaultTitlePadding,
+  setTitlePadding: s => set({ titlePadding: s }),
   titleX: null,
   titleY: null,
   setTitleXY: (x, y) => set({ titleX: x, titleY: y }),
@@ -367,6 +382,9 @@ export const useStore = create<EditorState>((set) => ({
     titleBgColor: defaultTitleBgColor,
     titleBorderColor: defaultTitleBorderColor,
     titleBorderWidth: defaultTitleBorderWidth,
+    titleFrameColor: defaultTitleFrameColor,
+    titleFrameWidth: defaultTitleFrameWidth,
+    titlePadding: defaultTitlePadding,
     titleX: null,
     titleY: null,
     titleDraftX: null,

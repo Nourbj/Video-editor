@@ -31,6 +31,12 @@ export interface TitleStyle {
   font: string
   size: number
   color: string
+  bgColor?: string
+  borderColor?: string
+  borderWidth?: number
+  frameColor?: string
+  frameWidth?: number
+  padding?: number
   position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
   frameMode?: 'inside' | 'outside'
   x?: number

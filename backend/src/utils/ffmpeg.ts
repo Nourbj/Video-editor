@@ -79,6 +79,12 @@ export interface TitleStyle {
   font?: string
   size?: number
   color?: string // hex
+  bgColor?: string // hex
+  borderColor?: string // hex
+  borderWidth?: number
+  frameColor?: string // hex
+  frameWidth?: number
+  padding?: number
   position?: TitlePosition
   frameMode?: 'inside' | 'outside'
   x?: number
@@ -179,6 +185,12 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const font = style?.font || 'Arial'
   const size = clamp(Number(style?.size ?? 42), 10, 200)
   const color = style?.color || '#ffffff'
+  const bgColor = style?.bgColor || '#000000'
+  const borderColor = style?.borderColor || '#000000'
+  const borderWidth = clamp(Number(style?.borderWidth ?? 0), 0, 20)
+  const frameColor = style?.frameColor || '#000000'
+  const frameWidth = clamp(Number(style?.frameWidth ?? 0), 0, 30)
+  const padding = clamp(Number(style?.padding ?? process.env.TITLE_PADDING || 8), 0, 40)
   const position = style?.position || 'top'
   const margin = Number(process.env.TITLE_MARGIN || 36)
   const frameMode = style?.frameMode || 'inside'
@@ -221,7 +233,10 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
     const y = `(${safeY}*h-text_h/2)`
     const safeText = escapeDrawtext(text)
     const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-    return `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=black@0.45:boxborderw=8`
+    const base = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+    if (frameWidth <= 0) return base
+    const frameLayer = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+    return `${frameLayer},${base}`
   }
 
   const normalizedPosition = frameMode === 'outside'
@@ -237,7 +252,10 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const safeText = escapeDrawtext(text)
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-  return `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=black@0.45:boxborderw=8`
+  const base = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+  if (frameWidth <= 0) return base
+  const frameLayer = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+  return `${frameLayer},${base}`
 }
 
 function buildBorderFilter(style?: BorderStyle) {

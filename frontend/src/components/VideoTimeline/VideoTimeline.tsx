@@ -374,8 +374,7 @@ export function EditSidebar() {
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs tracking-[0.2em] text-yellow-600">Clips</p>
-            <p className="text-sm font-semibold text-zinc-900">Drag to reorder your clips</p>
+            <p className="text-xs tracking-[0.2em] text-yellow-600">Clips - Drag to reorder your clips</p>
           </div>
           {segments.length > 0 && (
             <button
@@ -478,8 +477,7 @@ export function EditSidebar() {
 
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">Export</p>
-          <p className="text-sm font-semibold text-zinc-900">Generate clips or merge the timeline</p>
+          <p className="text-xs tracking-[0.2em] text-green-600">Export - Generate clips or merge the timeline</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
