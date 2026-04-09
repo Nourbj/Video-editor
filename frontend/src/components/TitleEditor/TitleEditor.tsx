@@ -94,7 +94,7 @@ export default function TitleEditor() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-0.5">Title</h2>
         <p className="text-xs text-zinc-500">Add a text title with font, size, color, and position</p>
@@ -119,7 +119,7 @@ export default function TitleEditor() {
         />
       </div>
 
-      <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-3 space-y-3">
+      <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-3 space-y-2">
         <div className="flex gap-3">
           <div className="flex-1 space-y-1">
             <label htmlFor="title-font" className="text-[11px] text-zinc-500">Font</label>

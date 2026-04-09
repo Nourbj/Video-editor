@@ -124,6 +124,32 @@ function sanitizeBasename(name: string) {
   return cleaned.slice(0, 80)
 }
 
+function normalizeFontName(name: string) {
+  return name.toLowerCase().replace(/[\s_\-]+/g, '')
+}
+
+function resolveFontFile(fontName?: string) {
+  if (!fontName) return null
+  const fontsDir = path.join(process.cwd(), 'fonts')
+  try {
+    const target = normalizeFontName(fontName)
+    const entries = fs.readdirSync(fontsDir)
+    for (const file of entries) {
+      const ext = path.extname(file).toLowerCase()
+      if (ext !== '.ttf' && ext !== '.otf') continue
+      const base = normalizeFontName(path.basename(file, ext))
+      if (base === target) return path.join(fontsDir, file)
+    }
+  } catch {
+    // ignore if fonts dir missing
+  }
+  return null
+}
+
+function escapeFontFile(p: string) {
+  return p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'")
+}
+
 function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspectRatio?: ExportOptions['aspectRatio']) {
   const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
   const baseLong = scaleMap[quality]
@@ -183,6 +209,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   if (!text) return null
 
   const font = style?.font || 'Arial'
+  const fontFile = resolveFontFile(font)
   const size = clamp(Number(style?.size ?? 42), 10, 200)
   const color = style?.color || '#ffffff'
   const bgColor = style?.bgColor || '#000000'
@@ -190,7 +217,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const borderWidth = clamp(Number(style?.borderWidth ?? 0), 0, 20)
   const frameColor = style?.frameColor || '#000000'
   const frameWidth = clamp(Number(style?.frameWidth ?? 0), 0, 30)
-  const padding = clamp(Number(style?.padding ?? process.env.TITLE_PADDING || 8), 0, 40)
+  const padding = clamp(Number(style?.padding ?? (process.env.TITLE_PADDING || 8)), 0, 40)
   const position = style?.position || 'top'
   const margin = Number(process.env.TITLE_MARGIN || 36)
   const frameMode = style?.frameMode || 'inside'
@@ -233,9 +260,10 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
     const y = `(${safeY}*h-text_h/2)`
     const safeText = escapeDrawtext(text)
     const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-    const base = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+    const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
+    const base = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
     if (frameWidth <= 0) return base
-    const frameLayer = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+    const frameLayer = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
     return `${frameLayer},${base}`
   }
 
@@ -252,9 +280,10 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const safeText = escapeDrawtext(text)
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-  const base = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+  const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
+  const base = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
   if (frameWidth <= 0) return base
-  const frameLayer = `drawtext=text='${safeText}':font=${safeFont}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+  const frameLayer = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
   return `${frameLayer},${base}`
 }
 

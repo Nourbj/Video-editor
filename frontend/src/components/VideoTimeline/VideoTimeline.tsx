@@ -139,7 +139,7 @@ export default function VideoTimeline({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
         <div
           ref={timelineRef}
           className="relative h-[72px] rounded-2xl overflow-hidden cursor-crosshair select-none border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
@@ -179,7 +179,6 @@ export default function VideoTimeline({
             className="absolute right-3 top-8 bottom-3 bg-slate-950/10 rounded-r-full pointer-events-none"
             style={{ width: `calc(${duration ? ((duration - trimEnd) / duration) * 100 : 0}% - 0.75rem)` }}
           />
-
           <div
             className="absolute top-8 bottom-3 rounded-full border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_6px_14px_rgba(8,145,178,0.10)] cursor-grab"
             style={{
@@ -194,7 +193,6 @@ export default function VideoTimeline({
           >
             <div className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.10)_0%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.10)_100%)]" />
           </div>
-
           <div
             className="absolute top-[28px] bottom-[12px] w-3 rounded-full bg-white border border-cyan-700/80 shadow-[0_3px_10px_rgba(8,145,178,0.14)] cursor-ew-resize"
             style={{ left: `${duration ? (trimStart / duration) * 100 : 0}%`, transform: 'translateX(-35%)' }}
@@ -221,7 +219,6 @@ export default function VideoTimeline({
               <GripVertical size={10} />
             </div>
           </div>
-
           <div
             className="absolute top-2.5 bottom-2 w-[2px] bg-cyan-900/70 pointer-events-none z-30"
             style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
@@ -229,7 +226,6 @@ export default function VideoTimeline({
             <div className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleAddSegment}
@@ -374,7 +370,7 @@ export function EditSidebar() {
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs tracking-[0.2em] text-yellow-600">Clips - Drag to reorder your clips</p>
+            <p className="text-xs text-yellow-600">Clips - Drag to reorder your clips</p>
           </div>
           {segments.length > 0 && (
             <button
@@ -477,7 +473,7 @@ export function EditSidebar() {
 
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div>
-          <p className="text-xs tracking-[0.2em] text-green-600">Export - Generate clips or merge the timeline</p>
+          <p className="text-xs text-green-600">Export - Generate clips or merge the timeline</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
