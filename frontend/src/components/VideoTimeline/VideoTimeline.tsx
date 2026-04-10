@@ -5,12 +5,38 @@ import { mergeSegments, mergeVideos, splitVideo } from '../../api/client'
 import { withMediaBase } from '../../utils/media'
 
 function formatTime(s: number) {
+  const h = Math.floor(s / 3600)
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60)
+  if (h > 0) {
+    const min = Math.floor((s % 3600) / 60)
+    return `${h}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+  }
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
 type DragMode = 'start' | 'end' | 'range' | null
+
+const RULER_STEPS = [
+  0.5, 1, 2, 5, 10, 15, 30,
+  60, 120, 300, 600, 900, 1800,
+  3600, 7200, 14400,
+]
+
+function getRulerStep(duration: number, targetTicks: number) {
+  const desiredStep = duration / Math.max(1, targetTicks)
+  return RULER_STEPS.find(step => step >= desiredStep) ?? RULER_STEPS[RULER_STEPS.length - 1]
+}
+
+function buildTicks(duration: number, step: number) {
+  if (duration <= 0 || !Number.isFinite(duration)) return []
+  const ticks: number[] = []
+  for (let t = 0; t <= duration; t += step) {
+    ticks.push(Math.min(t, duration))
+  }
+  if (ticks[ticks.length - 1] !== duration) ticks.push(duration)
+  return ticks
+}
 
 export default function VideoTimeline({
   currentTime,
@@ -38,23 +64,20 @@ export default function VideoTimeline({
   const selectionDuration = Math.max(0, trimEnd - trimStart)
   const minGap = 0.1
   const rulerStep = useMemo(() => {
-    if (duration <= 15) return { minor: 0.5, major: 2 }
-    if (duration <= 45) return { minor: 1, major: 5 }
-    if (duration <= 120) return { minor: 2, major: 10 }
-    if (duration <= 300) return { minor: 5, major: 15 }
-    if (duration <= 900) return { minor: 10, major: 30 }
-    return { minor: 15, major: 60 }
+    const major = getRulerStep(duration, 8)
+    const minor = getRulerStep(duration, 36)
+    return {
+      major,
+      minor: Math.min(minor, major),
+    }
   }, [duration])
 
-  const timelineTicks = useMemo(() => {
-    if (duration <= 0 || !Number.isFinite(duration)) return []
-    const ticks: number[] = []
-    for (let t = 0; t <= duration; t += rulerStep.minor) {
-      ticks.push(t)
-    }
-    if (ticks[ticks.length - 1] !== duration) ticks.push(duration)
-    return ticks
-  }, [duration, rulerStep])
+  const minorTicks = useMemo(() => buildTicks(duration, rulerStep.minor), [duration, rulerStep.minor])
+  const majorTicks = useMemo(() => buildTicks(duration, rulerStep.major), [duration, rulerStep.major])
+  const majorTickSet = useMemo(
+    () => new Set(majorTicks.map(t => t.toFixed(3))),
+    [majorTicks],
+  )
 
   const getTimeFromClientX = (clientX: number) => {
     const rect = timelineRef.current?.getBoundingClientRect()
@@ -151,9 +174,8 @@ export default function VideoTimeline({
           <div className="absolute inset-x-3 top-8 h-6 rounded-full border border-cyan-200/80 bg-cyan-50/70 pointer-events-none" />
           <div className="absolute inset-x-3 top-8 h-6 rounded-full bg-[linear-gradient(90deg,rgba(8,145,178,0.05)_1px,transparent_1px)] bg-[length:18px_100%] pointer-events-none opacity-50" />
           <div className="absolute inset-x-0 top-0 h-8 pointer-events-none z-20">
-            {timelineTicks.map(t => {
-              const rounded = Math.round(t * 100) / 100
-              const isMajor = Math.abs(rounded % rulerStep.major) < 0.01 || Math.abs(duration - t) < rulerStep.minor / 2 || t === 0
+            {minorTicks.map(t => {
+              const isMajor = majorTickSet.has(t.toFixed(3))
               return (
                 <div
                   key={t}
