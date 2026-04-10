@@ -8,6 +8,7 @@ const execAsync = promisify(exec)
 const USER_AGENT =
   process.env.YTDLP_USER_AGENT ||
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+const DEFAULT_COOKIES_PATH = path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
 
 function logCookiesStatus(cookiesPath: string, debug: boolean): void {
   if (!debug) return
@@ -22,6 +23,37 @@ function logCookiesStatus(cookiesPath: string, debug: boolean): void {
   } catch (e: any) {
     console.warn(`[yt-dlp] cookies: path="${cookiesPath}" does not exist (${e?.message || 'unknown error'})`)
   }
+}
+
+function resolveCookiesPath(): string {
+  let cookiesPath = process.env.YTDLP_COOKIES || ''
+  if (!cookiesPath) {
+    // Use default path if present (matches /cookies/upload target)
+    if (fs.existsSync(DEFAULT_COOKIES_PATH)) {
+      cookiesPath = DEFAULT_COOKIES_PATH
+    }
+  }
+  if (cookiesPath && fs.existsSync(cookiesPath)) {
+    try {
+      if (fs.statSync(cookiesPath).isDirectory()) {
+        cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
+      }
+    } catch { /* ignore */ }
+  }
+  return cookiesPath
+}
+
+function getCookiesConfig() {
+  const cookiesPath = resolveCookiesPath()
+  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
+  const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+  const cookiesFlags = hasCookies
+    ? [`--cookies "${cookiesPath}"`]
+    : cookiesFromBrowser
+      ? [`--cookies-from-browser ${cookiesFromBrowser}`]
+      : []
+  return { cookiesPath, hasCookies, cookiesFromBrowser, debug, cookiesFlags }
 }
 
 export function validateCookiesFile(filePath: string): string | null {
@@ -62,13 +94,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
-  let cookiesPath = process.env.YTDLP_COOKIES || ''
-  if (cookiesPath && fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).isDirectory()) {
-    cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
-  }
-  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
-  const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
-  const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+  const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
 
   logCookiesStatus(cookiesPath, debug)
 
@@ -78,12 +104,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   }
 
   // Get video info first
-  const cookiesFlags = hasCookies
-    ? [`--cookies "${cookiesPath}"`]
-    : cookiesFromBrowser
-      ? [`--cookies-from-browser ${cookiesFromBrowser}`]
-      : []
-
   const infoCmd = [
     'yt-dlp',
     '--dump-json',
@@ -192,13 +212,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 
 export async function getVideoInfo(url: string): Promise<Record<string, unknown>> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
-  let cookiesPath = process.env.YTDLP_COOKIES || ''
-  if (cookiesPath && fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).isDirectory()) {
-    cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
-  }
-  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
-  const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
-  const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+  const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
   logCookiesStatus(cookiesPath, debug)
   if (hasCookies) {
     const cookiesError = validateCookiesFile(cookiesPath)
@@ -211,11 +225,7 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
-    ...(hasCookies
-      ? [`--cookies "${cookiesPath}"`]
-      : cookiesFromBrowser
-        ? [`--cookies-from-browser ${cookiesFromBrowser}`]
-        : []),
+    ...cookiesFlags,
     `"${url}"`
   ].filter(Boolean).join(' ')
   try {
@@ -246,12 +256,20 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   const outputTemplate = path.join(outputDir, `audio_${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
+  const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
+
+  logCookiesStatus(cookiesPath, debug)
+  if (hasCookies) {
+    const cookiesError = validateCookiesFile(cookiesPath)
+    if (cookiesError) throw new Error(cookiesError)
+  }
 
   const dlCmd = [
     'yt-dlp',
     '--no-playlist',
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
+    ...cookiesFlags,
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', '0',
