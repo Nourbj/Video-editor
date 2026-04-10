@@ -3,7 +3,7 @@ const fs = require('fs')
 
 const file = process.argv[2]
 if (!file) {
-  console.error('Usage: node validate_cookies.js /path/to/cookies.txt')
+  console.error('Usage: node validate_cookies.js /path/to/ytdlp_cookies.txt')
   process.exit(1)
 }
 
