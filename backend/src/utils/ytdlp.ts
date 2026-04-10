@@ -56,6 +56,19 @@ function getCookiesConfig() {
   return { cookiesPath, hasCookies, cookiesFromBrowser, debug, cookiesFlags }
 }
 
+function getSleepFlags(): string[] {
+  const flags: string[] = []
+  const sleepRequests = process.env.YTDLP_SLEEP_REQUESTS
+  const sleepInterval = process.env.YTDLP_SLEEP_INTERVAL
+  const maxSleepInterval = process.env.YTDLP_MAX_SLEEP_INTERVAL
+
+  if (sleepRequests) flags.push('--sleep-requests', String(sleepRequests))
+  if (sleepInterval) flags.push('--sleep-interval', String(sleepInterval))
+  if (maxSleepInterval) flags.push('--max-sleep-interval', String(maxSleepInterval))
+
+  return flags
+}
+
 export function validateCookiesFile(filePath: string): string | null {
   try {
     const stat = fs.statSync(filePath)
@@ -95,6 +108,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
   const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
+  const sleepFlags = getSleepFlags()
 
   logCookiesStatus(cookiesPath, debug)
 
@@ -111,6 +125,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
+    ...sleepFlags,
     ...cookiesFlags,
     `"${url}"`
   ].filter(Boolean).join(' ')
@@ -132,6 +147,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
+    ...sleepFlags,
     ...cookiesFlags,
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
@@ -213,6 +229,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 export async function getVideoInfo(url: string): Promise<Record<string, unknown>> {
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
+  const sleepFlags = getSleepFlags()
   logCookiesStatus(cookiesPath, debug)
   if (hasCookies) {
     const cookiesError = validateCookiesFile(cookiesPath)
@@ -225,6 +242,7 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
+    ...sleepFlags,
     ...cookiesFlags,
     `"${url}"`
   ].filter(Boolean).join(' ')
@@ -257,6 +275,7 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
   const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
+  const sleepFlags = getSleepFlags()
 
   logCookiesStatus(cookiesPath, debug)
   if (hasCookies) {
@@ -269,6 +288,7 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
     '--no-playlist',
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
+    ...sleepFlags,
     ...cookiesFlags,
     '-x',
     '--audio-format', 'mp3',
