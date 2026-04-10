@@ -84,8 +84,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     // Continue even if info fails
   }
 
-  // Download video (max 10 minutes, best quality under 720p)
-  const maxDuration = Number(process.env.YTDLP_MAX_DURATION_SEC || 600)
+  // Download video in the best available compatible format under 720p
   const format = process.env.YTDLP_FORMAT ||
     'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best'
 
@@ -96,7 +95,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
     ...cookiesFlags,
-    '--match-filter', `"duration < ${maxDuration}"`,
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
