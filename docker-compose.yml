@@ -17,7 +17,7 @@ services:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
       - ./temp:/app/temp
-      - ytdlp_cookies:/app/cookies
+      - ./cookies:/app/cookies
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
@@ -38,5 +38,4 @@ services:
       - backend
     restart: unless-stopped
 
-volumes:
-  ytdlp_cookies:
+volumes: {}

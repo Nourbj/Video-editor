@@ -23,6 +23,20 @@ dotenv.config(envPath ? { path: envPath } : undefined)
 
 const app = Fastify({ logger: true })
 
+function resolveCookiesPathForStartup(): string {
+  const envPath = process.env.YTDLP_COOKIES || ''
+  const defaultPath = path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
+  if (envPath) {
+    try {
+      if (fs.existsSync(envPath) && fs.statSync(envPath).isDirectory()) {
+        return path.join(envPath, 'ytdlp_cookies.txt')
+      }
+    } catch { /* ignore */ }
+    return envPath
+  }
+  return defaultPath
+}
+
 async function checkDependencies() {
   const ytdlpOk = await checkYtdlp()
   const ffmpegOk = await checkFfmpeg()
@@ -31,6 +45,11 @@ async function checkDependencies() {
   if (!ytdlpOk) app.log.warn('⚠️ yt-dlp not found! Video downloads will fail.')
   if (!ffmpegOk) app.log.warn('⚠️ ffmpeg not found! Video processing will fail.')
   if (!ffprobeOk) app.log.warn('⚠️ ffprobe not found! Metadata extraction will fail.')
+
+  const cookiesPath = resolveCookiesPathForStartup()
+  if (!fs.existsSync(cookiesPath)) {
+    app.log.warn(`⚠️ yt-dlp cookies file not found at "${cookiesPath}". YouTube downloads may require sign-in.`)
+  }
   
   if (!ytdlpOk || !ffmpegOk || !ffprobeOk) {
     app.log.warn('Please install missing dependencies or run with docker-compose.')
