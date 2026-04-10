@@ -46,6 +46,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const outputDir = path.join(process.cwd(), 'uploads')
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+  const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
   let cookiesPath = process.env.YTDLP_COOKIES || ''
   if (cookiesPath && fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).isDirectory()) {
     cookiesPath = path.join(cookiesPath, 'ytdlp_cookies.txt')
@@ -102,34 +103,48 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   ].join(' ')
 
   try {
-    await execAsync(dlCmd, { timeout: 120000 })
+    await execAsync(dlCmd, { timeout: ytdlpTimeoutMs })
   } catch (err: any) {
     if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
       throw new Error('yt-dlp not found on system. Please install it or use docker-compose.')
     }
-    const stderr = String(err.stderr || '')
-    if (stderr) {
-      console.error('[yt-dlp] download error:', stderr.slice(0, 2000))
+    const isTimeout =
+      err.code === 'ETIMEDOUT' ||
+      err.killed === true ||
+      err.signal === 'SIGTERM' ||
+      String(err.message || '').toLowerCase().includes('timed out')
+    if (isTimeout) {
+      const seconds = Math.max(1, Math.round(ytdlpTimeoutMs / 1000))
+      throw new Error(
+        `yt-dlp timed out after ${seconds}s. Try again or increase YTDLP_TIMEOUT_MS for large/slow downloads.`
+      )
     }
-    if (stderr.toLowerCase().includes('cookies') || stderr.toLowerCase().includes('cookie')) {
+    const stderr = String(err.stderr || '')
+    const stdout = String(err.stdout || '')
+    const combined = `${stderr}\n${stdout}`
+    if (combined.trim()) {
+      console.error('[yt-dlp] download error:', combined.slice(0, 2000))
+    }
+    const combinedLower = combined.toLowerCase()
+    if (combinedLower.includes('cookies') || combinedLower.includes('cookie')) {
       const baseMsg = 'Invalid cookies file. Please export cookies in Netscape format (first line must be "# Netscape HTTP Cookie File").'
-      const detail = debug && stderr ? ` | ytdlp: ${stderr.slice(0, 800)}` : ''
+      const detail = debug && combined ? ` | ytdlp: ${combined.slice(0, 800)}` : ''
       throw new Error(`${baseMsg}${detail}`)
     }
     if (
-      stderr.includes('Unsupported URL') ||
-      stderr.includes('login.php') ||
-      stderr.toLowerCase().includes('private') ||
-      stderr.toLowerCase().includes('sign in') ||
-      stderr.toLowerCase().includes('confirm') ||
-      stderr.toLowerCase().includes('not available')
+      combined.includes('Unsupported URL') ||
+      combined.includes('login.php') ||
+      combinedLower.includes('private') ||
+      combinedLower.includes('sign in') ||
+      combinedLower.includes('confirm you') ||
+      combinedLower.includes('not available')
     ) {
-      const baseMsg = 'Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies.'
-      const detail = debug && stderr ? ` | ytdlp: ${stderr.slice(0, 800)}` : ''
+      const baseMsg = 'Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies via YTDLP_COOKIES or YTDLP_COOKIES_FROM_BROWSER.'
+      const detail = debug && combined ? ` | ytdlp: ${combined.slice(0, 800)}` : ''
       throw new Error(`${baseMsg}${detail}`)
     }
-    if (debug && stderr) {
-      throw new Error(`yt-dlp error: ${stderr.slice(0, 800)}`)
+    if (debug && combined) {
+      throw new Error(`yt-dlp error: ${combined.slice(0, 800)}`)
     }
     throw err
   }
@@ -184,8 +199,10 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     return JSON.parse(stdout)
   } catch (err: any) {
     const stderr = String(err.stderr || '')
-    if (debug && stderr) {
-      throw new Error(`yt-dlp info error: ${stderr.slice(0, 800)}`)
+    const stdout = String(err.stdout || '')
+    const combined = `${stderr}\n${stdout}`
+    if (debug && combined) {
+      throw new Error(`yt-dlp info error: ${combined.slice(0, 800)}`)
     }
     throw err
   }
@@ -204,6 +221,7 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   const outputDir = path.join(process.cwd(), 'uploads')
   const outputTemplate = path.join(outputDir, `audio_${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
+  const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
 
   const dlCmd = [
     'yt-dlp',
@@ -218,10 +236,21 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   ].join(' ')
 
   try {
-    await execAsync(dlCmd, { timeout: 120000 })
+    await execAsync(dlCmd, { timeout: ytdlpTimeoutMs })
   } catch (err: any) {
     if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
       throw new Error('yt-dlp not found on system.')
+    }
+    const isTimeout =
+      err.code === 'ETIMEDOUT' ||
+      err.killed === true ||
+      err.signal === 'SIGTERM' ||
+      String(err.message || '').toLowerCase().includes('timed out')
+    if (isTimeout) {
+      const seconds = Math.max(1, Math.round(ytdlpTimeoutMs / 1000))
+      throw new Error(
+        `yt-dlp timed out after ${seconds}s. Try again or increase YTDLP_TIMEOUT_MS for large/slow downloads.`
+      )
     }
     const stderr = String(err.stderr || '')
     if (stderr.includes('Unsupported URL') || stderr.toLowerCase().includes('private')) {
