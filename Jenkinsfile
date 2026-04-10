@@ -41,6 +41,14 @@ pipeline {
       steps {
         sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend ls -la /app/cookies'
         sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend head -n 1 /app/cookies/ytdlp_cookies.txt'
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "head -n 5 /app/cookies/ytdlp_cookies.txt"'
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "stat -c \'mtime=%y size=%s bytes\' /app/cookies/ytdlp_cookies.txt"'
+      }
+    }
+
+    stage('Test yt-dlp in Container') {
+      steps {
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend yt-dlp --cookies /app/cookies/ytdlp_cookies.txt -v "https://www.youtube.com/watch?v=gR4KxDPcFMI" || true'
       }
     }
   }
