@@ -45,7 +45,7 @@ function resolveCookiesPath(): string {
 
 function getCookiesConfig() {
   const cookiesPath = resolveCookiesPath()
-  const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
+  const hasCookies = !!(cookiesPath && fs.existsSync(cookiesPath))
   const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
   const cookiesFlags = hasCookies
@@ -54,6 +54,37 @@ function getCookiesConfig() {
       ? [`--cookies-from-browser ${cookiesFromBrowser}`]
       : []
   return { cookiesPath, hasCookies, cookiesFromBrowser, debug, cookiesFlags }
+}
+
+function isLoginRequiredMessage(text: string): boolean {
+  const t = text.toLowerCase()
+  return (
+    t.includes('sign in') ||
+    t.includes('login required') ||
+    t.includes('confirm you') ||
+    t.includes('not a bot') ||
+    t.includes('requires sign-in')
+  )
+}
+
+async function execWithOptionalCookies(
+  cmdNoCookies: string,
+  cmdWithCookies: string,
+  timeoutMs: number,
+  hasCookies: boolean
+) {
+  try {
+    return await execAsync(cmdNoCookies, { timeout: timeoutMs })
+  } catch (err: any) {
+    const stderr = String(err?.stderr || '')
+    const stdout = String(err?.stdout || '')
+    const combined = `${stderr}\n${stdout}`
+    if (hasCookies && isLoginRequiredMessage(combined)) {
+      console.warn('[yt-dlp] retrying with cookies after login-required response')
+      return await execAsync(cmdWithCookies, { timeout: timeoutMs })
+    }
+    throw err
+  }
 }
 
 function getSleepFlags(): string[] {
@@ -112,13 +143,18 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
 
   logCookiesStatus(cookiesPath, debug)
 
-  if (hasCookies) {
-    const cookiesError = validateCookiesFile(cookiesPath)
-    if (cookiesError) throw new Error(cookiesError)
-  }
-
   // Get video info first
-  const infoCmd = [
+  const infoCmdNoCookies = [
+    'yt-dlp',
+    '--dump-json',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    ...sleepFlags,
+    `"${url}"`
+  ].filter(Boolean).join(' ')
+  const infoCmdWithCookies = [
     'yt-dlp',
     '--dump-json',
     '--no-playlist',
@@ -131,7 +167,12 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   ].filter(Boolean).join(' ')
   let info: Record<string, unknown> = {}
   try {
-    const { stdout } = await execAsync(infoCmd, { timeout: 30000 })
+    const { stdout } = await execWithOptionalCookies(
+      infoCmdNoCookies,
+      infoCmdWithCookies,
+      30000,
+      hasCookies
+    )
     info = JSON.parse(stdout)
   } catch {
     // Continue even if info fails
@@ -141,7 +182,19 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const format = process.env.YTDLP_FORMAT ||
     'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best'
 
-  const dlCmd = [
+  const dlCmdNoCookies = [
+    'yt-dlp',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    ...sleepFlags,
+    '-f', `"${format}"`,
+    '--merge-output-format', 'mp4',
+    '-o', `"${outputTemplate}"`,
+    `"${url}"`
+  ].join(' ')
+  const dlCmdWithCookies = [
     'yt-dlp',
     '--no-playlist',
     '--js-runtimes', jsRuntime,
@@ -156,7 +209,11 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   ].join(' ')
 
   try {
-    await execAsync(dlCmd, { timeout: ytdlpTimeoutMs })
+    if (hasCookies) {
+      const cookiesError = validateCookiesFile(cookiesPath)
+      if (cookiesError) throw new Error(cookiesError)
+    }
+    await execWithOptionalCookies(dlCmdNoCookies, dlCmdWithCookies, ytdlpTimeoutMs, hasCookies)
   } catch (err: any) {
     if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
       throw new Error('yt-dlp not found on system. Please install it or use docker-compose.')
@@ -231,11 +288,17 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
   const { cookiesPath, hasCookies, debug, cookiesFlags } = getCookiesConfig()
   const sleepFlags = getSleepFlags()
   logCookiesStatus(cookiesPath, debug)
-  if (hasCookies) {
-    const cookiesError = validateCookiesFile(cookiesPath)
-    if (cookiesError) throw new Error(cookiesError)
-  }
-  const cmd = [
+  const cmdNoCookies = [
+    'yt-dlp',
+    '--dump-json',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    '--geo-bypass',
+    ...sleepFlags,
+    `"${url}"`
+  ].filter(Boolean).join(' ')
+  const cmdWithCookies = [
     'yt-dlp',
     '--dump-json',
     '--no-playlist',
@@ -247,7 +310,11 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
     `"${url}"`
   ].filter(Boolean).join(' ')
   try {
-    const { stdout } = await execAsync(cmd, { timeout: 20000 })
+    if (hasCookies) {
+      const cookiesError = validateCookiesFile(cookiesPath)
+      if (cookiesError) throw new Error(cookiesError)
+    }
+    const { stdout } = await execWithOptionalCookies(cmdNoCookies, cmdWithCookies, 20000, hasCookies)
     return JSON.parse(stdout)
   } catch (err: any) {
     const stderr = String(err.stderr || '')
@@ -278,12 +345,20 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   const sleepFlags = getSleepFlags()
 
   logCookiesStatus(cookiesPath, debug)
-  if (hasCookies) {
-    const cookiesError = validateCookiesFile(cookiesPath)
-    if (cookiesError) throw new Error(cookiesError)
-  }
 
-  const dlCmd = [
+  const dlCmdNoCookies = [
+    'yt-dlp',
+    '--no-playlist',
+    '--js-runtimes', jsRuntime,
+    '--user-agent', `"${USER_AGENT}"`,
+    ...sleepFlags,
+    '-x',
+    '--audio-format', 'mp3',
+    '--audio-quality', '0',
+    '-o', `"${outputTemplate}"`,
+    `"${url}"`
+  ].join(' ')
+  const dlCmdWithCookies = [
     'yt-dlp',
     '--no-playlist',
     '--js-runtimes', jsRuntime,
@@ -298,7 +373,11 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
   ].join(' ')
 
   try {
-    await execAsync(dlCmd, { timeout: ytdlpTimeoutMs })
+    if (hasCookies) {
+      const cookiesError = validateCookiesFile(cookiesPath)
+      if (cookiesError) throw new Error(cookiesError)
+    }
+    await execWithOptionalCookies(dlCmdNoCookies, dlCmdWithCookies, ytdlpTimeoutMs, hasCookies)
   } catch (err: any) {
     if (err.code === 'ENOENT' || err.message.includes('not recognized')) {
       throw new Error('yt-dlp not found on system.')
