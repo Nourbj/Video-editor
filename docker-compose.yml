@@ -25,9 +25,9 @@ services:
       - YTDLP_COOKIES=/app/cookies
       - YTDLP_JS_RUNTIME=node
       - YTDLP_DEBUG=true
-      - YTDLP_SLEEP_REQUESTS=5
-      - YTDLP_SLEEP_INTERVAL=10
-      - YTDLP_MAX_SLEEP_INTERVAL=20
+      - YTDLP_SLEEP_REQUESTS=1.25
+      - YTDLP_SLEEP_INTERVAL=60
+      - YTDLP_MAX_SLEEP_INTERVAL=90
     depends_on:
       - redis
     restart: unless-stopped
