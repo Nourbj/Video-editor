@@ -9,6 +9,21 @@ const USER_AGENT =
   process.env.YTDLP_USER_AGENT ||
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 
+function logCookiesStatus(cookiesPath: string, debug: boolean): void {
+  if (!debug) return
+  if (!cookiesPath) {
+    console.warn('[yt-dlp] cookies: env YTDLP_COOKIES not set')
+    return
+  }
+  try {
+    const stat = fs.statSync(cookiesPath)
+    const kind = stat.isDirectory() ? 'directory' : stat.isFile() ? 'file' : 'other'
+    console.warn(`[yt-dlp] cookies: path="${cookiesPath}" exists (${kind})`)
+  } catch (e: any) {
+    console.warn(`[yt-dlp] cookies: path="${cookiesPath}" does not exist (${e?.message || 'unknown error'})`)
+  }
+}
+
 export function validateCookiesFile(filePath: string): string | null {
   try {
     const stat = fs.statSync(filePath)
@@ -54,6 +69,8 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
   const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+
+  logCookiesStatus(cookiesPath, debug)
 
   if (hasCookies) {
     const cookiesError = validateCookiesFile(cookiesPath)
@@ -182,6 +199,7 @@ export async function getVideoInfo(url: string): Promise<Record<string, unknown>
   const hasCookies = cookiesPath && fs.existsSync(cookiesPath)
   const cookiesFromBrowser = process.env.YTDLP_COOKIES_FROM_BROWSER || ''
   const debug = String(process.env.YTDLP_DEBUG || '').toLowerCase() === 'true'
+  logCookiesStatus(cookiesPath, debug)
   if (hasCookies) {
     const cookiesError = validateCookiesFile(cookiesPath)
     if (cookiesError) throw new Error(cookiesError)
