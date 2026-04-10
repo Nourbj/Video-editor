@@ -126,11 +126,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
       console.error('[yt-dlp] download error:', combined.slice(0, 2000))
     }
     const combinedLower = combined.toLowerCase()
-    if (combinedLower.includes('cookies') || combinedLower.includes('cookie')) {
-      const baseMsg = 'Invalid cookies file. Please export cookies in Netscape format (first line must be "# Netscape HTTP Cookie File").'
-      const detail = debug && combined ? ` | ytdlp: ${combined.slice(0, 800)}` : ''
-      throw new Error(`${baseMsg}${detail}`)
-    }
     if (
       combined.includes('Unsupported URL') ||
       combined.includes('login.php') ||
@@ -140,6 +135,17 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
       combinedLower.includes('not available')
     ) {
       const baseMsg = 'Video is unavailable or requires sign-in. If this is a public video, try again or provide cookies via YTDLP_COOKIES or YTDLP_COOKIES_FROM_BROWSER.'
+      const detail = debug && combined ? ` | ytdlp: ${combined.slice(0, 800)}` : ''
+      throw new Error(`${baseMsg}${detail}`)
+    }
+    if (
+      hasCookies &&
+      (combinedLower.includes('invalid cookies file') ||
+        combinedLower.includes('cookies file') ||
+        combinedLower.includes('cookie file') ||
+        combinedLower.includes('netscape http cookie file'))
+    ) {
+      const baseMsg = 'Invalid cookies file. Please export cookies in Netscape format (first line must be "# Netscape HTTP Cookie File").'
       const detail = debug && combined ? ` | ytdlp: ${combined.slice(0, 800)}` : ''
       throw new Error(`${baseMsg}${detail}`)
     }
