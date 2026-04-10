@@ -48,8 +48,8 @@ pipeline {
 
     stage('Test yt-dlp in Container') {
       steps {
-        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "which quickjs || true"'
-        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "quickjs -V || true"'
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "which node || true"'
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend sh -lc "node -v || true"'
         sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend yt-dlp --cookies /app/cookies/ytdlp_cookies.txt -v "https://www.youtube.com/watch?v=gR4KxDPcFMI" || true'
       }
     }

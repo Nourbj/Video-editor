@@ -23,7 +23,7 @@ services:
       - NODE_ENV=production
       - BACKEND_PORT=3005
       - YTDLP_COOKIES=/app/cookies
-      - YTDLP_JS_RUNTIME=quickjs
+      - YTDLP_JS_RUNTIME=node
       - YTDLP_DEBUG=true
     depends_on:
       - redis
