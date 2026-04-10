@@ -11,6 +11,13 @@ pipeline {
   }
 
   stages {
+    stage('Verify Cookies File') {
+      steps {
+        sh 'ls -la cookies || true'
+        sh 'test -f cookies/ytdlp_cookies.txt && echo "OK: cookies file exists" || (echo "MISSING: cookies/ytdlp_cookies.txt" && exit 1)'
+      }
+    }
+
     stage('Checkout') {
       steps {
         checkout scm
@@ -27,6 +34,13 @@ pipeline {
       steps {
         sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE down'
         sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE up -d --force-recreate --remove-orphans'
+      }
+    }
+
+    stage('Verify Cookies In Container') {
+      steps {
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend ls -la /app/cookies'
+        sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE exec -T backend head -n 1 /app/cookies/ytdlp_cookies.txt'
       }
     }
   }
