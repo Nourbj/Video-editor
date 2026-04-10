@@ -7,12 +7,13 @@ pipeline {
 
   options {
     timestamps()
+    skipDefaultCheckout(true)
   }
 
   stages {
     stage('Checkout') {
       steps {
-        deleteDir()
+        sh 'docker run --rm -v "$WORKSPACE":/work alpine sh -c "rm -rf /work/uploads /work/outputs /work/temp /work/cookies" || true'
         checkout scm
       }
     }
@@ -32,7 +33,7 @@ pipeline {
 
   post {
     always {
-      sh 'docker compose -f $COMPOSE_FILE ps'
+      sh '[ -f $COMPOSE_FILE ] && docker compose -f $COMPOSE_FILE ps || true'
     }
   }
 }
