@@ -26,7 +26,5 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-RUN mkdir -p uploads outputs temp
-
 EXPOSE 3005
 CMD ["node", "dist/index.js"]

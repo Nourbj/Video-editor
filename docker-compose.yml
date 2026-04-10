@@ -1,13 +1,6 @@
 version: '3.8'
 
 services:
-  init-dirs:
-    image: alpine:3.20
-    volumes:
-      - ./:/work
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["mkdir -p /work/uploads /work/outputs /work/temp /work/cookies"]
-
   redis:
     image: redis:7-alpine
     ports:
