@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, Music, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
-import AudioEditor from './components/AudioEditor/AudioEditor'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
@@ -17,7 +16,6 @@ type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'borde
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
-  { id: 'audio', label: 'Audio', icon: <Music size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
   { id: 'border', label: 'Cadre', icon: <Square size={15} />, requiresVideo: true },
@@ -347,7 +345,6 @@ export default function App() {
             <div className="bg-white rounded-2xl p-4 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'edit' && <EditPanel />}
-              {activeTab === 'audio' && <AudioEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
               {activeTab === 'logo' && <LogoEditor />}
               {activeTab === 'title' && <TitleEditor />}
