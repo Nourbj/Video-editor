@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Scissors, GripVertical, Trash2, GitMerge, Wand2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
+import { createId } from '../../utils/id'
 import { mergeSegments, mergeVideos, splitVideo } from '../../api/client'
 import { withMediaBase } from '../../utils/media'
 
@@ -373,7 +374,7 @@ export function EditSidebar() {
 
       setVideo({
         ...video,
-        id: crypto.randomUUID(),
+        id: createId(),
         filename: result.filename,
         url: result.url,
         duration: nextDuration,

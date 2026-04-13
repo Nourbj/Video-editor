@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { SubtitleEntry } from '../api/client'
+import { createId } from '../utils/id'
 
 export interface VideoProject {
   id: string
@@ -207,7 +208,7 @@ export const useStore = create<EditorState>((set) => ({
       ...state.segments,
       {
         ...segment,
-        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2),
+        id: createId(),
         outputFilename: null,
         outputUrl: null,
       },
