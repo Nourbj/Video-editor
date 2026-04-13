@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Scissors, GripVertical, Trash2, GitMerge, Wand2, Film, Music } from 'lucide-react'
+import { Scissors, GripVertical, Trash2, GitMerge, Wand2, Film, Music, Loader2, CheckCircle2, Play, Download } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { createId } from '../../utils/id'
 import { mergeSegments, mergeVideos, splitVideo } from '../../api/client'
@@ -59,6 +59,8 @@ export default function VideoTimeline({
     audioDuration,
     audioOffset,
     setAudioOffset,
+    setSegmentOutput,
+    setSegmentGenerating,
     audioTrimStart,
     audioTrimEnd,
     setAudioTrimStart,
@@ -188,29 +190,41 @@ export default function VideoTimeline({
 
   if (!video) return null
 
-  const handleAddSegment = () => {
+  const handleAddSegment = async () => {
     if (selectionDuration <= 0) {
       setEditStatus('Choose a valid range before cutting.')
       return
     }
-    addSegment({
-      label: `Clip ${segments.length + 1}`,
+
+    const label = `Clip ${segments.length + 1}`
+    const id = addSegment({
+      label,
       start: trimStart,
       end: trimEnd,
     })
-    setEditStatus(`Clip ${segments.length + 1} added from the current selection.`)
-  }
 
-  const handleSetStartToPlayhead = () => {
-    const nextStart = Math.min(Math.max(0, currentTime), Math.max(0, trimEnd - minGap))
-    setTrimStart(nextStart)
-    setEditStatus(`Selection start moved to ${formatTime(nextStart)}.`)
-  }
+    setSegmentGenerating(id, true)
+    setEditStatus(`Generating ${label}...`)
 
-  const handleSetEndToPlayhead = () => {
-    const nextEnd = Math.max(Math.min(duration, currentTime), Math.min(duration, trimStart + minGap))
-    setTrimEnd(nextEnd)
-    setEditStatus(`Selection end moved to ${formatTime(nextEnd)}.`)
+    try {
+      const result = await splitVideo(video.filename, [{
+        startTime: trimStart,
+        endTime: trimEnd,
+        label,
+      }])
+      
+      if (result.segments && result.segments.length > 0) {
+        setSegmentOutput(id, {
+          filename: result.segments[0].filename,
+          url: result.segments[0].url,
+        })
+        setEditStatus(`${label} generated and ready.`)
+      }
+    } catch (error) {
+      console.error('Failed to auto-generate clip:', error)
+      setSegmentGenerating(id, false)
+      setEditStatus(`Failed to generate ${label}. You can retry manually.`)
+    }
   }
 
   const trackVideoSegments = useMemo(() => {
@@ -596,47 +610,73 @@ export function EditSidebar() {
                   if (activeId) reorderSegments(activeId, segment.id)
                   setDragOverId(null)
                 }}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${active ? 'bg-cyan-50 border-cyan-400 ring-2 ring-cyan-100' : 'bg-zinc-50'} ${dragOverId === segment.id ? 'border-cyan-500 ring-2 ring-cyan-200' : active ? 'border-cyan-400' : 'border-zinc-200'}`}
               >
                 <GripVertical size={14} className={active ? 'text-cyan-600' : 'text-zinc-400'} />
-                <button
-                  onClick={() => {
-                    setTrimStart(segment.start)
-                    setTrimEnd(segment.end)
-                  }}
-                  className="text-left flex-1"
-                >
-                  <p className={`text-sm font-medium ${active ? 'text-cyan-900' : 'text-zinc-800'}`}>{segment.label || `Clip ${index + 1}`}</p>
-                  <p className={`text-xs ${active ? 'text-cyan-700' : 'text-zinc-500'}`}>{formatTime(segment.start)} {'->'} {formatTime(segment.end)} · {formatTime(segment.end - segment.start)}</p>
-                </button>
-                <div className="flex items-center gap-2">
-                  {segment.outputFilename && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
-                      Ready
-                    </span>
+                
+                {/* Thumbnail / Video Preview */}
+                <div className="w-24 aspect-video bg-black rounded-md overflow-hidden relative group/preview flex-shrink-0 border border-zinc-200 shadow-sm">
+                  <video
+                    src={`${video.url}#t=${segment.start},${segment.end}`}
+                    className="w-full h-full object-cover"
+                    muted
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.pause()
+                      e.currentTarget.currentTime = segment.start
+                    }}
+                    preload="metadata"
+                    playsInline
+                  />
+                  {!active && (
+                    <div className="absolute inset-0 bg-zinc-900/10 group-hover/preview:bg-transparent transition-colors pointer-events-none" />
                   )}
+                  <div className="absolute bottom-1 right-1 px-1 rounded bg-black/60 text-[8px] font-bold text-white uppercase tracking-wider">
+                    {formatTime(segment.end - segment.start)}
+                  </div>
+                </div>
+
+                {/* Clip Info */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                  <p 
+                    className={`text-sm font-bold truncate transition-colors cursor-pointer ${active ? 'text-cyan-900' : 'text-zinc-800 hover:text-cyan-600'}`}
+                    onClick={() => {
+                      setTrimStart(segment.start)
+                      setTrimEnd(segment.end)
+                    }}
+                  >
+                    {segment.label || `Clip ${index + 1}`}
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    <p className={`text-[10px] font-medium ${active ? 'text-cyan-700' : 'text-zinc-500'}`}>
+                      {formatTime(segment.start)} → {formatTime(segment.end)}
+                    </p>
+                    
+                    {segment.isGenerating && (
+                      <Loader2 size={10} className="animate-spin text-cyan-600" />
+                    )}
+                    {segment.outputUrl && !segment.isGenerating && (
+                      <CheckCircle2 size={10} className="text-green-600" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 pl-2">
                   {segment.outputUrl && (
-                    <>
-                      <a
-                        href={withMediaBase(segment.outputUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-zinc-600 hover:text-zinc-900 underline"
-                      >
-                        Open/Preview
-                      </a>
-                      <a
-                        href={withMediaBase(segment.outputUrl)}
-                        download
-                        className="text-xs text-cyan-700 hover:text-cyan-800 font-medium"
-                      >
-                        Download
-                      </a>
-                    </>
+                    <a
+                      href={withMediaBase(segment.outputUrl)}
+                      download
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-600 hover:bg-cyan-50 transition-all"
+                      title="Download Optimized Clip"
+                    >
+                      <Download size={14} />
+                    </a>
                   )}
                   <button
                     onClick={() => removeSegment(segment.id)}
-                    className={`text-xs ${active ? 'text-cyan-600 hover:text-cyan-700' : 'text-red-500 hover:text-red-600'}`}
+                    className={`p-1.5 rounded-lg transition-all ${active ? 'text-cyan-600 hover:bg-cyan-100' : 'text-zinc-400 hover:text-red-500 hover:bg-red-50'}`}
+                    title="Remove Clip"
                   >
                     <Trash2 size={14} />
                   </button>

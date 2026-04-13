@@ -38,6 +38,7 @@ export interface VideoSegment {
   end: number
   outputFilename: string | null
   outputUrl: string | null
+  isGenerating?: boolean
 }
 
 export type TitlePosition =
@@ -56,12 +57,13 @@ interface EditorState {
   setTrimStart: (t: number) => void
   setTrimEnd: (t: number) => void
   segments: VideoSegment[]
-  addSegment: (segment: Omit<VideoSegment, 'id' | 'outputFilename' | 'outputUrl'>) => void
+  addSegment: (segment: Omit<VideoSegment, 'id' | 'outputFilename' | 'outputUrl'>) => string
   removeSegment: (id: string) => void
   clearSegments: () => void
   reorderSegments: (activeId: string, overId: string) => void
   resetSegmentOutputs: () => void
   setSegmentOutput: (id: string, output: { filename: string; url: string }) => void
+  setSegmentGenerating: (id: string, generating: boolean) => void
 
   // Audio
   audioTrack: AudioTrack | null
@@ -206,17 +208,22 @@ export const useStore = create<EditorState>((set) => ({
   setTrimStart: t => set({ trimStart: t }),
   setTrimEnd: t => set({ trimEnd: t }),
   segments: [],
-  addSegment: segment => set(state => ({
-    segments: [
-      ...state.segments,
-      {
-        ...segment,
-        id: createId(),
-        outputFilename: null,
-        outputUrl: null,
-      },
-    ],
-  })),
+  addSegment: segment => {
+    const id = createId()
+    set(state => ({
+      segments: [
+        ...state.segments,
+        {
+          ...segment,
+          id,
+          outputFilename: null,
+          outputUrl: null,
+          isGenerating: false,
+        },
+      ],
+    }))
+    return id
+  },
   removeSegment: id => set(state => ({ segments: state.segments.filter(segment => segment.id !== id) })),
   clearSegments: () => set({ segments: [] }),
   reorderSegments: (activeId, overId) => set(state => {
@@ -238,7 +245,12 @@ export const useStore = create<EditorState>((set) => ({
   })),
   setSegmentOutput: (id, output) => set(state => ({
     segments: state.segments.map(segment => segment.id === id
-      ? { ...segment, outputFilename: output.filename, outputUrl: output.url }
+      ? { ...segment, outputFilename: output.filename, outputUrl: output.url, isGenerating: false }
+      : segment),
+  })),
+  setSegmentGenerating: (id, generating) => set(state => ({
+    segments: state.segments.map(segment => segment.id === id
+      ? { ...segment, isGenerating: generating }
       : segment),
   })),
 
