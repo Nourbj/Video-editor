@@ -88,6 +88,18 @@ interface EditorState {
   appliedAudioTrimEnd: number
   appliedAudioOffset: number
   setAppliedAudioSettings: (s: { volume: number; replaceOriginal: boolean; trimStart: number; trimEnd: number; offset: number }) => void
+  audioUrlInput: string
+  setAudioUrlInput: (url: string) => void
+  audioLoading: boolean
+  setAudioLoading: (loading: boolean) => void
+  audioError: string | null
+  setAudioError: (error: string | null) => void
+  videoUrlInput: string
+  setVideoUrlInput: (url: string) => void
+  videoLoading: boolean
+  setVideoLoading: (loading: boolean) => void
+  videoError: string | null
+  setVideoError: (error: string | null) => void
 
   // Subtitles
   subtitles: SubtitleEntry[]
@@ -168,7 +180,7 @@ interface EditorState {
   setExportFilename: (name: string) => void
 
   // UI
-  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border'  | 'export'
+  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
   setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
@@ -295,6 +307,18 @@ export const useStore = create<EditorState>((set) => ({
     appliedAudioOffset: s.offset,
     audioApplied: true,
   }),
+  audioUrlInput: '',
+  setAudioUrlInput: url => set({ audioUrlInput: url }),
+  audioLoading: false,
+  setAudioLoading: loading => set({ audioLoading: loading }),
+  audioError: null,
+  setAudioError: error => set({ audioError: error }),
+  videoUrlInput: '',
+  setVideoUrlInput: url => set({ videoUrlInput: url }),
+  videoLoading: false,
+  setVideoLoading: loading => set({ videoLoading: loading }),
+  videoError: null,
+  setVideoError: error => set({ videoError: error }),
 
   subtitles: [],
   setSubtitles: s => set({ subtitles: s }),

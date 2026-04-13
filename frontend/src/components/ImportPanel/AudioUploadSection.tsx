@@ -1,49 +1,50 @@
 import React, { useRef, useState } from 'react'
-import { Music, Upload, Link, Loader2, CheckCircle, X } from 'lucide-react'
+import { Music, Upload, Link, Loader2, CheckCircle, X, Download } from 'lucide-react'
 import { uploadAudio, downloadAudioFromUrl } from '../../api/client'
 import { useStore } from '../../store/useStore'
+import { SocialIcon } from 'react-social-icons'
+import { PLATFORM_ICONS, detectPlatform } from './uploadConstants.tsx'
 
 export default function AudioUploadSection() {
-    const { audioTrack, setAudioTrack, audioVolume, replaceOriginalAudio, setAudioApplied } = useStore()
+    const { audioTrack, setAudioTrack, audioVolume, replaceOriginalAudio, setAudioApplied, audioUrlInput, setAudioUrlInput, audioLoading, setAudioLoading, audioError, setAudioError } = useStore()
 
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
     const [tab, setTab] = useState<'file' | 'url'>('file')
-    const [urlInput, setUrlInput] = useState('')
     const [dragOver, setDragOver] = useState(false)
     const fileRef = useRef<HTMLInputElement>(null)
 
+    const platform = detectPlatform(audioUrlInput)
+
     const handleAudioUpload = async (file: File) => {
         if (!file.type.startsWith('audio/')) {
-            setError('Please select an audio file (MP3, WAV, AAC...)')
+            setAudioError('Please select an audio file (MP3, WAV, AAC...)')
             return
         }
-        setLoading(true)
-        setError(null)
+        setAudioLoading(true)
+        setAudioError(null)
         try {
             const result = await uploadAudio(file)
             setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
             setAudioApplied(false)
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Upload failed')
+            setAudioError(e instanceof Error ? e.message : 'Upload failed')
         } finally {
-            setLoading(false)
+            setAudioLoading(false)
         }
     }
 
     const handleAudioUrl = async () => {
-        if (!urlInput.trim()) return
-        setLoading(true)
-        setError(null)
+        if (!audioUrlInput.trim()) return
+        setAudioLoading(true)
+        setAudioError(null)
         try {
-            const result = await downloadAudioFromUrl(urlInput.trim())
+            const result = await downloadAudioFromUrl(audioUrlInput.trim())
             setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
             setAudioApplied(false)
-            setUrlInput('')
+            setAudioUrlInput('')
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Download failed')
+            setAudioError(e instanceof Error ? e.message : 'Download failed')
         } finally {
-            setLoading(false)
+            setAudioLoading(false)
         }
     }
 
@@ -81,17 +82,17 @@ export default function AudioUploadSection() {
             ) : (
                 <>
                     {/* Tab switcher */}
-                    <div className="flex gap-1 bg-zinc-100 rounded-xl p-1">
+                    <div className="flex gap-2 border-b border-zinc-200">
                         <button
                             onClick={() => setTab('file')}
-                            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${tab === 'file' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                            className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${tab === 'file' ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
                         >
                             <Upload size={13} /> File
                         </button>
                         <button
                             onClick={() => setTab('url')}
-                            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${tab === 'url' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                            className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${tab === 'url' ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
                         >
                             <Link size={13} /> URL
@@ -116,35 +117,44 @@ export default function AudioUploadSection() {
                             <Music size={32} className="mx-auto mb-3 text-zinc-400" />
                             <p className="text-zinc-700 font-medium text-sm">Upload audio track</p>
                             <p className="text-zinc-500 text-xs mt-1">MP3, WAV, AAC, FLAC</p>
-                            {loading && <p className="text-cyan-600 text-xs mt-2 animate-pulse">Uploading...</p>}
+                            {audioLoading && <p className="text-cyan-600 text-xs mt-2 animate-pulse">Uploading...</p>}
                         </div>
                     ) : (
-                        <div className="space-y-2">
-                            <p className="text-xs text-zinc-500">Paste a YouTube or other URL to extract the audio</p>
-                            <div className="flex gap-2">
+                        <div className="space-y-3">
+                            <p className="text-xs text-zinc-500">Download high-quality audio (MP3) from supported platforms (YouTube, Instagram, TikTok or Facebook)</p>
+                            <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                    {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-400" />}
+                                </div>
                                 <input
-                                    type="text"
-                                    value={urlInput}
-                                    onChange={e => setUrlInput(e.target.value)}
+                                    type="url"
+                                    value={audioUrlInput}
+                                    onChange={e => setAudioUrlInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleAudioUrl()}
-                                    placeholder="https://youtube.com/watch?v=..."
-                                    className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    placeholder="https://youtube.com/watch?v=... or Instagram / Facebook / Tiktok"
+                                    className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all text-sm"
                                 />
-                                <button
-                                    onClick={handleAudioUrl}
-                                    disabled={loading || !urlInput.trim()}
-                                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5"
-                                >
-                                    {loading ? <Loader2 size={14} className="animate-spin" /> : <Link size={14} />}
-                                    {loading ? 'Loading...' : 'Import'}
-                                </button>
+                            </div>
+                            <button
+                                onClick={handleAudioUrl}
+                                disabled={audioLoading || !audioUrlInput.trim()}
+                                className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full text-sm"
+                            >
+                                {audioLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                {audioLoading ? 'Downloading...' : 'Download'}
+                            </button>
+                            <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
+                                <span className="flex items-center gap-1"><SocialIcon network="youtube" style={{ height: 18, width: 18 }} /> YouTube</span>
+                                <span className="flex items-center gap-1"><SocialIcon network="instagram" style={{ height: 18, width: 18 }} /> Instagram</span>
+                                <span className="flex items-center gap-1"><SocialIcon network="facebook" style={{ height: 18, width: 18 }} /> Facebook</span>
+                                <span className="flex items-center gap-1"><SocialIcon network="tiktok" style={{ height: 18, width: 18 }} /> TikTok</span>
                             </div>
                         </div>
                     )}
 
-                    {error && (
+                    {audioError && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
-                            {error}
+                            {audioError}
                         </div>
                     )}
                 </>

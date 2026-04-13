@@ -178,50 +178,46 @@ export default function AudioEditor() {
             <div className="flex gap-2">
               <button
                 onClick={() => { setReplaceOriginalAudio(false); setAudioApplied(false) }}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  !replaceOriginalAudio
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'
                     : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
+                  }`}
               >
                 Mix with original
               </button>
               <button
                 onClick={() => { setReplaceOriginalAudio(true); setAudioApplied(false) }}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  replaceOriginalAudio
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'
                     : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
+                  }`}
               >
                 Replace original
               </button>
             </div>
           </div>
 
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-zinc-700">Apply audio</h3>
-                <p className="text-xs text-zinc-500">
-                  {audioApplied
-                    ? `Applied: ${formatTime(appliedAudioTrimStart)} → ${formatTime(appliedAudioTrimEnd)} · ${Math.round(appliedAudioVolume * 100)}% · ${appliedReplaceOriginal ? 'replace' : 'mix'}${appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}`
-                    : 'Audio changes are not applied yet'}
+          <div className="space-y-2">
+            {audioApplied && (
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                <p className="text-xs text-blue-700">
+                  <span className="font-medium">Applied:</span> {formatTime(appliedAudioTrimStart)} → {formatTime(appliedAudioTrimEnd)} · {Math.round(appliedAudioVolume * 100)}% · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
                 </p>
               </div>
-              <button
-                onClick={() => setAppliedAudioSettings({
-                  volume: 1,
-                  replaceOriginal: replaceOriginalAudio,
-                  trimStart: audioTrimStart,
-                  trimEnd: audioTrimEnd,
-                  offset: audioOffset,
-                })}
-                className="px-3 py-2 rounded-lg text-xs font-medium bg-cyan-600 hover:bg-cyan-500 text-white transition-colors whitespace-nowrap"
-              >
-                Apply audio
-              </button>
-            </div>
+            )}
+            <button
+              onClick={() => setAppliedAudioSettings({
+                volume: 1,
+                replaceOriginal: replaceOriginalAudio,
+                trimStart: audioTrimStart,
+                trimEnd: audioTrimEnd,
+                offset: audioOffset,
+              })}
+              className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <Music size={16} />
+              Apply audio
+            </button>
           </div>
         </>
       )}
