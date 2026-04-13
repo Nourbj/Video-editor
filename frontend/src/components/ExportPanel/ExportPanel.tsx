@@ -35,6 +35,7 @@ export default function ExportPanel() {
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
+    audioOffset, appliedAudioOffset,
     exportQuality, setExportQuality,
     exportAspectRatio, setExportAspectRatio,
     exportFilename, setExportFilename,
@@ -87,6 +88,7 @@ export default function ExportPanel() {
         audioVolume: hasAppliedAudio ? appliedAudioVolume : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
+        audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
         replaceOriginal: hasAppliedAudio ? appliedReplaceOriginal : undefined,
         subtitleFilename: subFile || undefined,
         subtitleStyle,
@@ -342,7 +344,7 @@ export default function ExportPanel() {
               <span className="flex items-center gap-2 text-zinc-500"><Music size={13} /> Audio</span>
               <span className="text-zinc-700 text-xs">
                 {hasAppliedAudio
-                  ? `${audioTrack!.filename} (${Math.round(appliedAudioVolume * 100)}%, ${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}`
+                  ? `${audioTrack!.filename} (${Math.round(appliedAudioVolume * 100)}%, ${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}${appliedAudioOffset > 0 ? ` — Offset ${formatTime(appliedAudioOffset)}` : ''}`
                   : hasAudio ? 'Not applied' : 'Original'}
               </span>
             </div>

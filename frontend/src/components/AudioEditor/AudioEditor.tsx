@@ -10,8 +10,9 @@ export default function AudioEditor() {
     replaceOriginalAudio, setReplaceOriginalAudio,
     audioDuration, setAudioDuration,
     audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd,
+    audioOffset, setAudioOffset,
     audioApplied, setAudioApplied, setAppliedAudioSettings,
-    appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
+    appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset,
   } = useStore()
 
   const [loading, setLoading] = useState(false)
@@ -327,7 +328,7 @@ export default function AudioEditor() {
                 <h3 className="text-sm font-medium text-zinc-700">Apply audio</h3>
                 <p className="text-xs text-zinc-500">
                   {audioApplied
-                    ? `Applied: ${formatTime(appliedAudioTrimStart)} → ${formatTime(appliedAudioTrimEnd)} · ${Math.round(appliedAudioVolume * 100)}% · ${appliedReplaceOriginal ? 'replace' : 'mix'}`
+                    ? `Applied: ${formatTime(appliedAudioTrimStart)} → ${formatTime(appliedAudioTrimEnd)} · ${Math.round(appliedAudioVolume * 100)}% · ${appliedReplaceOriginal ? 'replace' : 'mix'}${appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}`
                     : 'Audio changes are not applied yet'}
                 </p>
               </div>
@@ -337,6 +338,7 @@ export default function AudioEditor() {
                   replaceOriginal: replaceOriginalAudio,
                   trimStart: audioTrimStart,
                   trimEnd: audioTrimEnd,
+                  offset: audioOffset,
                 })}
                 className="px-3 py-2 rounded-lg text-xs font-medium bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
               >

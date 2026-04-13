@@ -193,6 +193,7 @@ export async function processRoute(app: FastifyInstance) {
       audioFilename?: string
       audioStartTime?: number
       audioEndTime?: number
+      audioOffset?: number
       subtitleFilename?: string
       subtitleStyle?: {
         size?: number
@@ -271,6 +272,7 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         audioStartTime: body.audioStartTime,
         audioEndTime: body.audioEndTime,
+        audioOffset: body.audioOffset,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
         titleStyle: body.titleStyle,
@@ -302,6 +304,7 @@ export async function processRoute(app: FastifyInstance) {
       audioFilename?: string
       audioStartTime?: number
       audioEndTime?: number
+      audioOffset?: number
       subtitleFilename?: string
       subtitleStyle?: {
         size?: number
@@ -370,6 +373,7 @@ export async function processRoute(app: FastifyInstance) {
         audioPath,
         audioStartTime: body.audioStartTime,
         audioEndTime: body.audioEndTime,
+        audioOffset: body.audioOffset,
         subtitlePath,
         subtitleStyle: body.subtitleStyle,
         titleStyle: body.titleStyle,

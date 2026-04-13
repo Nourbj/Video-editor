@@ -61,6 +61,7 @@ export interface ExportOptions {
   audioVolume?: number
   audioStartTime?: number
   audioEndTime?: number
+  audioOffset?: number
 }
 
 export interface SubtitleStyle {
@@ -575,13 +576,29 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       }
 
       if (hasAudio) {
+        const videoStart = options.startTime || 0
+        const audioOff = options.audioOffset || 0
+        const relativeOffset = audioOff - videoStart
+        
+        const offsetMs = Math.round(Math.max(0, relativeOffset) * 1000)
+        const delayChain = offsetMs > 0 ? `adelay=${offsetMs}|${offsetMs},` : ''
+        
+        // If audio starts before video, we need to trim the audio source accordingly
+        const extraAudioTrim = relativeOffset < 0 ? Math.abs(relativeOffset) : 0
+        const finalAudioStart = (audioStartTime || 0) + extraAudioTrim
+        const hasEffectiveAudioTrim = finalAudioStart > 0 || audioEndTime !== undefined
+        
+        const effectiveAudioTrimFilter = hasEffectiveAudioTrim 
+          ? `atrim=start=${finalAudioStart}${audioEndTime !== undefined ? `:end=${audioEndTime}` : ''},asetpts=PTS-STARTPTS` 
+          : null
+
         if (replaceOriginal) {
-          const chain = `${hasAudioTrim ? `${audioTrimFilter},` : ''}volume=${vol}`
+          const chain = `${delayChain}${effectiveAudioTrimFilter ? `${effectiveAudioTrimFilter},` : ''}volume=${vol}`
           filters.push(`[1:a]${chain}[aout]`)
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         } else {
           filters.push(`[0:a]volume=1[a0]`)
-          const chain = `${hasAudioTrim ? `${audioTrimFilter},` : ''}volume=${vol}`
+          const chain = `${delayChain}${effectiveAudioTrimFilter ? `${effectiveAudioTrimFilter},` : ''}volume=${vol}`
           filters.push(`[1:a]${chain}[a1]`)
           filters.push(`[a0][a1]amix=inputs=2:duration=first[aout]`)
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])

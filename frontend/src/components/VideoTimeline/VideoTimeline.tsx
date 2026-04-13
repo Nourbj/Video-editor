@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Scissors, GripVertical, Trash2, GitMerge, Wand2 } from 'lucide-react'
+import { Scissors, GripVertical, Trash2, GitMerge, Wand2, Film, Music } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { createId } from '../../utils/id'
 import { mergeSegments, mergeVideos, splitVideo } from '../../api/client'
@@ -16,7 +16,7 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-type DragMode = 'start' | 'end' | 'range' | null
+type DragMode = 'start' | 'end' | 'range' | 'audio' | 'audio-start' | 'audio-end' | null
 
 const RULER_STEPS = [
   0.5, 1, 2, 5, 10, 15, 30,
@@ -55,11 +55,30 @@ export default function VideoTimeline({
     segments,
     addSegment,
     setEditStatus,
+    audioTrack,
+    audioDuration,
+    audioOffset,
+    setAudioOffset,
+    audioTrimStart,
+    audioTrimEnd,
+    setAudioTrimStart,
+    setAudioTrimEnd,
+    audioApplied,
+    appliedAudioTrimStart,
+    appliedAudioTrimEnd,
+    appliedAudioOffset,
   } = useStore()
 
   const [dragging, setDragging] = useState<DragMode>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef({ startX: 0, startTrimStart: 0, startTrimEnd: 0 })
+  const dragRef = useRef({
+    startX: 0,
+    startTrimStart: 0,
+    startTrimEnd: 0,
+    startAudioOffset: 0,
+    startAudioTrimStart: 0,
+    startAudioTrimEnd: 0
+  })
 
   const duration = video?.duration || 0
   const selectionDuration = Math.max(0, trimEnd - trimStart)
@@ -121,6 +140,39 @@ export default function VideoTimeline({
         const nextEnd = nextStart + span
         setTrimStart(nextStart)
         setTrimEnd(nextEnd)
+        return
+      }
+      if (dragging === 'audio') {
+        const rect = timelineRef.current?.getBoundingClientRect()
+        if (!rect || duration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
+        setAudioOffset(nextOffset)
+        return
+      }
+      if (dragging === 'audio-start') {
+        const rect = timelineRef.current?.getBoundingClientRect()
+        if (!rect || duration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        
+        // Adjust offset and trim simultaneously
+        const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
+        const nextTrimStart = Math.max(0, dragRef.current.startAudioTrimStart + (nextOffset - dragRef.current.startAudioOffset))
+        
+        // Clamp trimStart so it doesn't exceed trimEnd or audioDuration
+        const limit = audioTrimEnd > 0 ? audioTrimEnd - 0.1 : audioDuration - 0.1
+        setAudioOffset(nextOffset)
+        setAudioTrimStart(Math.min(nextTrimStart, limit))
+        return
+      }
+      if (dragging === 'audio-end') {
+        const rect = timelineRef.current?.getBoundingClientRect()
+        if (!rect || duration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        
+        const baseEnd = dragRef.current.startAudioTrimEnd === 0 ? audioDuration : dragRef.current.startAudioTrimEnd
+        const nextTrimEnd = Math.max(audioTrimStart + 0.1, Math.min(audioDuration, baseEnd + delta))
+        setAudioTrimEnd(nextTrimEnd)
       }
     }
 
@@ -132,7 +184,7 @@ export default function VideoTimeline({
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [dragging, duration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart])
+  }, [dragging, duration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart, setAudioOffset, audioDuration, audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd])
 
   if (!video) return null
 
@@ -161,20 +213,38 @@ export default function VideoTimeline({
     setEditStatus(`Selection end moved to ${formatTime(nextEnd)}.`)
   }
 
+  const trackVideoSegments = useMemo(() => {
+    return [{ id: 'current', start: trimStart, end: trimEnd, active: true }]
+  }, [trimStart, trimEnd])
+
+  const trackAudioSegments = useMemo(() => {
+    if (!audioTrack) return []
+    const start = audioApplied ? appliedAudioOffset : audioOffset
+    const sourceTrimStart = audioApplied ? appliedAudioTrimStart : audioTrimStart
+    const sourceTrimEnd = audioApplied ? appliedAudioTrimEnd : audioTrimEnd
+    const clipDuration = sourceTrimEnd > 0 ? (sourceTrimEnd - sourceTrimStart) : audioDuration
+    return [{
+      id: 'audio-main',
+      start,
+      end: start + clipDuration,
+      active: true,
+      label: audioTrack.filename
+    }]
+  }, [audioTrack, audioOffset, audioDuration, audioTrimStart, audioTrimEnd, audioApplied, appliedAudioOffset, appliedAudioTrimStart, appliedAudioTrimEnd])
+
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-3 py-3 space-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+      <div className="rounded-xl border border-cyan-100 bg-[linear-gradient(180deg,#f2fcff_0%,#f8fdff_100%)] px-4 py-4 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
         <div
           ref={timelineRef}
-          className="relative h-[72px] rounded-2xl overflow-hidden cursor-crosshair select-none border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+          className="relative h-[132px] rounded-2xl overflow-hidden cursor-crosshair select-none border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
           onMouseDown={e => {
             const next = getTimeFromClientX(e.clientX)
             onSeek(next)
           }}
         >
-          <div className="absolute inset-x-3 top-8 h-6 rounded-full border border-cyan-200/80 bg-cyan-50/70 pointer-events-none" />
-          <div className="absolute inset-x-3 top-8 h-6 rounded-full bg-[linear-gradient(90deg,rgba(8,145,178,0.05)_1px,transparent_1px)] bg-[length:18px_100%] pointer-events-none opacity-50" />
-          <div className="absolute inset-x-0 top-0 h-8 pointer-events-none z-20">
+          {/* Header/Ruler */}
+          <div className="absolute inset-x-0 top-0 h-6 pointer-events-none z-20 border-b border-cyan-100/50 bg-cyan-50/30">
             {minorTicks.map(t => {
               const isMajor = majorTickSet.has(t.toFixed(3))
               return (
@@ -183,70 +253,164 @@ export default function VideoTimeline({
                   className="absolute top-0 bottom-0 flex flex-col items-center"
                   style={{ left: `${duration ? (t / duration) * 100 : 0}%`, transform: 'translateX(-50%)' }}
                 >
+                  <div className={`w-px rounded-full bg-cyan-900/25 ${isMajor ? 'h-3' : 'h-1.5'}`} />
                   {isMajor && (
-                    <div className="mt-1 px-1 text-[10px] font-medium text-cyan-900/75 leading-none">
+                    <div className="mt-0.5 px-1 text-[9px] font-medium text-cyan-900/60 leading-none">
                       {formatTime(t)}
                     </div>
                   )}
-                  <div className={`mt-auto w-px rounded-full bg-cyan-900/45 ${isMajor ? 'h-3.5' : 'h-2'}`} />
                 </div>
               )
             })}
           </div>
 
-          <div
-            className="absolute left-3 top-8 bottom-3 bg-slate-950/10 rounded-l-full pointer-events-none"
-            style={{ width: `calc(${duration ? (trimStart / duration) * 100 : 0}% - 0.75rem)` }}
-          />
-          <div
-            className="absolute right-3 top-8 bottom-3 bg-slate-950/10 rounded-r-full pointer-events-none"
-            style={{ width: `calc(${duration ? ((duration - trimEnd) / duration) * 100 : 0}% - 0.75rem)` }}
-          />
-          <div
-            className="absolute top-8 bottom-3 rounded-full border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_6px_14px_rgba(8,145,178,0.10)] cursor-grab"
-            style={{
-              left: `${duration ? (trimStart / duration) * 100 : 0}%`,
-              width: `${duration ? ((trimEnd - trimStart) / duration) * 100 : 0}%`,
-            }}
-            onMouseDown={e => {
-              e.stopPropagation()
-              dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
-              setDragging('range')
-            }}
-          >
-            <div className="absolute inset-0 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.10)_0%,rgba(255,255,255,0.22)_50%,rgba(255,255,255,0.10)_100%)]" />
+          {/* Track 1: Video */}
+          <div className="absolute inset-x-0 top-7 h-[44px] flex items-center px-1">
+             <div className="flex-none w-10 flex flex-col items-center justify-center gap-0.5 text-zinc-400">
+               <Film size={12} />
+               <span className="text-[8px] font-bold uppercase tracking-tighter">Vid</span>
+             </div>
+             <div className="relative flex-1 h-full mx-1 rounded-xl bg-zinc-100/50 border border-zinc-200/50 overflow-hidden">
+                {trackVideoSegments.map((seg) => (
+                   <div
+                     key={seg.id}
+                     className="absolute top-1 bottom-1 rounded-lg border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_2px_8px_rgba(8,145,178,0.1)] cursor-grab"
+                     style={{
+                       left: `${duration ? (seg.start / duration) * 100 : 0}%`,
+                       width: `${duration ? ((seg.end - seg.start) / duration) * 100 : 0}%`,
+                     }}
+                      onMouseDown={e => {
+                        e.stopPropagation()
+                        dragRef.current = { 
+                          startX: e.clientX, 
+                          startTrimStart: trimStart, 
+                          startTrimEnd: trimEnd, 
+                          startAudioOffset: audioOffset,
+                          startAudioTrimStart: audioTrimStart,
+                          startAudioTrimEnd: audioTrimEnd
+                        }
+                        setDragging('range')
+                      }}
+                   >
+                     <div className="absolute inset-0 rounded-lg bg-[linear-gradient(90deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.1)_100%)]" />
+                     {/* Grab handles */}
+                     <div
+                        className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center group"
+                        onMouseDown={e => { 
+                          e.stopPropagation()
+                          dragRef.current = { 
+                            startX: e.clientX, 
+                            startTrimStart: trimStart, 
+                            startTrimEnd: trimEnd, 
+                            startAudioOffset: audioOffset,
+                            startAudioTrimStart: audioTrimStart,
+                            startAudioTrimEnd: audioTrimEnd
+                          }
+                          setDragging('start') 
+                        }}
+                     >
+                        <div className="w-1 h-4 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                     </div>
+                     <div
+                        className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center group"
+                        onMouseDown={e => { 
+                          e.stopPropagation()
+                          dragRef.current = { 
+                            startX: e.clientX, 
+                            startTrimStart: trimStart, 
+                            startTrimEnd: trimEnd, 
+                            startAudioOffset: audioOffset,
+                            startAudioTrimStart: audioTrimStart,
+                            startAudioTrimEnd: audioTrimEnd
+                          }
+                          setDragging('end') 
+                        }}
+                     >
+                        <div className="w-1 h-4 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                     </div>
+                   </div>
+                ))}
+             </div>
           </div>
-          <div
-            className="absolute top-[28px] bottom-[12px] w-3 rounded-full bg-white border border-cyan-700/80 shadow-[0_3px_10px_rgba(8,145,178,0.14)] cursor-ew-resize"
-            style={{ left: `${duration ? (trimStart / duration) * 100 : 0}%`, transform: 'translateX(-35%)' }}
-            onMouseDown={e => {
-              e.stopPropagation()
-              dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
-              setDragging('start')
-            }}
-          >
-            <div className="flex h-full items-center justify-center text-cyan-700">
-              <GripVertical size={10} />
-            </div>
+
+          {/* Track 2: Audio */}
+          <div className="absolute inset-x-0 top-[77px] h-[44px] flex items-center px-1">
+             <div className="flex-none w-10 flex flex-col items-center justify-center gap-0.5 text-zinc-400">
+               <Music size={12} />
+               <span className="text-[8px] font-bold uppercase tracking-tighter">Aud</span>
+             </div>
+             <div className="relative flex-1 h-full mx-1 rounded-xl bg-zinc-100/50 border border-zinc-200/50 overflow-hidden">
+                {trackAudioSegments.map((seg) => (
+                   <div
+                     key={seg.id}
+                     className="absolute top-1 bottom-1 rounded-lg border border-yellow-600/70 bg-[linear-gradient(90deg,rgba(202,138,4,0.26),rgba(234,179,8,0.42))] shadow-[0_2px_8px_rgba(202,138,4,0.1)] cursor-grab flex items-center px-2 overflow-hidden"
+                     style={{
+                       left: `${duration ? (seg.start / duration) * 100 : 0}%`,
+                       width: `${duration ? ((seg.end - seg.start) / duration) * 100 : 0}%`,
+                     }}
+                     onMouseDown={e => {
+                        e.stopPropagation()
+                        dragRef.current = { 
+                          startX: e.clientX, 
+                          startTrimStart: trimStart, 
+                          startTrimEnd: trimEnd, 
+                          startAudioOffset: audioOffset,
+                          startAudioTrimStart: audioTrimStart,
+                          startAudioTrimEnd: audioTrimEnd
+                        }
+                        setDragging('audio')
+                     }}
+                   >
+                     <span className="text-[9px] font-bold text-yellow-900/80 truncate pointer-events-none">
+                        {seg.label}
+                     </span>
+                     <div className="absolute inset-0 rounded-lg bg-[linear-gradient(90deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.05)_100%)]" />
+                     {/* Grab handles for trimming */}
+                     <div
+                        className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center group/h"
+                        onMouseDown={e => { 
+                          e.stopPropagation()
+                          dragRef.current = { 
+                            startX: e.clientX, 
+                            startTrimStart: trimStart, 
+                            startTrimEnd: trimEnd, 
+                            startAudioOffset: audioOffset,
+                            startAudioTrimStart: audioTrimStart,
+                            startAudioTrimEnd: audioTrimEnd
+                          }
+                          setDragging('audio-start')
+                        }}
+                     >
+                        <div className="w-1 h-4 bg-yellow-400/80 rounded-full opacity-0 group-hover/h:opacity-100 transition-opacity" />
+                     </div>
+                     <div
+                        className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center group/h"
+                        onMouseDown={e => { 
+                          e.stopPropagation()
+                          dragRef.current = { 
+                            startX: e.clientX, 
+                            startTrimStart: trimStart, 
+                            startTrimEnd: trimEnd, 
+                            startAudioOffset: audioOffset,
+                            startAudioTrimStart: audioTrimStart,
+                            startAudioTrimEnd: audioTrimEnd
+                          }
+                          setDragging('audio-end')
+                        }}
+                     >
+                        <div className="w-1 h-4 bg-yellow-400/80 rounded-full opacity-0 group-hover/h:opacity-100 transition-opacity" />
+                     </div>
+                   </div>
+                ))}
+             </div>
           </div>
+
+          {/* Playhead */}
           <div
-            className="absolute top-[28px] bottom-[12px] w-3 rounded-full bg-white border border-cyan-700/80 shadow-[0_3px_10px_rgba(8,145,178,0.14)] cursor-ew-resize"
-            style={{ left: `${duration ? (trimEnd / duration) * 100 : 0}%`, transform: 'translateX(-65%)' }}
-            onMouseDown={e => {
-              e.stopPropagation()
-              dragRef.current = { startX: e.clientX, startTrimStart: trimStart, startTrimEnd: trimEnd }
-              setDragging('end')
-            }}
-          >
-            <div className="flex h-full items-center justify-center text-cyan-700">
-              <GripVertical size={10} />
-            </div>
-          </div>
-          <div
-            className="absolute top-2.5 bottom-2 w-[2px] bg-cyan-900/70 pointer-events-none z-30"
+            className="absolute top-0 bottom-0 w-[2px] bg-cyan-900/60 pointer-events-none z-30"
             style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
           >
-            <div className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
+            <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

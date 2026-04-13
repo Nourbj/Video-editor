@@ -208,6 +208,7 @@ export const exportVideo = async (params: {
   logoY?: number
   replaceOriginal?: boolean
   audioVolume?: number
+  audioOffset?: number
 }) => {
   const { data } = await api.post('/export', params)
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
@@ -233,6 +234,7 @@ export const previewVideo = async (params: {
   logoY?: number
   replaceOriginal?: boolean
   audioVolume?: number
+  audioOffset?: number
 }) => {
   const { data } = await api.post('/preview', params)
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
