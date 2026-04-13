@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react'
-import { Link, Upload, Loader2, Youtube, Instagram, Facebook, Download } from 'lucide-react'
+import { Link, Upload, Loader2, Youtube, Instagram, Facebook, Download, CheckCircle, Video, X } from 'lucide-react'
 import { downloadFromUrl, uploadVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
+import AudioUploadSection from '../AudioEditor/AudioUploadSection'
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   youtube: <Youtube size={16} className="text-red-400" />,
@@ -32,7 +33,9 @@ function isLikelyPublicFacebookVideo(rawUrl: string) {
 }
 
 export default function ImportPanel() {
-  const { setVideo, setActiveTab } = useStore()
+  const { video, setVideo, setActiveTab } = useStore()
+  const [importTab, setImportTab] = useState<'video' | 'audio'>('video')
+  const [videoTab, setVideoTab] = useState<'file' | 'url'>('file')
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -92,89 +95,156 @@ export default function ImportPanel() {
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900">Import video</h2>
-        <p className="text-xs text-zinc-500">Paste a link or upload a local file</p>
+        <h2 className="text-xl font-semibold text-zinc-900">Import media</h2>
+        <p className="text-xs text-zinc-500">Upload video and audio files</p>
       </div>
 
-      {/* URL input */}
-      <div className="space-y-1">
-        <label htmlFor="video-url" className="block text-sm font-medium text-zinc-700">Video URL</label>
-        <div className="flex flex-col gap-2">
-          <div className="relative flex-1">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-400" />}
+      {/* Tabs */}
+      <div className="bg-zinc-100 rounded-2xl p-1 border border-zinc-200">
+        <div className="grid grid-cols-2 gap-1">
+          {[
+            { id: 'video', label: 'Video' },
+            { id: 'audio', label: 'Audio' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setImportTab(tab.id as typeof importTab)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${importTab === tab.id
+                ? 'bg-white text-zinc-900 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Video Tab */}
+      {importTab === 'video' && (
+        <div className="space-y-3">
+          {/* Video loaded state */}
+          {video ? (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                    <CheckCircle size={24} className="text-green-600" />
+                  </div>
+                  <div>
+                    {video.thumbnail && (
+                      <img src={video.thumbnail} alt="" className="w-16 h-16 rounded-lg object-cover mb-2 border border-green-200" />
+                    )}
+                    <p className="text-sm font-semibold text-green-900">{video.title}</p>
+                    <p className="text-xs text-green-700 mt-0.5">{video.filename}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setVideo(null)}
+                  className="p-1 hover:bg-green-200 rounded-lg transition-colors text-green-600"
+                  aria-label="Remove video"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
-            <input
-              id="video-url"
-              type="url"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleUrlDownload()}
-              placeholder="https://youtube.com/watch?v=... or Instagram / Facebook"
-              className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all"
-            />
-          </div>
-          <button
-            onClick={handleUrlDownload}
-            disabled={loading || !url.trim()}
-            className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            {loading ? 'Downloading...' : 'Download'}
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-          <span className="flex items-center gap-1"><Youtube size={12} className="text-red-400" /> YouTube</span>
-          <span className="flex items-center gap-1"><Instagram size={12} className="text-pink-400" /> Instagram</span>
-          <span className="flex items-center gap-1"><Facebook size={12} className="text-blue-400" /> Facebook</span>
-        </div>
-      </div>
+          ) : (
+            <>
+              {/* Tab switcher for File/URL */}
+              <div className="flex gap-1 bg-zinc-100 rounded-xl p-1">
+                <button
+                  onClick={() => setVideoTab('file')}
+                  className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${videoTab === 'file' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                >
+                  <Upload size={13} /> File
+                </button>
+                <button
+                  onClick={() => setVideoTab('url')}
+                  className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${videoTab === 'url' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                >
+                  <Link size={13} /> URL
+                </button>
+              </div>
 
-      <div className="flex items-center gap-3 text-zinc-500">
-        <div className="flex-1 h-px bg-zinc-200" />
-        <span className="text-xs font-medium">OR</span>
-        <div className="flex-1 h-px bg-zinc-200" />
-      </div>
+              {videoTab === 'file' ? (
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onClick={() => fileRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
+                >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    aria-label="Upload video file"
+                    onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                  />
+                  <Upload size={32} className="mx-auto mb-3 text-zinc-400" />
+                  <p className="text-zinc-700 font-medium">Drop video here or click to browse</p>
+                  <p className="text-zinc-500 text-xs mt-1">MP4, MOV, AVI, MKV</p>
+                  {uploadProgress > 0 && (
+                    <div className="mt-4 mx-auto max-w-xs">
+                      <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-600 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-1">{uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-zinc-500">Download video from YouTube, Instagram, or Facebook</p>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                      {platform ? PLATFORM_ICONS[platform] : <Link size={16} className="text-zinc-400" />}
+                    </div>
+                    <input
+                      id="video-url"
+                      type="url"
+                      value={url}
+                      onChange={e => setUrl(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleUrlDownload()}
+                      placeholder="https://youtube.com/watch?v=... or Instagram / Facebook"
+                      className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUrlDownload}
+                    disabled={loading || !url.trim()}
+                    className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full text-sm"
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                    {loading ? 'Downloading...' : 'Download'}
+                  </button>
+                  <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
+                    <span className="flex items-center gap-1"><Youtube size={12} className="text-red-400" /> YouTube</span>
+                    <span className="flex items-center gap-1"><Instagram size={12} className="text-pink-400" /> Instagram</span>
+                    <span className="flex items-center gap-1"><Facebook size={12} className="text-blue-400" /> Facebook</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
-      {/* File upload */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onClick={() => fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
-          dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
-        }`}
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept="video/*"
-          className="hidden"
-          aria-label="Upload video file"
-          onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-        />
-        <Upload size={32} className="mx-auto mb-3 text-zinc-400" />
-        <p className="text-zinc-700 font-medium">Drop video here or click to browse</p>
-        <p className="text-zinc-500 text-sm mt-1">MP4, MOV, AVI, MKV</p>
-
-        {uploadProgress > 0 && (
-          <div className="mt-4 mx-auto max-w-xs">
-            <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-yellow-600 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
+              {error}
             </div>
-            <p className="text-xs text-zinc-500 mt-1">{uploadProgress}%</p>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
-          {error}
+          )}
         </div>
+      )}
+
+      {/* Audio Tab */}
+      {importTab === 'audio' && (
+        <AudioUploadSection />
       )}
     </div>
   )

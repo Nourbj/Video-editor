@@ -3,7 +3,6 @@ import { Play, Pause, Volume2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
-import AudioEditor from '../AudioEditor/AudioEditor'
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -304,9 +303,6 @@ export default function VideoPlayer() {
       {activeTab === 'edit' && (
         <div className="space-y-4 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] bg-zinc-50 border border-zinc-200 mt-4 rounded-xl p-3">
           <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
-          <div className="pt-3 border-t border-zinc-200">
-            <AudioEditor />
-          </div>
         </div>
       )}
 

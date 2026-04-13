@@ -3,8 +3,6 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     restart: unless-stopped
 
   backend:
@@ -12,7 +10,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3005:3005"
+      - "127.0.0.1:3005:3005"
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs

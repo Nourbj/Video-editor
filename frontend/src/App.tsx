@@ -8,10 +8,11 @@ import ExportPanel from './components/ExportPanel/ExportPanel'
 import LogoEditor from './components/LogoEditor/LogoEditor'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
+import AudioEditor from './components/AudioEditor/AudioEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { previewVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
@@ -250,9 +251,6 @@ export default function App() {
                     {tab.icon}
                     {tab.label}
                     {/* badges */}
-                    {tab.id === 'audio' && audioTrack && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                    )}
                     {tab.id === 'subtitles' && subtitles.length > 0 && (
                       <span className="ml-auto text-xs bg-zinc-200 text-zinc-600 rounded-full px-1.5 py-0.5">
                         {subtitles.length}
@@ -444,6 +442,9 @@ function EditPanel() {
         </div>
       </div>
       <EditSidebar />
+      <div className="pt-2 border-t border-zinc-200">
+        <AudioEditor />
+      </div>
     </div>
   )
 }
