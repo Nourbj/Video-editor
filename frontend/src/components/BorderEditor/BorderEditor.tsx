@@ -43,8 +43,8 @@ export default function BorderEditor() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Cadre</h2>
-        <p className="text-xs text-zinc-500">Ajoutez un cadre coloré autour de la vidéo</p>
+        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Border</h2>
+        <p className="text-xs text-zinc-500">Add a colored border around the video</p>
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
@@ -56,15 +56,15 @@ export default function BorderEditor() {
             onChange={e => setDraftEnabled(e.target.checked)}
             className="accent-cyan-600"
           />
-          <Square size={16} /> <label htmlFor="border-enabled">Activer le cadre</label>
+          <Square size={16} /> <label htmlFor="border-enabled">Enable border</label>
         </label>
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
-          <label className="text-xs text-zinc-500">Position du cadre</label>
+          <label className="text-xs text-zinc-500">Border position</label>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { id: 'inside', label: 'Intérieur (crop)' },
-              { id: 'outside', label: 'Extérieur (pad)' },
+              { id: 'inside', label: 'Inside (crop)' },
+              { id: 'outside', label: 'Outside (pad)' },
             ] as const).map(option => (
               <button
                 key={option.id}
@@ -84,7 +84,7 @@ export default function BorderEditor() {
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
-            <span>Largeur du cadre</span>
+            <span>Border width</span>
             <span className="font-mono">{draftWidth}px</span>
           </div>
           <input
@@ -102,7 +102,7 @@ export default function BorderEditor() {
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
-            <span>Hauteur du cadre</span>
+            <span>Border height</span>
             <span className="font-mono">{draftHeight}px</span>
           </div>
           <input
@@ -119,7 +119,7 @@ export default function BorderEditor() {
         </div>
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
-          <label htmlFor="border-color" className="text-xs text-zinc-500">Couleur du cadre</label>
+          <label htmlFor="border-color" className="text-xs text-zinc-500">Border color</label>
           <div className="flex items-center gap-2">
             <input
               id="border-color"
@@ -147,7 +147,7 @@ export default function BorderEditor() {
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <CheckCircle2 size={16} />
-        Appliquer le cadre
+        Apply border
       </button>
     </div>
   )

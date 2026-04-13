@@ -130,7 +130,7 @@ export default function LogoEditor() {
         <div className="space-y-2">
           <div className="text-xs text-zinc-500">Position</div>
           <div className="text-xs text-zinc-500">
-            Déplace le logo directement sur la vidéo (drag &amp; drop). La position sera appliquée après “Appliquer le logo”.
+            Move the logo directly on the video (drag &amp; drop). The position will be applied after "Apply logo".
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function LogoEditor() {
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <CheckCircle2 size={16} />
-        {previewLoading || isApplyingLogo ? 'Application en cours...' : 'Appliquer le logo'}
+        {previewLoading || isApplyingLogo ? 'Applying...' : 'Apply logo'}
       </button>
 
       {error && (

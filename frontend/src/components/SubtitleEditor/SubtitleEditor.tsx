@@ -146,7 +146,7 @@ export default function SubtitleEditor() {
     <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Subtitles</h2>
-        <p className="text-xs text-zinc-500">Choisissez une méthode puis appliquez les sous-titres</p>
+        <p className="text-xs text-zinc-500">Choose a method then apply subtitles</p>
       </div>
 
       {/* Style controls */}
@@ -193,7 +193,7 @@ export default function SubtitleEditor() {
 
       <div className="flex items-center gap-3 text-zinc-500">
         <div className="flex-1 h-px bg-zinc-200" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider">Méthode</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider">Method</span>
         <div className="flex-1 h-px bg-zinc-200" />
       </div>
 
@@ -201,9 +201,9 @@ export default function SubtitleEditor() {
       <div className="bg-zinc-100 rounded-2xl p-1 border border-zinc-200">
         <div className="grid grid-cols-3 gap-1">
           {[
-            { id: 'manual', label: 'Manuel' },
-            { id: 'import', label: 'Importer .srt' },
-            { id: 'ai', label: 'IA' },
+            { id: 'manual', label: 'Manual' },
+            { id: 'import', label: 'Import .srt' },
+            { id: 'ai', label: 'AI' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -231,7 +231,7 @@ export default function SubtitleEditor() {
           </button>
           {subtitles.length > 0 && !saved && (
             <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 self-center">
-              Prêt
+              Ready
             </span>
           )}
         </div>
@@ -259,13 +259,13 @@ export default function SubtitleEditor() {
             }`}
           >
             <Upload size={28} className={`mx-auto mb-3 ${dragOver ? 'text-cyan-600' : 'text-zinc-400'}`} />
-            <p className="text-zinc-700 font-medium">{dragOver ? 'Drop file here' : 'Importer un fichier .srt'}</p>
-            <p className="text-zinc-500 text-sm mt-1">SRT uniquement</p>
+            <p className="text-zinc-700 font-medium">{dragOver ? 'Drop file here' : 'Import a .srt file'}</p>
+            <p className="text-zinc-500 text-sm mt-1">SRT only</p>
             {pendingSrt && (
               <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-xs text-zinc-500 truncate max-w-[220px]">{pendingSrt.name}</span>
                 <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
-                  Prêt
+                  Ready
                 </span>
               </div>
             )}
@@ -292,7 +292,7 @@ export default function SubtitleEditor() {
             className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
           >
             <FileText size={14} />
-            {uploadLoading ? 'Chargement...' : 'Afficher la liste'}
+            {uploadLoading ? 'Loading...' : 'Show list'}
           </button>
         </div>
       )}
@@ -338,7 +338,7 @@ export default function SubtitleEditor() {
               onChange={e => setAutoFast(e.target.checked)}
               className="h-3.5 w-3.5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-600"
             />
-            Mode rapide (moins précis)
+            Fast mode (less accurate)
           </label>
           <button
             onClick={handleAutoSubtitles}
@@ -346,7 +346,7 @@ export default function SubtitleEditor() {
             className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
           >
             <FileText size={14} />
-            {autoLoading ? 'Génération...' : 'Générer la liste'}
+            {autoLoading ? 'Generating...' : 'Generate list'}
           </button>
         </div>
       )}
@@ -357,11 +357,11 @@ export default function SubtitleEditor() {
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <FileText size={16} />
-      {isApplying ? 'Application en cours...' : 'Appliquer les sous-titres'}
+      {isApplying ? 'Applying...' : 'Apply subtitles'}
       </button>
       {pendingSubtitleFilename && !saved && (
         <div className="text-xs text-zinc-500 text-center">
-          Liste chargée. Cliquez sur “Appliquer les sous-titres” pour prévisualiser.
+          List loaded. Click "Apply subtitles" to preview.
         </div>
       )}
 

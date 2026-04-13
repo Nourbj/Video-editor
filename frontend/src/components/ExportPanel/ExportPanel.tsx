@@ -367,7 +367,7 @@ export default function ExportPanel() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Cadre</span>
+            <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
             <span className="text-zinc-700 text-xs">
               {borderEnabled && (borderWidth > 0 || borderHeight > 0)
                 ? `${borderWidth}px × ${borderHeight}px ${borderColor} (${borderMode})`

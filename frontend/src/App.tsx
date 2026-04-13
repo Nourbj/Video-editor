@@ -18,7 +18,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
   { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
-  { id: 'border', label: 'Cadre', icon: <Square size={15} />, requiresVideo: true },
+  { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'title', label: 'Title', icon: <Type size={15} />, requiresVideo: true },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]

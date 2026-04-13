@@ -184,7 +184,7 @@ export default function TitleEditor() {
         </div>
 
         <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
-          <label className="text-[11px] text-zinc-500 w-16">Bordure texte</label>
+          <label className="text-[11px] text-zinc-500 w-16">Text border</label>
           <input
             type="color"
             value={draftBorderColor}
@@ -217,7 +217,7 @@ export default function TitleEditor() {
         </div>
 
         <div className="pt-1 border-t border-zinc-100 space-y-2">
-          <div className="text-[11px] text-zinc-500">Cadre fond</div>
+          <div className="text-[11px] text-zinc-500">Background frame</div>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -274,7 +274,7 @@ export default function TitleEditor() {
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-3 space-y-2">
         <div className="text-[11px] text-zinc-500">Position</div>
         <div className="text-xs text-zinc-500">
-          Déplace le texte directement sur la vidéo (drag &amp; drop). La position sera appliquée après “Appliquer le titre”.
+          Move the text directly on the video (drag &amp; drop). The position will be applied after "Apply title".
         </div>
       </div>
 
@@ -284,7 +284,7 @@ export default function TitleEditor() {
         className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
       >
         <CheckCircle2 size={15} />
-        {isApplyingTitle || previewLoading ? 'Application en cours...' : 'Appliquer le titre'}
+        {isApplyingTitle || previewLoading ? 'Applying...' : 'Apply title'}
       </button>
     </div>
   )
