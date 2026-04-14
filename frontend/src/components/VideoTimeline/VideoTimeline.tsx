@@ -535,7 +535,7 @@ export function EditSidebar() {
             No clips yet. Select a range on the timeline and press Cut.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
             {segments.map((segment, index) => (
               (() => {
                 const active = isActiveSegment(segment)
@@ -557,7 +557,7 @@ export function EditSidebar() {
                       if (activeId) reorderSegments(activeId, segment.id)
                       setDragOverId(null)
                     }}
-                    className={`group relative flex items-center gap-4 p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${active
+                    className={`group relative flex items-center gap-3 px-2 py-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${active
                       ? 'bg-gradient-to-br from-cyan-50/80 to-white/60 border-cyan-200 shadow-[0_8px_24px_rgba(8,145,178,0.12)] ring-1 ring-cyan-500/10'
                       : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-md hover:bg-zinc-50/50'
                       } ${dragOverId === segment.id ? 'border-t-4 border-t-cyan-500' : ''}`}
@@ -600,9 +600,9 @@ export function EditSidebar() {
                     </div>
 
                     {/* Clip Info Column */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-2 pr-20">
+                    <div className="flex-1 min-w-0 flex flex-col gap-2 pr-20 mt-2">
                       <p
-                        className={`text-lg font-bold truncate transition-colors tracking-tight leading-none ${active ? 'text-cyan-950' : 'text-zinc-800'
+                        className={`text-base font-bold truncate transition-colors tracking-tight leading-none ${active ? 'text-cyan-950' : 'text-zinc-800'
                           }`}
                       >
                         {segment.label || `Clip ${index + 1}`}
@@ -631,7 +631,7 @@ export function EditSidebar() {
                     </div>
 
                     {/* Actions Row - Absolutely positioned to avoid overlap */}
-                    <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5 transition-opacity">
                       {segment.outputUrl && (
                         <a
                           href={withMediaBase(segment.outputUrl)}
@@ -640,7 +640,7 @@ export function EditSidebar() {
                           title="Download Optimized Clip"
                           onClick={e => e.stopPropagation()}
                         >
-                          <Download size={16} />
+                          <Download size={15} />
                         </a>
                       )}
                       <button
@@ -654,7 +654,7 @@ export function EditSidebar() {
                           }`}
                         title="Remove Clip"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
