@@ -82,20 +82,31 @@ export default function VideoTimeline({
     startAudioTrimEnd: 0
   })
 
-  const duration = video?.duration || 0
+  const videoDuration = video?.duration || 0
+  const audioClip = useMemo(() => {
+    if (!audioTrack) return null
+    const start = audioApplied ? appliedAudioOffset : audioOffset
+    const sourceTrimStart = audioApplied ? appliedAudioTrimStart : audioTrimStart
+    const sourceTrimEnd = audioApplied ? appliedAudioTrimEnd : audioTrimEnd
+    const clipDuration = sourceTrimEnd > 0 ? (sourceTrimEnd - sourceTrimStart) : audioDuration
+    const end = start + clipDuration
+    return { start, end, clipDuration }
+  }, [audioTrack, audioApplied, appliedAudioOffset, appliedAudioTrimStart, appliedAudioTrimEnd, audioOffset, audioTrimStart, audioTrimEnd, audioDuration])
+
+  const timelineDuration = Math.max(videoDuration, audioClip?.end ?? 0)
   const selectionDuration = Math.max(0, trimEnd - trimStart)
   const minGap = 0.1
   const rulerStep = useMemo(() => {
-    const major = getRulerStep(duration, 8)
-    const minor = getRulerStep(duration, 36)
+    const major = getRulerStep(timelineDuration, 8)
+    const minor = getRulerStep(timelineDuration, 36)
     return {
       major,
       minor: Math.min(minor, major),
     }
-  }, [duration])
+  }, [timelineDuration])
 
-  const minorTicks = useMemo(() => buildTicks(duration, rulerStep.minor), [duration, rulerStep.minor])
-  const majorTicks = useMemo(() => buildTicks(duration, rulerStep.major), [duration, rulerStep.major])
+  const minorTicks = useMemo(() => buildTicks(timelineDuration, rulerStep.minor), [timelineDuration, rulerStep.minor])
+  const majorTicks = useMemo(() => buildTicks(timelineDuration, rulerStep.major), [timelineDuration, rulerStep.major])
   const majorTickSet = useMemo(
     () => new Set(majorTicks.map(t => t.toFixed(3))),
     [majorTicks],
@@ -103,14 +114,14 @@ export default function VideoTimeline({
 
   const getTimeFromClientX = (clientX: number) => {
     const rect = timelineRef.current?.getBoundingClientRect()
-    if (!rect || duration <= 0) return 0
+    if (!rect || timelineDuration <= 0) return 0
     const x = Math.min(rect.width, Math.max(0, clientX - rect.left))
-    return (x / rect.width) * duration
+    return (x / rect.width) * timelineDuration
   }
 
   const applySelection = (start: number, end: number) => {
-    const nextStart = Math.max(0, Math.min(start, Math.max(0, duration - minGap)))
-    const nextEnd = Math.min(duration, Math.max(end, nextStart + minGap))
+    const nextStart = Math.max(0, Math.min(start, Math.max(0, videoDuration - minGap)))
+    const nextEnd = Math.min(videoDuration, Math.max(end, nextStart + minGap))
     setTrimStart(nextStart)
     setTrimEnd(nextEnd)
   }
@@ -128,17 +139,17 @@ export default function VideoTimeline({
         return
       }
       if (dragging === 'end') {
-        const safeStart = Math.min(trimStart + minGap, duration)
+        const safeStart = Math.min(trimStart + minGap, videoDuration)
         const nextEnd = Math.max(nextTime, safeStart)
-        setTrimEnd(Math.min(duration, nextEnd))
+        setTrimEnd(Math.min(videoDuration, nextEnd))
         return
       }
       if (dragging === 'range') {
         const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || duration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        if (!rect || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
         const span = dragRef.current.startTrimEnd - dragRef.current.startTrimStart
-        const nextStart = Math.min(Math.max(0, dragRef.current.startTrimStart + delta), duration - span)
+        const nextStart = Math.min(Math.max(0, dragRef.current.startTrimStart + delta), videoDuration - span)
         const nextEnd = nextStart + span
         setTrimStart(nextStart)
         setTrimEnd(nextEnd)
@@ -146,16 +157,16 @@ export default function VideoTimeline({
       }
       if (dragging === 'audio') {
         const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || duration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        if (!rect || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
         const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
         setAudioOffset(nextOffset)
         return
       }
       if (dragging === 'audio-start') {
         const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || duration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        if (!rect || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
 
         // Adjust offset and trim simultaneously
         const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
@@ -169,8 +180,8 @@ export default function VideoTimeline({
       }
       if (dragging === 'audio-end') {
         const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || duration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * duration
+        if (!rect || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
 
         const baseEnd = dragRef.current.startAudioTrimEnd === 0 ? audioDuration : dragRef.current.startAudioTrimEnd
         const nextTrimEnd = Math.max(audioTrimStart + 0.1, Math.min(audioDuration, baseEnd + delta))
@@ -186,7 +197,7 @@ export default function VideoTimeline({
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [dragging, duration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart, setAudioOffset, audioDuration, audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd])
+  }, [dragging, timelineDuration, videoDuration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart, setAudioOffset, audioDuration, audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd])
 
   if (!video) return null
 
@@ -232,19 +243,15 @@ export default function VideoTimeline({
   }, [trimStart, trimEnd])
 
   const trackAudioSegments = useMemo(() => {
-    if (!audioTrack) return []
-    const start = audioApplied ? appliedAudioOffset : audioOffset
-    const sourceTrimStart = audioApplied ? appliedAudioTrimStart : audioTrimStart
-    const sourceTrimEnd = audioApplied ? appliedAudioTrimEnd : audioTrimEnd
-    const clipDuration = sourceTrimEnd > 0 ? (sourceTrimEnd - sourceTrimStart) : audioDuration
+    if (!audioTrack || !audioClip) return []
     return [{
       id: 'audio-main',
-      start,
-      end: start + clipDuration,
+      start: audioClip.start,
+      end: audioClip.end,
       active: true,
       label: audioTrack.filename
     }]
-  }, [audioTrack, audioOffset, audioDuration, audioTrimStart, audioTrimEnd, audioApplied, appliedAudioOffset, appliedAudioTrimStart, appliedAudioTrimEnd])
+  }, [audioTrack, audioClip])
 
   return (
     <div className="space-y-3">
@@ -254,7 +261,7 @@ export default function VideoTimeline({
           className="relative h-[132px] rounded-2xl overflow-hidden cursor-crosshair select-none border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,251,255,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
           onMouseDown={e => {
             const next = getTimeFromClientX(e.clientX)
-            onSeek(next)
+            onSeek(Math.min(next, videoDuration))
           }}
         >
           {/* Header/Ruler */}
@@ -265,7 +272,7 @@ export default function VideoTimeline({
                 <div
                   key={t}
                   className="absolute top-0 bottom-0 flex flex-col items-center"
-                  style={{ left: `${duration ? (t / duration) * 100 : 0}%`, transform: 'translateX(-50%)' }}
+                  style={{ left: `${timelineDuration ? (t / timelineDuration) * 100 : 0}%`, transform: 'translateX(-50%)' }}
                 >
                   <div className={`w-px rounded-full bg-cyan-900/25 ${isMajor ? 'h-3' : 'h-1.5'}`} />
                   {isMajor && (
@@ -290,8 +297,8 @@ export default function VideoTimeline({
                   key={seg.id}
                   className="absolute top-1 bottom-1 rounded-lg border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_2px_8px_rgba(8,145,178,0.1)] cursor-grab"
                   style={{
-                    left: `${duration ? (seg.start / duration) * 100 : 0}%`,
-                    width: `${duration ? ((seg.end - seg.start) / duration) * 100 : 0}%`,
+                    left: `${timelineDuration ? (seg.start / timelineDuration) * 100 : 0}%`,
+                    width: `${timelineDuration ? ((seg.end - seg.start) / timelineDuration) * 100 : 0}%`,
                   }}
                   onMouseDown={e => {
                     e.stopPropagation()
@@ -359,8 +366,8 @@ export default function VideoTimeline({
                   key={seg.id}
                   className="absolute top-1 bottom-1 rounded-lg border border-yellow-600/70 bg-[linear-gradient(90deg,rgba(202,138,4,0.26),rgba(234,179,8,0.42))] shadow-[0_2px_8px_rgba(202,138,4,0.1)] cursor-grab flex items-center px-2 overflow-hidden"
                   style={{
-                    left: `${duration ? (seg.start / duration) * 100 : 0}%`,
-                    width: `${duration ? ((seg.end - seg.start) / duration) * 100 : 0}%`,
+                    left: `${timelineDuration ? (seg.start / timelineDuration) * 100 : 0}%`,
+                    width: `${timelineDuration ? ((seg.end - seg.start) / timelineDuration) * 100 : 0}%`,
                   }}
                   onMouseDown={e => {
                     e.stopPropagation()
@@ -422,7 +429,7 @@ export default function VideoTimeline({
           {/* Playhead */}
           <div
             className="absolute top-0 bottom-0 w-[2px] bg-cyan-900/60 pointer-events-none z-30"
-            style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            style={{ left: `${timelineDuration ? (currentTime / timelineDuration) * 100 : 0}%` }}
           >
             <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
           </div>
@@ -435,7 +442,7 @@ export default function VideoTimeline({
             <Scissors size={14} /> Cut Selection
           </button>
           <button
-            onClick={() => applySelection(0, duration)}
+            onClick={() => applySelection(0, videoDuration)}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-cyan-200 text-cyan-800 text-xs font-medium hover:bg-cyan-50"
           >
             Full Range
