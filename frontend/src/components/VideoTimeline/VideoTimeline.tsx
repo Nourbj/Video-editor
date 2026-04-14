@@ -463,6 +463,7 @@ export function EditSidebar() {
     setProcessedUrl,
     editStatus,
     setEditStatus,
+    setSeekTo,
   } = useStore()
 
   const [dragOverId, setDragOverId] = useState<string | null>(null)
@@ -588,7 +589,7 @@ export function EditSidebar() {
             No clips yet. Select a range on the timeline and press Cut.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {segments.map((segment, index) => (
               (() => {
                 const active = isActiveSegment(segment)
@@ -610,14 +611,27 @@ export function EditSidebar() {
                   if (activeId) reorderSegments(activeId, segment.id)
                   setDragOverId(null)
                 }}
+                className={`group relative flex items-center gap-4 p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                  active 
+                    ? 'bg-gradient-to-br from-cyan-50/80 to-white/60 border-cyan-200 shadow-[0_8px_24px_rgba(8,145,178,0.12)] ring-1 ring-cyan-500/10' 
+                    : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-md hover:bg-zinc-50/50'
+                } ${dragOverId === segment.id ? 'border-t-4 border-t-cyan-500' : ''}`}
+                onClick={() => {
+                  setTrimStart(segment.start)
+                  setTrimEnd(segment.end)
+                  setSeekTo(segment.start)
+                }}
               >
-                <GripVertical size={14} className={active ? 'text-cyan-600' : 'text-zinc-400'} />
+                {/* Drag Handle */}
+                <div className="cursor-grab active:cursor-grabbing p-1.5 -ml-1 hover:bg-zinc-200/50 rounded-xl transition-colors">
+                  <GripVertical size={16} className={active ? 'text-cyan-600' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                </div>
                 
                 {/* Thumbnail / Video Preview */}
-                <div className="w-24 aspect-video bg-black rounded-md overflow-hidden relative group/preview flex-shrink-0 border border-zinc-200 shadow-sm">
+                <div className="w-44 aspect-video bg-black rounded-2xl overflow-hidden relative group/preview flex-shrink-0 border border-zinc-200 shadow-sm ring-1 ring-zinc-950/5">
                   <video
                     src={`${video.url}#t=${segment.start},${segment.end}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
                     muted
                     onMouseEnter={(e) => e.currentTarget.play()}
                     onMouseLeave={(e) => {
@@ -628,57 +642,77 @@ export function EditSidebar() {
                     playsInline
                   />
                   {!active && (
-                    <div className="absolute inset-0 bg-zinc-900/10 group-hover/preview:bg-transparent transition-colors pointer-events-none" />
+                    <div className="absolute inset-0 bg-zinc-900/5 group-hover/preview:bg-transparent transition-colors pointer-events-none" />
                   )}
-                  <div className="absolute bottom-1 right-1 px-1 rounded bg-black/60 text-[8px] font-bold text-white uppercase tracking-wider">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity pointer-events-none">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-lg">
+                      <Play size={20} className="text-white fill-white ml-1" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
                     {formatTime(segment.end - segment.start)}
                   </div>
                 </div>
 
-                {/* Clip Info */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                {/* Clip Info Column */}
+                <div className="flex-1 min-w-0 flex flex-col gap-2 pr-20">
                   <p 
-                    className={`text-sm font-bold truncate transition-colors cursor-pointer ${active ? 'text-cyan-900' : 'text-zinc-800 hover:text-cyan-600'}`}
-                    onClick={() => {
-                      setTrimStart(segment.start)
-                      setTrimEnd(segment.end)
-                    }}
+                    className={`text-lg font-bold truncate transition-colors tracking-tight leading-none ${
+                      active ? 'text-cyan-950' : 'text-zinc-800'
+                    }`}
                   >
                     {segment.label || `Clip ${index + 1}`}
                   </p>
                   
-                  <div className="flex items-center gap-2">
-                    <p className={`text-[10px] font-medium ${active ? 'text-cyan-700' : 'text-zinc-500'}`}>
-                      {formatTime(segment.start)} → {formatTime(segment.end)}
-                    </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className={`px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-2 border transition-colors ${
+                      active ? 'bg-cyan-100/50 border-cyan-200/50 text-cyan-800' : 'bg-zinc-50 border-zinc-100 text-zinc-500'
+                    }`}>
+                      <Play size={10} className="fill-current" />
+                      {formatTime(segment.start)} <span className="opacity-30">—</span> {formatTime(segment.end)}
+                    </div>
                     
                     {segment.isGenerating && (
-                      <Loader2 size={10} className="animate-spin text-cyan-600" />
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-50 border border-cyan-100 text-cyan-600">
+                        <Loader2 size={12} className="animate-spin" />
+                        <span className="text-[10px] font-bold uppercase tracking-wide">Processing</span>
+                      </div>
                     )}
                     {segment.outputUrl && !segment.isGenerating && (
-                      <CheckCircle2 size={10} className="text-green-600" />
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600" title="Ready for high-quality export">
+                        <CheckCircle2 size={12} />
+                        <span className="text-[10px] font-bold uppercase tracking-wide">Ready</span>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1.5 pl-2">
+                {/* Actions Row - Absolutely positioned to avoid overlap */}
+                <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {segment.outputUrl && (
                     <a
                       href={withMediaBase(segment.outputUrl)}
                       download
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-600 hover:bg-cyan-50 transition-all"
+                      className="p-2 rounded-xl bg-white/90 backdrop-blur-sm border border-zinc-100 text-zinc-400 hover:text-cyan-600 hover:border-cyan-200 hover:bg-cyan-50 shadow-sm transition-all duration-200"
                       title="Download Optimized Clip"
+                      onClick={e => e.stopPropagation()}
                     >
-                      <Download size={14} />
+                      <Download size={16} />
                     </a>
                   )}
                   <button
-                    onClick={() => removeSegment(segment.id)}
-                    className={`p-1.5 rounded-lg transition-all ${active ? 'text-cyan-600 hover:bg-cyan-100' : 'text-zinc-400 hover:text-red-500 hover:bg-red-50'}`}
+                    onClick={e => {
+                      e.stopPropagation()
+                      removeSegment(segment.id)
+                    }}
+                    className={`p-2 rounded-xl border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${
+                      active 
+                        ? 'border-cyan-100 text-cyan-600 hover:bg-cyan-100 hover:border-cyan-200' 
+                        : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100'
+                    }`}
                     title="Remove Clip"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>

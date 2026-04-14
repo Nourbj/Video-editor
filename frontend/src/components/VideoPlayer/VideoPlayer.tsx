@@ -21,6 +21,7 @@ export default function VideoPlayer() {
     isApplyingTitle,
     previewLoading,
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, setLogoDraftXY,
+    seekTo, setSeekTo,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -41,6 +42,24 @@ export default function VideoPlayer() {
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
   }, [video])
+
+  useEffect(() => {
+    if (seekTo !== null && videoRef.current) {
+      const next = Math.min(Math.max(seekTo, 0), fullDuration)
+      videoRef.current.currentTime = next
+      if (audioRef.current && audioApplied) {
+        const offset = Math.max(0, next - effectiveStart)
+        audioRef.current.currentTime = audioSegStart + offset
+      }
+      setCurrentTime(next)
+      setSeekTo(null)
+      
+      // Auto-play when selecting a clip to "see it"
+      videoRef.current.play()
+      audioRef.current?.play()
+      setPlaying(true)
+    }
+  }, [seekTo, fullDuration, audioApplied, audioSegStart, effectiveStart, setSeekTo])
 
   useEffect(() => {
     setMediaDuration(0)

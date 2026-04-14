@@ -191,6 +191,9 @@ interface EditorState {
   previewLoading: boolean
   setPreviewLoading: (p: boolean) => void
 
+  seekTo: number | null
+  setSeekTo: (t: number | null) => void
+
   reset: () => void
 }
 
@@ -446,5 +449,9 @@ export const useStore = create<EditorState>((set) => ({
     exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
     previewLoading: false,
+    seekTo: null,
   }),
+
+  seekTo: null,
+  setSeekTo: t => set({ seekTo: t }),
 }))
