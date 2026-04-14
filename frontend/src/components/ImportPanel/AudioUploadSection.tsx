@@ -4,15 +4,45 @@ import { uploadAudio, downloadAudioFromUrl } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SocialIcon } from 'react-social-icons'
 import { PLATFORM_ICONS, detectPlatform } from './uploadConstants.tsx'
+import { withMediaBase } from '../../utils/media'
 
 export default function AudioUploadSection() {
-    const { audioTrack, setAudioTrack, audioVolume, replaceOriginalAudio, setAudioApplied, audioUrlInput, setAudioUrlInput, audioLoading, setAudioLoading, audioError, setAudioError } = useStore()
+    const {
+        audioTrack,
+        setAudioTrack,
+        audioVolume,
+        replaceOriginalAudio,
+        setAudioApplied,
+        audioUrlInput,
+        setAudioUrlInput,
+        audioLoading,
+        setAudioLoading,
+        audioError,
+        setAudioError,
+        setAudioDuration,
+        setAudioTrimStart,
+        setAudioTrimEnd,
+    } = useStore()
 
     const [tab, setTab] = useState<'file' | 'url'>('file')
     const [dragOver, setDragOver] = useState(false)
     const fileRef = useRef<HTMLInputElement>(null)
 
     const platform = detectPlatform(audioUrlInput)
+
+    const hydrateAudioMetadata = (url: string) => {
+        const audio = new Audio()
+        audio.preload = 'metadata'
+        audio.src = withMediaBase(url)
+        audio.onloadedmetadata = () => {
+            const d = audio.duration || 0
+            if (Number.isFinite(d) && d > 0) {
+                setAudioDuration(d)
+                setAudioTrimStart(0)
+                setAudioTrimEnd(d)
+            }
+        }
+    }
 
     const handleAudioUpload = async (file: File) => {
         if (!file.type.startsWith('audio/')) {
@@ -25,6 +55,7 @@ export default function AudioUploadSection() {
             const result = await uploadAudio(file)
             setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
             setAudioApplied(false)
+            hydrateAudioMetadata(result.url)
         } catch (e: unknown) {
             setAudioError(e instanceof Error ? e.message : 'Upload failed')
         } finally {
@@ -40,6 +71,7 @@ export default function AudioUploadSection() {
             const result = await downloadAudioFromUrl(audioUrlInput.trim())
             setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
             setAudioApplied(false)
+            hydrateAudioMetadata(result.url)
             setAudioUrlInput('')
         } catch (e: unknown) {
             setAudioError(e instanceof Error ? e.message : 'Download failed')

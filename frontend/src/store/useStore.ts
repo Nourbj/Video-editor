@@ -180,8 +180,8 @@ interface EditorState {
   setExportFilename: (name: string) => void
 
   // UI
-  activeTab: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'audio' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
+  activeTab: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+  setActiveTab: (t: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null

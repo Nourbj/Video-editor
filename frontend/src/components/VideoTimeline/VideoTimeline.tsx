@@ -515,7 +515,7 @@ export function EditSidebar() {
 
   return (
     <div className="space-y-2">
-      <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
+      <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-yellow-600">Clips - Drag to reorder your clips</p>
@@ -535,7 +535,7 @@ export function EditSidebar() {
             No clips yet. Select a range on the timeline and press Cut.
           </div>
         ) : (
-          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
             {segments.map((segment, index) => (
               (() => {
                 const active = isActiveSegment(segment)
