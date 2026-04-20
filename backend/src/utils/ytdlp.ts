@@ -132,6 +132,25 @@ export interface DownloadResult {
   url: string
 }
 
+function readDownloadedInfo(outputDir: string, id: string): Record<string, unknown> {
+  const infoFile = fs.readdirSync(outputDir).find(f => f === `${id}.info.json` || (f.startsWith(id) && f.endsWith('.info.json')))
+  if (!infoFile) return {}
+
+  const infoPath = path.join(outputDir, infoFile)
+  try {
+    const raw = fs.readFileSync(infoPath, 'utf8')
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  } finally {
+    try {
+      fs.unlinkSync(infoPath)
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
 export async function downloadVideo(url: string): Promise<DownloadResult> {
   const id = uuidv4()
   const outputDir = path.join(process.cwd(), 'uploads')
@@ -142,41 +161,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const sleepFlags = getSleepFlags()
 
   logCookiesStatus(cookiesPath, debug)
-
-  // Get video info first
-  const infoCmdNoCookies = [
-    'yt-dlp',
-    '--dump-json',
-    '--no-playlist',
-    '--js-runtimes', jsRuntime,
-    '--user-agent', `"${USER_AGENT}"`,
-    '--geo-bypass',
-    ...sleepFlags,
-    `"${url}"`
-  ].filter(Boolean).join(' ')
-  const infoCmdWithCookies = [
-    'yt-dlp',
-    '--dump-json',
-    '--no-playlist',
-    '--js-runtimes', jsRuntime,
-    '--user-agent', `"${USER_AGENT}"`,
-    '--geo-bypass',
-    ...sleepFlags,
-    ...cookiesFlags,
-    `"${url}"`
-  ].filter(Boolean).join(' ')
-  let info: Record<string, unknown> = {}
-  try {
-    const { stdout } = await execWithOptionalCookies(
-      infoCmdNoCookies,
-      infoCmdWithCookies,
-      30000,
-      hasCookies
-    )
-    info = JSON.parse(stdout)
-  } catch {
-    // Continue even if info fails
-  }
 
   // Download video in the best available compatible format under 720p
   const format = process.env.YTDLP_FORMAT ||
@@ -189,6 +173,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
     ...sleepFlags,
+    '--write-info-json',
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
@@ -202,6 +187,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--geo-bypass',
     ...sleepFlags,
     ...cookiesFlags,
+    '--write-info-json',
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
@@ -265,8 +251,15 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     throw err
   }
 
+  const info = readDownloadedInfo(outputDir, id)
+
   // Find downloaded file
-  const files = fs.readdirSync(outputDir).filter(f => f.startsWith(id))
+  const files = fs.readdirSync(outputDir).filter(f =>
+    f.startsWith(id) &&
+    !f.endsWith('.info.json') &&
+    !f.endsWith('.part') &&
+    !f.endsWith('.ytdl')
+  )
   if (files.length === 0) throw new Error('Download failed: no file produced')
 
   const filename = files[0]

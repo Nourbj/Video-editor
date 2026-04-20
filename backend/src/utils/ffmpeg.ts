@@ -632,10 +632,21 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 export function generateThumbnail(inputPath: string, atSecond = 1): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `thumb_${uuidv4()}.jpg`)
+    const width = Math.max(160, Number(process.env.THUMBNAIL_WIDTH || 640))
+    const quality = clamp(Number(process.env.THUMBNAIL_QUALITY || 3), 2, 31)
+    const seekSecond = Math.max(0, atSecond)
+
     ffmpeg(inputPath)
-      .screenshots({ timestamps: [atSecond], filename: path.basename(outFile), folder: path.dirname(outFile), size: '640x?' })
+      .inputOptions(['-ss', String(seekSecond)])
+      .outputOptions([
+        '-frames:v 1',
+        '-q:v', String(quality),
+        '-vf', `scale=${width}:-1:flags=lanczos`,
+      ])
+      .output(outFile)
       .on('end', () => resolve(outFile))
       .on('error', reject)
+      .run()
   })
 }
 

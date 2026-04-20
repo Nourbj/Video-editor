@@ -38,19 +38,20 @@ export async function downloadRoute(app: FastifyInstance) {
     try {
       const result = await downloadVideo(url)
 
-      // Get metadata
       let duration = result.duration
-      try {
-        const meta = await getVideoMeta(result.filepath)
-        duration = meta.format.duration || duration
-      } catch { /* use yt-dlp duration */ }
-
-      // Generate thumbnail
       let thumbnailUrl: string | null = null
-      try {
-        const thumbPath = await generateThumbnail(result.filepath, 2)
-        thumbnailUrl = `/outputs/${path.basename(thumbPath)}`
-      } catch { /* thumbnail optional */ }
+      const [metaResult, thumbnailResult] = await Promise.allSettled([
+        duration > 0 ? Promise.resolve(null) : getVideoMeta(result.filepath),
+        generateThumbnail(result.filepath, 2),
+      ])
+
+      if (metaResult.status === 'fulfilled' && metaResult.value) {
+        const meta = metaResult.value
+        duration = meta.format.duration || duration
+      }
+      if (thumbnailResult.status === 'fulfilled') {
+        thumbnailUrl = `/outputs/${path.basename(thumbnailResult.value)}`
+      }
 
       return {
         id: result.id,

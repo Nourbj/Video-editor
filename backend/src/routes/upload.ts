@@ -18,19 +18,20 @@ export async function uploadRoute(app: FastifyInstance) {
 
     await pipeline(data.file, fs.createWriteStream(filepath))
 
-    // Get metadata
     let duration = 0
-    try {
-      const meta = await getVideoMeta(filepath)
-      duration = meta.format.duration || 0
-    } catch { /* ignore */ }
-
-    // Generate thumbnail
     let thumbnailUrl: string | null = null
-    try {
-      const thumbPath = await generateThumbnail(filepath, 1)
-      thumbnailUrl = `/outputs/${path.basename(thumbPath)}`
-    } catch { /* optional */ }
+    const [metaResult, thumbnailResult] = await Promise.allSettled([
+      getVideoMeta(filepath),
+      generateThumbnail(filepath, 1),
+    ])
+
+    if (metaResult.status === 'fulfilled') {
+      const meta = metaResult.value
+      duration = meta.format.duration || 0
+    }
+    if (thumbnailResult.status === 'fulfilled') {
+      thumbnailUrl = `/outputs/${path.basename(thumbnailResult.value)}`
+    }
 
     return {
       id,
