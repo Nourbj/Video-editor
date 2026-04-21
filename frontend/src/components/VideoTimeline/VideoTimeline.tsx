@@ -24,6 +24,12 @@ const RULER_STEPS = [
   3600, 7200, 14400,
 ]
 
+const TRACK_LABEL_WIDTH = 40
+const TRACK_ROW_SIDE_PADDING = 4
+const TRACK_INNER_GAP = 4
+const TRACK_CONTENT_LEFT = TRACK_ROW_SIDE_PADDING + TRACK_LABEL_WIDTH + TRACK_INNER_GAP
+const TRACK_CONTENT_RIGHT = TRACK_ROW_SIDE_PADDING + TRACK_INNER_GAP
+
 function getRulerStep(duration: number, targetTicks: number) {
   const desiredStep = duration / Math.max(1, targetTicks)
   return RULER_STEPS.find(step => step >= desiredStep) ?? RULER_STEPS[RULER_STEPS.length - 1]
@@ -112,11 +118,20 @@ export default function VideoTimeline({
     [majorTicks],
   )
 
-  const getTimeFromClientX = (clientX: number) => {
+  const getTrackMetrics = () => {
     const rect = timelineRef.current?.getBoundingClientRect()
-    if (!rect || timelineDuration <= 0) return 0
-    const x = Math.min(rect.width, Math.max(0, clientX - rect.left))
-    return (x / rect.width) * timelineDuration
+    if (!rect) return null
+    const width = Math.max(1, rect.width - TRACK_CONTENT_LEFT - TRACK_CONTENT_RIGHT)
+    return { rect, width }
+  }
+
+  const getPositionPercent = (time: number) => (timelineDuration > 0 ? (time / timelineDuration) * 100 : 0)
+
+  const getTimeFromClientX = (clientX: number) => {
+    const metrics = getTrackMetrics()
+    if (!metrics || timelineDuration <= 0) return 0
+    const x = Math.min(metrics.width, Math.max(0, clientX - metrics.rect.left - TRACK_CONTENT_LEFT))
+    return (x / metrics.width) * timelineDuration
   }
 
   const applySelection = (start: number, end: number) => {
@@ -145,9 +160,9 @@ export default function VideoTimeline({
         return
       }
       if (dragging === 'range') {
-        const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || timelineDuration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
+        const metrics = getTrackMetrics()
+        if (!metrics || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / metrics.width) * timelineDuration
         const span = dragRef.current.startTrimEnd - dragRef.current.startTrimStart
         const nextStart = Math.min(Math.max(0, dragRef.current.startTrimStart + delta), videoDuration - span)
         const nextEnd = nextStart + span
@@ -156,17 +171,17 @@ export default function VideoTimeline({
         return
       }
       if (dragging === 'audio') {
-        const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || timelineDuration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
+        const metrics = getTrackMetrics()
+        if (!metrics || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / metrics.width) * timelineDuration
         const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
         setAudioOffset(nextOffset)
         return
       }
       if (dragging === 'audio-start') {
-        const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || timelineDuration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
+        const metrics = getTrackMetrics()
+        if (!metrics || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / metrics.width) * timelineDuration
 
         // Adjust offset and trim simultaneously
         const nextOffset = Math.max(0, dragRef.current.startAudioOffset + delta)
@@ -179,9 +194,9 @@ export default function VideoTimeline({
         return
       }
       if (dragging === 'audio-end') {
-        const rect = timelineRef.current?.getBoundingClientRect()
-        if (!rect || timelineDuration <= 0) return
-        const delta = ((e.clientX - dragRef.current.startX) / rect.width) * timelineDuration
+        const metrics = getTrackMetrics()
+        if (!metrics || timelineDuration <= 0) return
+        const delta = ((e.clientX - dragRef.current.startX) / metrics.width) * timelineDuration
 
         const baseEnd = dragRef.current.startAudioTrimEnd === 0 ? audioDuration : dragRef.current.startAudioTrimEnd
         const nextTrimEnd = Math.max(audioTrimStart + 0.1, Math.min(audioDuration, baseEnd + delta))
@@ -265,18 +280,30 @@ export default function VideoTimeline({
           }}
         >
           {/* Header/Ruler */}
-          <div className="absolute inset-x-0 top-0 h-6 pointer-events-none z-20 border-b border-cyan-100/50 bg-cyan-50/30">
+          <div
+            className="absolute top-0 h-6 pointer-events-none z-20 border-b border-cyan-100/50 bg-cyan-50/30"
+            style={{ left: `${TRACK_CONTENT_LEFT}px`, right: `${TRACK_CONTENT_RIGHT}px` }}
+          >
             {minorTicks.map(t => {
               const isMajor = majorTickSet.has(t.toFixed(3))
+              const tickPosition = `${getPositionPercent(t)}%`
+              const isFirstTick = t === 0
+              const isLastTick = Math.abs(t - timelineDuration) < 0.001
               return (
-                <div
-                  key={t}
-                  className="absolute top-0 bottom-0 flex flex-col items-center"
-                  style={{ left: `${timelineDuration ? (t / timelineDuration) * 100 : 0}%`, transform: 'translateX(-50%)' }}
-                >
-                  <div className={`w-px rounded-full bg-cyan-900/25 ${isMajor ? 'h-3' : 'h-1.5'}`} />
+                <div key={t} className="absolute inset-y-0" style={{ left: tickPosition }}>
+                  <div
+                    className={`absolute top-0 w-px -translate-x-1/2 rounded-full bg-cyan-950/30 ${isMajor ? 'h-3.5' : 'h-2'}`}
+                  />
                   {isMajor && (
-                    <div className="mt-0.5 px-1 text-[9px] font-medium text-cyan-900/60 leading-none">
+                    <div
+                      className={`absolute top-[11px] whitespace-nowrap rounded-sm px-1 text-[10px] font-semibold leading-none text-cyan-950/80 ${
+                        isFirstTick
+                          ? 'left-0'
+                          : isLastTick
+                            ? 'right-0'
+                            : 'left-1/2 -translate-x-1/2'
+                      }`}
+                    >
                       {formatTime(t)}
                     </div>
                   )}
@@ -297,8 +324,8 @@ export default function VideoTimeline({
                   key={seg.id}
                   className="absolute top-1 bottom-1 rounded-lg border border-cyan-600/70 bg-[linear-gradient(90deg,rgba(8,145,178,0.26),rgba(14,165,233,0.42))] shadow-[0_2px_8px_rgba(8,145,178,0.1)] cursor-grab"
                   style={{
-                    left: `${timelineDuration ? (seg.start / timelineDuration) * 100 : 0}%`,
-                    width: `${timelineDuration ? ((seg.end - seg.start) / timelineDuration) * 100 : 0}%`,
+                    left: `${getPositionPercent(seg.start)}%`,
+                    width: `${getPositionPercent(seg.end - seg.start)}%`,
                   }}
                   onMouseDown={e => {
                     e.stopPropagation()
@@ -366,8 +393,8 @@ export default function VideoTimeline({
                   key={seg.id}
                   className="absolute top-1 bottom-1 rounded-lg border border-yellow-600/70 bg-[linear-gradient(90deg,rgba(202,138,4,0.26),rgba(234,179,8,0.42))] shadow-[0_2px_8px_rgba(202,138,4,0.1)] cursor-grab flex items-center px-2 overflow-hidden"
                   style={{
-                    left: `${timelineDuration ? (seg.start / timelineDuration) * 100 : 0}%`,
-                    width: `${timelineDuration ? ((seg.end - seg.start) / timelineDuration) * 100 : 0}%`,
+                    left: `${getPositionPercent(seg.start)}%`,
+                    width: `${getPositionPercent(seg.end - seg.start)}%`,
                   }}
                   onMouseDown={e => {
                     e.stopPropagation()
@@ -428,10 +455,15 @@ export default function VideoTimeline({
 
           {/* Playhead */}
           <div
-            className="absolute top-0 bottom-0 w-[2px] bg-cyan-900/60 pointer-events-none z-30"
-            style={{ left: `${timelineDuration ? (currentTime / timelineDuration) * 100 : 0}%` }}
+            className="absolute top-0 bottom-0 pointer-events-none z-30"
+            style={{ left: `${TRACK_CONTENT_LEFT}px`, right: `${TRACK_CONTENT_RIGHT}px` }}
           >
-            <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
+            <div
+              className="absolute top-0 bottom-0 w-[2px] bg-cyan-900/60"
+              style={{ left: `${getPositionPercent(currentTime)}%` }}
+            >
+              <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-white bg-cyan-500 shadow-sm" />
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
