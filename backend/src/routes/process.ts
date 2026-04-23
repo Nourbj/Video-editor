@@ -14,7 +14,6 @@ export async function processRoute(app: FastifyInstance) {
     return candidates.find(candidate => fs.existsSync(candidate)) || null
   }
 
-  // Get video metadata
   app.post('/meta', async (req, reply) => {
     const { filename } = req.body as { filename: string }
     const filepath = resolveMediaPath(filename)
@@ -46,7 +45,6 @@ export async function processRoute(app: FastifyInstance) {
     }
   })
 
-  // Cut video
   app.post('/cut', async (req, reply) => {
     const { filename, startTime, endTime } = req.body as {
       filename: string
@@ -156,7 +154,6 @@ export async function processRoute(app: FastifyInstance) {
     }
   })
 
-  // Merge audio
   app.post('/merge-audio', async (req, reply) => {
     const { videoFilename, audioFilename, volume, replaceOriginal } = req.body as {
       videoFilename: string
@@ -181,7 +178,6 @@ export async function processRoute(app: FastifyInstance) {
     }
   })
 
-  // Full export
   app.post('/export', async (req, reply) => {
     const body = req.body as {
       filename: string
@@ -292,7 +288,6 @@ export async function processRoute(app: FastifyInstance) {
     }
   })
 
-  // Preview (renders to temp)
   app.post('/preview', async (req, reply) => {
     const body = req.body as {
       filename: string

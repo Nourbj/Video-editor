@@ -3,6 +3,7 @@ import { promisify } from 'util'
 import path from 'path'
 import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
+import { cleanupTempArtifacts } from './ffmpeg'
 
 const execFileAsync = promisify(execFile)
 
@@ -20,12 +21,20 @@ export async function generateSrtWithWhisper(params: {
   const uploadsDir = path.join(process.cwd(), 'uploads')
 
   const wavPath = path.join(tempDir, `whisper_${uuidv4()}.wav`)
+  const tempSrtPath = path.join(tempDir, `${path.parse(wavPath).name}.srt`)
 
   const whisperPy = process.env.WHISPER_PY_BIN || 'python3'
   const modelName = model
   const scriptPath = path.join(process.cwd(), 'scripts', 'transcribe_faster.py')
+  const cleanupFileIfExists = (filePath: string) => {
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    } catch {
 
-  // Extract mono 16k WAV (openai-whisper expects WAV input)
+    }
+  }
+
+  cleanupTempArtifacts(0)
   const ffmpegArgs: string[] = ['-y']
 
   if (typeof startTime === 'number' && Number.isFinite(startTime) && startTime >= 0) {
@@ -58,6 +67,7 @@ export async function generateSrtWithWhisper(params: {
   try {
     await execFileAsync('ffmpeg', ffmpegArgs, { timeout: timeoutMs })
   } catch (err: any) {
+    cleanupFileIfExists(wavPath)
     const stderr = err?.stderr ? String(err.stderr).trim() : ''
     const stdout = err?.stdout ? String(err.stdout).trim() : ''
     const details = [stderr, stdout].filter(Boolean).join(' | ')
@@ -67,7 +77,7 @@ export async function generateSrtWithWhisper(params: {
   const args = [
     scriptPath,
     wavPath,
-    path.join(tempDir, `${path.parse(wavPath).name}.srt`),
+    tempSrtPath,
     modelName,
     language || 'auto',
   ]
@@ -82,6 +92,8 @@ export async function generateSrtWithWhisper(params: {
   try {
     await execFileAsync(whisperPy, args, { timeout: timeoutMs })
   } catch (err: any) {
+    cleanupFileIfExists(wavPath)
+    cleanupFileIfExists(tempSrtPath)
     if (err.code === 'ENOENT') {
       throw new Error('python3 not found. Please install Python 3.')
     }
@@ -92,9 +104,8 @@ export async function generateSrtWithWhisper(params: {
     throw new Error(details ? `${base}: ${details}` : base)
   }
 
-  const wavBase = path.parse(wavPath).name
-  const tempSrt = path.join(tempDir, `${wavBase}.srt`)
-  if (!fs.existsSync(tempSrt)) {
+  if (!fs.existsSync(tempSrtPath)) {
+    cleanupFileIfExists(wavPath)
     throw new Error('Auto subtitles failed: no SRT produced')
   }
 
@@ -103,17 +114,19 @@ export async function generateSrtWithWhisper(params: {
   const outPath = path.join(uploadsDir, outFilename)
 
   try {
-    fs.renameSync(tempSrt, outPath)
+    fs.renameSync(tempSrtPath, outPath)
   } catch (err: any) {
-    // Cross-device move fallback (e.g., temp and uploads on different mounts)
     if (err?.code === 'EXDEV') {
-      fs.copyFileSync(tempSrt, outPath)
-      fs.unlinkSync(tempSrt)
+      fs.copyFileSync(tempSrtPath, outPath)
+      fs.unlinkSync(tempSrtPath)
     } else {
+      cleanupFileIfExists(wavPath)
+      cleanupFileIfExists(tempSrtPath)
       throw err
     }
   }
-  if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath)
+  cleanupFileIfExists(wavPath)
+  cleanupTempArtifacts(0)
 
   return { id, filename: outFilename, filepath: outPath }
 }

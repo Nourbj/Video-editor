@@ -29,6 +29,7 @@ export default function VideoPlayer() {
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, setVolume] = useState(1)
   const [mediaDuration, setMediaDuration] = useState(0)
+  const [videoDisplayRect, setVideoDisplayRect] = useState({ left: 0, top: 0, width: 0, height: 0 })
   const fullDuration = mediaDuration || video?.duration || 0
   const effectiveStart = trimStart
   const effectiveEnd = trimEnd || fullDuration
@@ -53,8 +54,6 @@ export default function VideoPlayer() {
       }
       setCurrentTime(next)
       setSeekTo(null)
-      
-      // Auto-play when selecting a clip to "see it"
       videoRef.current.play()
       audioRef.current?.play()
       setPlaying(true)
@@ -89,7 +88,6 @@ export default function VideoPlayer() {
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
-    // Reset progress to start of trim when trim bounds change
     v.currentTime = effectiveStart
     if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
     setCurrentTime(effectiveStart)
@@ -161,22 +159,70 @@ export default function VideoPlayer() {
   const draggingRef = useRef(false)
   const logoDraggingRef = useRef(false)
 
+  const updateVideoDisplayRect = () => {
+    const container = overlayRef.current
+    const videoEl = videoRef.current
+    if (!container || !videoEl) return
+
+    const containerRect = container.getBoundingClientRect()
+    const intrinsicWidth = videoEl.videoWidth || 0
+    const intrinsicHeight = videoEl.videoHeight || 0
+    if (!intrinsicWidth || !intrinsicHeight || !containerRect.width || !containerRect.height) {
+      setVideoDisplayRect({ left: 0, top: 0, width: containerRect.width, height: containerRect.height })
+      return
+    }
+
+    const videoRatio = intrinsicWidth / intrinsicHeight
+    const containerRatio = containerRect.width / containerRect.height
+
+    let width = containerRect.width
+    let height = containerRect.height
+
+    if (videoRatio > containerRatio) {
+      height = width / videoRatio
+    } else {
+      width = height * videoRatio
+    }
+
+    setVideoDisplayRect({
+      left: (containerRect.width - width) / 2,
+      top: (containerRect.height - height) / 2,
+      width,
+      height,
+    })
+  }
+
+  const getRelativePointInVideo = (clientX: number, clientY: number) => {
+    const rect = overlayRef.current?.getBoundingClientRect()
+    if (!rect || !videoDisplayRect.width || !videoDisplayRect.height) return null
+
+    const localX = clientX - rect.left - videoDisplayRect.left
+    const localY = clientY - rect.top - videoDisplayRect.top
+
+    return {
+      x: Math.min(1, Math.max(0, localX / videoDisplayRect.width)),
+      y: Math.min(1, Math.max(0, localY / videoDisplayRect.height)),
+    }
+  }
+
+  useEffect(() => {
+    updateVideoDisplayRect()
+    window.addEventListener('resize', updateVideoDisplayRect)
+    return () => window.removeEventListener('resize', updateVideoDisplayRect)
+  }, [src])
+
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!draggingRef.current) return
-      const rect = overlayRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const x = (e.clientX - rect.left) / rect.width
-      const y = (e.clientY - rect.top) / rect.height
-      setTitleDraftXY(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)))
+      const point = getRelativePointInVideo(e.clientX, e.clientY)
+      if (!point) return
+      setTitleDraftXY(point.x, point.y)
     }
     const handleLogoMove = (e: MouseEvent) => {
       if (!logoDraggingRef.current) return
-      const rect = overlayRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const x = (e.clientX - rect.left) / rect.width
-      const y = (e.clientY - rect.top) / rect.height
-      setLogoDraftXY(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)))
+      const point = getRelativePointInVideo(e.clientX, e.clientY)
+      if (!point) return
+      setLogoDraftXY(point.x, point.y)
     }
     const handleUp = () => {
       draggingRef.current = false
@@ -190,10 +236,14 @@ export default function VideoPlayer() {
       window.removeEventListener('mousemove', handleLogoMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [setTitleDraftXY, setLogoDraftXY])
+  }, [setTitleDraftXY, setLogoDraftXY, videoDisplayRect])
 
   const logoX = logoDraftX ?? 0.9
   const logoY = logoDraftY ?? 0.1
+  const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
+  const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
+    ? videoDisplayRect.width / videoIntrinsicWidth
+    : 1
 
   return (
     <div className="space-y-2">
@@ -217,6 +267,7 @@ export default function VideoPlayer() {
               videoRef.current.currentTime = nextStart
               setCurrentTime(nextStart)
             }
+            updateVideoDisplayRect()
             if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
           }}
         />
@@ -243,17 +294,17 @@ export default function VideoPlayer() {
                 (previewLoading || isApplyingTitle) ? 'cursor-not-allowed' : 'cursor-move'
               } ${((titleDraftText || titleText).trim() ? '' : 'opacity-60 italic')}`}
               style={{
-                left: `${(titleDraftX ?? titleX ?? 0.5) * 100}%`,
-                top: `${(titleDraftY ?? titleY ?? 0.2) * 100}%`,
+                left: `${videoDisplayRect.left + ((titleDraftX ?? titleX ?? 0.5) * videoDisplayRect.width)}px`,
+                top: `${videoDisplayRect.top + ((titleDraftY ?? titleY ?? 0.2) * videoDisplayRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
                 color: titleColor,
                 fontFamily: titleFont,
-                fontSize: `${titleSize}px`,
+                fontSize: `${titleSize * titlePreviewScale}px`,
                 backgroundColor: titleBgColor,
-                border: titleFrameWidth > 0 ? `${titleFrameWidth}px solid ${titleFrameColor}` : 'none',
-                WebkitTextStrokeWidth: titleBorderWidth > 0 ? `${titleBorderWidth}px` : '0px',
+                border: titleFrameWidth > 0 ? `${titleFrameWidth * titlePreviewScale}px solid ${titleFrameColor}` : 'none',
+                WebkitTextStrokeWidth: titleBorderWidth > 0 ? `${titleBorderWidth * titlePreviewScale}px` : '0px',
                 WebkitTextStrokeColor: titleBorderColor,
-                padding: `${titlePadding}px`,
+                padding: `${titlePadding * titlePreviewScale}px`,
                 pointerEvents: 'auto',
               }}
             >
@@ -273,10 +324,10 @@ export default function VideoPlayer() {
               onMouseDown={() => { logoDraggingRef.current = true }}
               className="absolute cursor-move select-none"
               style={{
-                left: `${logoX * 100}%`,
-                top: `${logoY * 100}%`,
+                left: `${videoDisplayRect.left + (logoX * videoDisplayRect.width)}px`,
+                top: `${videoDisplayRect.top + (logoY * videoDisplayRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
-                width: `${logoDraftSize}%`,
+                width: `${(logoDraftSize / 100) * videoDisplayRect.width}px`,
                 height: 'auto',
                 pointerEvents: 'auto',
               }}

@@ -85,13 +85,11 @@ export default function AudioEditor() {
                 const d = audioRef.current?.duration || 0
                 if (d > 0) {
                   setAudioDuration(d)
-                  // Only initialize trims if they aren't already set (e.g. from timeline edits)
                   if (audioTrimEnd <= 0 || audioTrimStart < 0) {
                     setAudioTrimStart(0)
                     setAudioTrimEnd(d)
                     setAudioApplied(false)
                   } else if (audioTrimEnd > d || audioTrimStart > d) {
-                    // Clamp to new duration if needed
                     setAudioTrimStart(Math.max(0, Math.min(audioTrimStart, d)))
                     setAudioTrimEnd(Math.max(0, Math.min(audioTrimEnd, d)))
                     setAudioApplied(false)

@@ -62,7 +62,6 @@ export default function ExportPanel() {
     setDone(null)
 
     try {
-      // Save subtitles if needed
       let subFile = subtitleFilename
       if (hasSubtitles && !subFile) {
         setStep('Saving subtitles...')

@@ -16,7 +16,6 @@ export const createId = () => {
   if (cryptoRef && typeof cryptoRef.getRandomValues === 'function') {
     const bytes = new Uint8Array(16)
     cryptoRef.getRandomValues(bytes)
-    // RFC 4122 version 4
     bytes[6] = (bytes[6] & 0x0f) | 0x40
     bytes[8] = (bytes[8] & 0x3f) | 0x80
     return bytesToUuid(bytes)

@@ -8,7 +8,7 @@ import { generateSrtWithWhisper } from '../utils/whisper'
 
 export interface SubtitleEntry {
   index: number
-  startTime: string  // "00:00:01,000"
+  startTime: string 
   endTime: string
   text: string
 }
@@ -41,7 +41,6 @@ export async function subtitleRoute(app: FastifyInstance) {
     return null
   }
 
-  // Upload .srt file
   app.post('/subtitle/upload', async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ error: 'No file' })
@@ -58,7 +57,6 @@ export async function subtitleRoute(app: FastifyInstance) {
     return { id, filename, entries }
   })
 
-  // Create SRT from JSON entries (from the editor)
   app.post('/subtitle/create', async (req, reply) => {
     const { entries } = req.body as { entries: SubtitleEntry[] }
 
@@ -72,7 +70,6 @@ export async function subtitleRoute(app: FastifyInstance) {
     return { id, filename, url: `/uploads/${filename}` }
   })
 
-  // Burn subtitles into video
   app.post('/subtitle/burn', async (req, reply) => {
     const { videoFilename, subtitleFilename, style } = req.body as {
       videoFilename: string
@@ -99,7 +96,6 @@ export async function subtitleRoute(app: FastifyInstance) {
     }
   })
 
-  // Auto-generate subtitles using local Whisper
   app.post('/subtitle/auto', async (req, reply) => {
     const { videoFilename, language, model, startTime, endTime, fast } = req.body as {
       videoFilename: string

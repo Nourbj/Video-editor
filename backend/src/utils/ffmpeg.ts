@@ -8,8 +8,8 @@ const tempDir = path.join(process.cwd(), 'temp')
 
 export interface CutOptions {
   inputPath: string
-  startTime: number   // seconds
-  endTime: number     // seconds
+  startTime: number   
+  endTime: number     
 }
 
 export interface SegmentDefinition {
@@ -30,13 +30,13 @@ export interface MergeSegmentsOptions {
 export interface AudioOptions {
   inputPath: string
   audioPath: string
-  volume?: number     // 0-2, default 1
+  volume?: number    
   replaceOriginal?: boolean
 }
 
 export interface SubtitleOptions {
   inputPath: string
-  subtitlePath: string // .srt file path
+  subtitlePath: string 
   style?: SubtitleStyle
 }
 
@@ -51,7 +51,7 @@ export interface ExportOptions {
   titleStyle?: TitleStyle
   borderStyle?: BorderStyle
   logoPath?: string
-  logoSize?: number // percent of video width (5-60)
+  logoSize?: number
   logoX?: number
   logoY?: number
   outputDir?: string
@@ -66,8 +66,8 @@ export interface ExportOptions {
 
 export interface SubtitleStyle {
   size?: number
-  color?: string // hex like #ffffff
-  position?: 'bottom' | 'middle' | 'top'
+  color?: string 
+  backgroundColor?: string 
 }
 
 export type TitlePosition =
@@ -79,11 +79,11 @@ export interface TitleStyle {
   text?: string
   font?: string
   size?: number
-  color?: string // hex
-  bgColor?: string // hex
-  borderColor?: string // hex
+  color?: string 
+  bgColor?: string 
+  borderColor?: string 
   borderWidth?: number
-  frameColor?: string // hex
+  frameColor?: string 
   frameWidth?: number
   padding?: number
   position?: TitlePosition
@@ -96,7 +96,7 @@ export interface BorderStyle {
   enabled?: boolean
   sizeX?: number
   sizeY?: number
-  color?: string // hex
+  color?: string 
   mode?: 'inside' | 'outside'
 }
 
@@ -142,7 +142,6 @@ function resolveFontFile(fontName?: string) {
       if (base === target) return path.join(fontsDir, file)
     }
   } catch {
-    // ignore if fonts dir missing
   }
   return null
 }
@@ -186,18 +185,15 @@ function toAssColor(hex?: string) {
 function buildSubtitleStyle(style?: SubtitleStyle) {
   const defaultSize = Number(process.env.SUBTITLE_DEFAULT_SIZE || 22)
   const defaultColor = process.env.SUBTITLE_DEFAULT_COLOR || '#ffffff'
-  const defaultPosition = (process.env.SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
+  const defaultBackgroundColor = process.env.SUBTITLE_DEFAULT_BG || '#000000'
 
   const size = style?.size ?? defaultSize
   const color = toAssColor(style?.color || defaultColor)
-  const position = style?.position ?? defaultPosition
-  const alignment = position === 'top' ? 8 : position === 'middle' ? 5 : 2
-  const marginV = position === 'bottom' ? 24 : 0
-  return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H000000,Outline=2,Alignment=${alignment},MarginV=${marginV}`
+  const backgroundColor = toAssColor(style?.backgroundColor || defaultBackgroundColor)
+  return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=${backgroundColor},BackColour=${backgroundColor},BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginL=20,MarginR=20,MarginV=24`
 }
 
 function escapeDrawtext(text: string) {
-  // Escape characters for FFmpeg drawtext
   return text
     .replace(/\\/g, '\\\\')
     .replace(/:/g, '\\:')
@@ -298,7 +294,6 @@ function buildBorderFilter(style?: BorderStyle) {
   if (mode === 'outside') {
     return `pad=iw+${sizeX * 2}:ih+${sizeY * 2}:${sizeX}:${sizeY}:color=${color}`
   }
-  // Crop edges, then pad back to original size
   const sx = sizeX
   const sy = sizeY
   const safeX = `min(${sx}\\,max(iw/2-2\\,0))`
@@ -330,7 +325,6 @@ function buildLogoOverlayFilters(params: {
   ]
 }
 
-// Get video metadata
 export function getVideoMeta(inputPath: string): Promise<ffmpeg.FfprobeData> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(inputPath, (err, data) => {
@@ -346,7 +340,6 @@ export function getVideoMeta(inputPath: string): Promise<ffmpeg.FfprobeData> {
   })
 }
 
-// Cut video between start and end
 export function cutVideo({ inputPath, startTime, endTime }: CutOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `cut_${uuidv4()}.mp4`)
@@ -402,7 +395,6 @@ export function mergeVideos({ inputPaths }: MergeVideosOptions): Promise<string>
         try {
           fs.unlinkSync(listFile)
         } catch {
-          // ignore cleanup error
         }
         resolve(outFile)
       })
@@ -410,7 +402,6 @@ export function mergeVideos({ inputPaths }: MergeVideosOptions): Promise<string>
         try {
           fs.unlinkSync(listFile)
         } catch {
-          // ignore cleanup error
         }
         reject(err)
       })
@@ -426,7 +417,6 @@ export async function mergeSegments({ inputPath, segments }: MergeSegmentsOption
   return mergeVideos({ inputPaths: outputs })
 }
 
-// Add / replace audio track
 export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal = false }: AudioOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `audio_${uuidv4()}.mp4`)
@@ -444,7 +434,6 @@ export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal =
           '-shortest',
         ])
     } else {
-      // Mix original audio with new audio
       cmd.complexFilter([
         `[0:a]volume=1[a0]`,
         `[1:a]volume=${volume}[a1]`,
@@ -461,11 +450,9 @@ export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal =
   })
 }
 
-// Burn subtitles into video
 export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `sub_${uuidv4()}.mp4`)
-    // Escape path for FFmpeg filter
     const escapedSrt = subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:')
     const forceStyle = buildSubtitleStyle(style)
 
@@ -480,7 +467,6 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
   })
 }
 
-// Full export pipeline: cut + audio + subtitles + quality
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const outDir = options.outputDir || outputDir
@@ -583,7 +569,6 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
         const offsetMs = Math.round(Math.max(0, relativeOffset) * 1000)
         const delayChain = offsetMs > 0 ? `adelay=${offsetMs}|${offsetMs},` : ''
         
-        // If audio starts before video, we need to trim the audio source accordingly
         const extraAudioTrim = relativeOffset < 0 ? Math.abs(relativeOffset) : 0
         const finalAudioStart = (audioStartTime || 0) + extraAudioTrim
         const hasEffectiveAudioTrim = finalAudioStart > 0 || audioEndTime !== undefined
@@ -604,13 +589,11 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         }
       } else {
-        // Keep original audio when present
         cmd.outputOptions(['-map [vout]', '-map 0:a?', '-c:a aac'])
       }
 
       cmd.complexFilter(filters)
     } else {
-      // No new audio or logo — use simple videoFilter
       const filters: string[] = [scaleFilter]
       if (borderFilter) filters.push(borderFilter)
       if (subtitleFilter) filters.push(subtitleFilter.slice(1))
@@ -628,7 +611,6 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
   })
 }
 
-// Generate thumbnail
 export function generateThumbnail(inputPath: string, atSecond = 1): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `thumb_${uuidv4()}.jpg`)
@@ -650,7 +632,6 @@ export function generateThumbnail(inputPath: string, atSecond = 1): Promise<stri
   })
 }
 
-// Generate waveform data for audio visualization
 export function getWaveformData(inputPath: string, samples = 200): Promise<number[]> {
   return new Promise((resolve, reject) => {
     const tempFile = path.join(tempDir, `wave_${uuidv4()}.raw`)
@@ -691,8 +672,6 @@ export function checkFfmpeg(): Promise<boolean> {
 export function checkFfprobe(): Promise<boolean> {
   return new Promise((resolve) => {
     ffmpeg.ffprobe('', (err) => {
-      // ffprobe will error with empty input, but if it's found it returns a specific error
-      // if not found, it returns "spawn ffprobe ENOENT"
       if (err && (err as any).code === 'ENOENT') {
         resolve(false)
       } else {
@@ -714,10 +693,35 @@ export function cleanupTempPreviews(maxAgeMs?: number): void {
         const stat = fs.statSync(fp)
         if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)
       } catch {
-        // ignore per-file errors
       }
     }
   } catch {
-    // ignore cleanup errors
+  }
+}
+
+export function cleanupTempArtifacts(maxAgeMs?: number): void {
+  const ageMs = maxAgeMs ?? Number(process.env.TEMP_ARTIFACT_TTL_MS || 30 * 60 * 1000)
+  const now = Date.now()
+  const removablePatterns = [
+    /^export_.*\.mp4$/,
+    /^whisper_.*\.wav$/,
+    /^whisper_.*\.srt$/,
+    /^wave_.*\.raw$/,
+    /^concat_.*\.txt$/,
+  ]
+
+  try {
+    const files = fs.readdirSync(tempDir)
+    for (const f of files) {
+      if (!removablePatterns.some(pattern => pattern.test(f))) continue
+
+      const fp = path.join(tempDir, f)
+      try {
+        const stat = fs.statSync(fp)
+        if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)
+      } catch {
+      }
+    }
+  } catch {
   }
 }

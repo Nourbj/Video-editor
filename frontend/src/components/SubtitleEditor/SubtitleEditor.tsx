@@ -19,7 +19,17 @@ function srtToSeconds(t: string): number {
 }
 
 export default function SubtitleEditor() {
-  const { video, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle, setSubtitleStyle } = useStore()
+  const {
+    video,
+    trimStart,
+    trimEnd,
+    subtitles,
+    subtitleFilename,
+    setSubtitles,
+    setSubtitleFilename,
+    subtitleStyle,
+    setSubtitleStyle,
+  } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -103,11 +113,15 @@ export default function SubtitleEditor() {
     if (!video) return
     setAutoLoading(true)
     setError(null)
+
+    const hasTrim = trimStart > 0 || trimEnd < video.duration
     try {
       const result = await autoSubtitles({
         videoFilename: video.filename,
         language: autoLang === 'auto' ? undefined : autoLang,
         model: autoModel,
+        startTime: hasTrim ? trimStart : undefined,
+        endTime: hasTrim ? trimEnd : undefined,
         fast: autoFast,
       })
       setSubtitles(result.entries)
@@ -177,16 +191,13 @@ export default function SubtitleEditor() {
             />
           </label>
           <label className="text-[11px] text-zinc-500">
-            Position
-            <select
-              value={subtitleStyle.position}
-              onChange={e => setSubtitleStyle({ ...subtitleStyle, position: e.target.value as 'bottom' | 'middle' | 'top' })}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
-            >
-              <option value="bottom">Bottom</option>
-              <option value="middle">Middle</option>
-              <option value="top">Top</option>
-            </select>
+            Background
+            <input
+              type="color"
+              value={subtitleStyle.backgroundColor}
+              onChange={e => setSubtitleStyle({ ...subtitleStyle, backgroundColor: e.target.value })}
+              className="mt-1 w-full h-7 bg-white border border-zinc-200 rounded-lg p-0.5"
+            />
           </label>
         </div>
       </div>

@@ -43,7 +43,6 @@ export async function uploadRoute(app: FastifyInstance) {
     }
   })
 
-  // Upload audio file
   app.post('/upload-audio', async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ error: 'No file uploaded' })
@@ -62,7 +61,6 @@ export async function uploadRoute(app: FastifyInstance) {
     }
   })
 
-  // Upload image file (logo/watermark)
   app.post('/upload-image', async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ error: 'No file uploaded' })
@@ -85,7 +83,6 @@ export async function uploadRoute(app: FastifyInstance) {
     }
   })
 
-  // Upload yt-dlp cookies file (public)
   app.post('/cookies/upload', async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ error: 'No file uploaded' })
@@ -105,17 +102,15 @@ export async function uploadRoute(app: FastifyInstance) {
         if (stat.isDirectory()) {
           targetPath = path.join(targetPath, 'ytdlp_cookies.txt')
         }
-      } catch { /* ignore */ }
+      } catch {  }
     }
     if (targetPath && !path.extname(targetPath)) {
-      // If env points to a directory path string
       targetPath = path.join(targetPath, 'ytdlp_cookies.txt')
     }
 
     const targetDir = path.dirname(targetPath)
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
 
-    // If targetPath is mistakenly a directory, remove it so we can write the file
     if (fs.existsSync(targetPath)) {
       try {
         const stat = fs.statSync(targetPath)

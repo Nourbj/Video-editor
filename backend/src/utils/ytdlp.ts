@@ -28,7 +28,6 @@ function logCookiesStatus(cookiesPath: string, debug: boolean): void {
 function resolveCookiesPath(): string {
   let cookiesPath = process.env.YTDLP_COOKIES || ''
   if (!cookiesPath) {
-    // Use default path if present (matches /cookies/upload target)
     if (fs.existsSync(DEFAULT_COOKIES_PATH)) {
       cookiesPath = DEFAULT_COOKIES_PATH
     }
@@ -146,7 +145,7 @@ function readDownloadedInfo(outputDir: string, id: string): Record<string, unkno
     try {
       fs.unlinkSync(infoPath)
     } catch {
-      // ignore cleanup errors
+
     }
   }
 }
@@ -161,8 +160,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   const sleepFlags = getSleepFlags()
 
   logCookiesStatus(cookiesPath, debug)
-
-  // Download video in the best available compatible format under 720p
   const format = process.env.YTDLP_FORMAT ||
     'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best'
 
@@ -252,8 +249,6 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
   }
 
   const info = readDownloadedInfo(outputDir, id)
-
-  // Find downloaded file
   const files = fs.readdirSync(outputDir).filter(f =>
     f.startsWith(id) &&
     !f.endsWith('.info.json') &&

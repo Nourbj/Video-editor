@@ -36,7 +36,7 @@ export default function App() {
     trimStart, trimEnd,
     segments,
     audioTrack, audioDuration, audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
-    subtitleFilename, setSubtitleFilename,
+    subtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY,
@@ -108,7 +108,6 @@ export default function App() {
     }
   }
 
-  // Auto-preview with debounce on trim/audio/subtitle changes
   useEffect(() => {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
@@ -134,7 +133,6 @@ export default function App() {
       audio: hasAppliedAudio ? { id: audioTrack!.id, vol: appliedAudioVolume, replace: appliedReplaceOriginal, t0: appliedAudioTrimStart, t1: appliedAudioTrimEnd } : null,
       subtitles,
       subtitleFilename,
-      subtitleStyle,
       exportQuality,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding } : null,
@@ -164,7 +162,6 @@ export default function App() {
     audioTrack,
     subtitles,
     subtitleFilename,
-    subtitleStyle,
     exportQuality,
     logoImage,
     logoSize,
@@ -308,13 +305,15 @@ export default function App() {
                 </div>
 
                 {/* Subtitle preview overlay info */}
-                {subtitles.length > 0 && (
+                {activeTab === 'subtitles' && subtitles.length > 0 && (
                   <div className="bg-white rounded-2xl border border-zinc-200 p-3">
                     <h3 className="text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">Subtitle preview</h3>
                     <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
                       {subtitles.slice(0, 10).map((s, i) => (
                         <div key={i} className="flex items-start gap-3 text-xs border-b border-zinc-100 pb-1 last:border-0 last:pb-0">
-                          <span className="font-mono text-zinc-400 flex-shrink-0">{s.startTime.slice(0, 8)}</span>
+                          <span className="font-mono text-zinc-400 flex-shrink-0">
+                            {s.startTime.slice(0, 8)} - {s.endTime.slice(0, 8)}
+                          </span>
                           <span className="text-zinc-600 leading-tight">{s.text}</span>
                         </div>
                       ))}
@@ -356,7 +355,6 @@ export default function App() {
   )
 }
 
-// Inline edit panel (trim info + quick action)
 function EditPanel() {
   const {
     video,

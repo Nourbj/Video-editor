@@ -56,7 +56,6 @@ async function checkDependencies() {
   }
 }
 
-// Ensure directories exist
 const dirs = ['uploads', 'outputs', 'temp']
 dirs.forEach(d => {
   const p = path.join(process.cwd(), d)
@@ -97,10 +96,8 @@ app.register(staticFiles, {
   decorateReply: false,
 })
 
-// Health check
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 
-// Routes
 app.register(downloadRoute, { prefix: '/api' })
 app.register(processRoute, { prefix: '/api' })
 app.register(subtitleRoute, { prefix: '/api' })

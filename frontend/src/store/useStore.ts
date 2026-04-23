@@ -22,7 +22,7 @@ export interface AudioTrack {
 export interface SubtitleStyle {
   size: number
   color: string
-  position: 'bottom' | 'middle' | 'top'
+  backgroundColor: string
 }
 
 export interface LogoAsset {
@@ -47,11 +47,9 @@ export type TitlePosition =
   | 'bottom-left' | 'bottom' | 'bottom-right'
 
 interface EditorState {
-  // Video
   video: VideoProject | null
   setVideo: (v: VideoProject | null) => void
 
-  // Trim
   trimStart: number
   trimEnd: number
   setTrimStart: (t: number) => void
@@ -65,7 +63,6 @@ interface EditorState {
   setSegmentOutput: (id: string, output: { filename: string; url: string }) => void
   setSegmentGenerating: (id: string, generating: boolean) => void
 
-  // Audio
   audioTrack: AudioTrack | null
   setAudioTrack: (a: AudioTrack | null) => void
   audioVolume: number
@@ -101,7 +98,6 @@ interface EditorState {
   videoError: string | null
   setVideoError: (error: string | null) => void
 
-  // Subtitles
   subtitles: SubtitleEntry[]
   setSubtitles: (s: SubtitleEntry[]) => void
   subtitleFilename: string | null
@@ -109,7 +105,6 @@ interface EditorState {
   subtitleStyle: SubtitleStyle
   setSubtitleStyle: (s: SubtitleStyle) => void
 
-  // Logo
   logoImage: LogoAsset | null
   setLogoImage: (l: LogoAsset | null) => void
   logoDraftImage: LogoAsset | null
@@ -127,7 +122,6 @@ interface EditorState {
   isApplyingLogo: boolean
   setIsApplyingLogo: (v: boolean) => void
 
-  // Title text
   titleText: string
   setTitleText: (t: string) => void
   titleDraftText: string
@@ -159,7 +153,6 @@ interface EditorState {
   isApplyingTitle: boolean
   setIsApplyingTitle: (v: boolean) => void
 
-  // Border
   borderEnabled: boolean
   setBorderEnabled: (e: boolean) => void
   borderWidth: number
@@ -171,7 +164,6 @@ interface EditorState {
   borderMode: 'inside' | 'outside'
   setBorderMode: (m: 'inside' | 'outside') => void
 
-  // Export
   exportQuality: '480p' | '720p' | '1080p'
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
   exportAspectRatio: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
@@ -179,7 +171,6 @@ interface EditorState {
   exportFilename: string
   setExportFilename: (name: string) => void
 
-  // UI
   activeTab: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
   setActiveTab: (t: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
@@ -199,7 +190,7 @@ interface EditorState {
 
 const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
 const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ffffff'
-const defaultSubtitlePosition = (import.meta.env.VITE_SUBTITLE_DEFAULT_POSITION as SubtitleStyle['position']) || 'bottom'
+const defaultSubtitleBackgroundColor = import.meta.env.VITE_SUBTITLE_DEFAULT_BG || '#000000'
 const defaultLogoSize = Number(import.meta.env.VITE_LOGO_DEFAULT_SIZE || 15)
 const defaultTitleFont = import.meta.env.VITE_TITLE_DEFAULT_FONT || 'Arial'
 const defaultTitleSize = Number(import.meta.env.VITE_TITLE_DEFAULT_SIZE || 42)
@@ -327,7 +318,11 @@ export const useStore = create<EditorState>((set) => ({
   setSubtitles: s => set({ subtitles: s }),
   subtitleFilename: null,
   setSubtitleFilename: f => set({ subtitleFilename: f }),
-  subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
+  subtitleStyle: {
+    size: defaultSubtitleSize,
+    color: defaultSubtitleColor,
+    backgroundColor: defaultSubtitleBackgroundColor,
+  },
   setSubtitleStyle: s => set({ subtitleStyle: s }),
 
   logoImage: null,
@@ -413,7 +408,11 @@ export const useStore = create<EditorState>((set) => ({
     audioTrack: null, audioVolume: 1, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0,
     audioApplied: false, appliedAudioVolume: 1, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0, appliedAudioOffset: 0,
     subtitles: [], subtitleFilename: null,
-    subtitleStyle: { size: defaultSubtitleSize, color: defaultSubtitleColor, position: defaultSubtitlePosition },
+    subtitleStyle: {
+      size: defaultSubtitleSize,
+      color: defaultSubtitleColor,
+      backgroundColor: defaultSubtitleBackgroundColor,
+    },
     logoImage: null,
     logoDraftImage: null,
     logoSize: defaultLogoSize,

@@ -4,7 +4,6 @@ import { getVideoMeta, generateThumbnail } from '../utils/ffmpeg'
 import path from 'path'
 
 export async function downloadRoute(app: FastifyInstance) {
-  // Check video info before download
   app.post('/info', async (req, reply) => {
     const { url } = req.body as { url: string }
     if (!url) return reply.code(400).send({ error: 'URL required' })
@@ -23,12 +22,10 @@ export async function downloadRoute(app: FastifyInstance) {
     }
   })
 
-  // Download video from URL
   app.post('/download', async (req, reply) => {
     const { url } = req.body as { url: string }
     if (!url) return reply.code(400).send({ error: 'URL required' })
 
-    // Validate URL is from supported platform
     const supportedDomains = ['youtube.com', 'youtu.be', 'instagram.com', 'facebook.com', 'fb.com', 'tiktok.com']
     const isSupported = supportedDomains.some(d => url.includes(d))
     if (!isSupported) {
@@ -70,7 +67,6 @@ export async function downloadRoute(app: FastifyInstance) {
     }
   })
 
-  // Download audio only from URL
   app.post('/download-audio', async (req, reply) => {
     const { url } = req.body as { url: string }
     if (!url) return reply.code(400).send({ error: 'URL required' })

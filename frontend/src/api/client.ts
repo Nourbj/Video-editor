@@ -23,7 +23,7 @@ export interface SubtitleEntry {
 export interface SubtitleStyle {
   size: number
   color: string
-  position: 'bottom' | 'middle' | 'top'
+  backgroundColor: string
 }
 
 export interface TitleStyle {
@@ -57,7 +57,6 @@ export interface SegmentDefinition {
   label?: string
 }
 
-// Download video from URL
 export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   const { data } = await api.post('/download', { url })
   return {
@@ -67,13 +66,11 @@ export const downloadFromUrl = async (url: string): Promise<VideoInfo> => {
   }
 }
 
-// Get video info without downloading
 export const getVideoInfo = async (url: string) => {
   const { data } = await api.post('/info', { url })
   return data
 }
 
-// Upload video file
 export const uploadVideo = async (file: File, onProgress?: (pct: number) => void): Promise<VideoInfo> => {
   const form = new FormData()
   form.append('file', file)
@@ -88,7 +85,6 @@ export const uploadVideo = async (file: File, onProgress?: (pct: number) => void
   }
 }
 
-// Upload audio file
 export const uploadAudio = async (file: File): Promise<{ id: string; filename: string; url: string }> => {
   const form = new FormData()
   form.append('file', file)
@@ -98,7 +94,6 @@ export const uploadAudio = async (file: File): Promise<{ id: string; filename: s
   return { ...data, url: withMediaBase(data.url) }
 }
 
-// Upload image file (logo/watermark)
 export const uploadImage = async (file: File): Promise<{ id: string; filename: string; url: string }> => {
   const form = new FormData()
   form.append('file', file)
@@ -108,13 +103,11 @@ export const uploadImage = async (file: File): Promise<{ id: string; filename: s
   return data
 }
 
-// Download audio from URL (YouTube, etc.)
 export const downloadAudioFromUrl = async (url: string): Promise<{ id: string; filename: string; url: string }> => {
   const { data } = await api.post('/download-audio', { url })
   return { ...data, url: withMediaBase(data.url) }
 }
 
-// Cut video
 export const cutVideo = async (filename: string, startTime: number, endTime: number) => {
   const { data } = await api.post('/cut', { filename, startTime, endTime })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
@@ -143,7 +136,6 @@ export const mergeSegments = async (filename: string, segments: SegmentDefinitio
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
-// Merge audio
 export const mergeAudio = async (
   videoFilename: string,
   audioFilename: string,
@@ -154,13 +146,11 @@ export const mergeAudio = async (
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
-// Create subtitle file from entries
 export const createSubtitles = async (entries: SubtitleEntry[]) => {
   const { data } = await api.post('/subtitle/create', { entries })
   return { ...data, url: withMediaBase(data.url) } as { id: string; filename: string; url: string }
 }
 
-// Upload SRT file
 export const uploadSubtitle = async (file: File) => {
   const form = new FormData()
   form.append('file', file)
@@ -170,24 +160,23 @@ export const uploadSubtitle = async (file: File) => {
   return data as { id: string; filename: string; entries: SubtitleEntry[] }
 }
 
-// Auto-generate subtitles from video using local whisper
 export const autoSubtitles = async (params: {
   videoFilename: string
   language?: string
   model?: 'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'
+  startTime?: number
+  endTime?: number
   fast?: boolean
 }) => {
   const { data } = await api.post('/subtitle/auto', params)
   return data as { id: string; filename: string; entries: SubtitleEntry[] }
 }
 
-// Burn subtitles
 export const burnSubtitles = async (videoFilename: string, subtitleFilename: string, style?: SubtitleStyle) => {
   const { data } = await api.post('/subtitle/burn', { videoFilename, subtitleFilename, style })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
-// Full export
 export const exportVideo = async (params: {
   filename: string
   quality: '480p' | '720p' | '1080p'
@@ -214,7 +203,6 @@ export const exportVideo = async (params: {
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
-// Preview (renders to temp)
 export const previewVideo = async (params: {
   filename: string
   quality: '480p' | '720p' | '1080p'
