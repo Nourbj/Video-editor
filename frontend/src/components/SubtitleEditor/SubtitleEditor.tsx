@@ -156,6 +156,17 @@ export default function SubtitleEditor() {
     }
   }, [subtitleFilename, subtitles.length])
 
+  useEffect(() => {
+    if (!subtitleFilename || subtitles.length === 0) return
+    setSaved(false)
+  }, [
+    subtitleStyle.size,
+    subtitleStyle.color,
+    subtitleStyle.backgroundColor,
+    subtitleFilename,
+    subtitles.length,
+  ])
+
   return (
     <div className="space-y-3">
       <div>
