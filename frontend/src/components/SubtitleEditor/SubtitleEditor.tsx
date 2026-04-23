@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Plus, Trash2, Upload, FileText } from 'lucide-react'
 import { autoSubtitles, createSubtitles, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
@@ -18,6 +18,13 @@ function srtToSeconds(t: string): number {
   return h * 3600 + m * 60 + s + (parseFloat('0.' + ms) || 0)
 }
 
+function getSubtitleSignature(entries: SubtitleEntry[], style: { size: number; color: string; backgroundColor: string }) {
+  return JSON.stringify({
+    entries,
+    style,
+  })
+}
+
 export default function SubtitleEditor() {
   const {
     video,
@@ -29,10 +36,11 @@ export default function SubtitleEditor() {
     setSubtitleFilename,
     subtitleStyle,
     setSubtitleStyle,
+    subtitleAppliedSignature,
+    setSubtitleAppliedSignature,
   } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
   const [autoLoading, setAutoLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [autoLang, setAutoLang] = useState('auto')
@@ -43,6 +51,7 @@ export default function SubtitleEditor() {
   const [pendingSubtitleFilename, setPendingSubtitleFilename] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
+  const currentSignature = getSubtitleSignature(subtitles, subtitleStyle)
 
   const addEntry = () => {
     const last = subtitles[subtitles.length - 1]
@@ -55,7 +64,6 @@ export default function SubtitleEditor() {
       text: 'New subtitle',
     }
     setSubtitles([...subtitles, newEntry])
-    setSaved(false)
     setPendingSubtitleFilename(null)
     setSubtitleFilename(null)
   }
@@ -64,7 +72,6 @@ export default function SubtitleEditor() {
     const updated = [...subtitles]
     updated[i] = { ...updated[i], [field]: value }
     setSubtitles(updated)
-    setSaved(false)
     setPendingSubtitleFilename(null)
     setSubtitleFilename(null)
   }
@@ -73,7 +80,6 @@ export default function SubtitleEditor() {
     const updated = subtitles.filter((_, idx) => idx !== i)
       .map((e, idx) => ({ ...e, index: idx + 1 }))
     setSubtitles(updated)
-    setSaved(false)
     setPendingSubtitleFilename(null)
     setSubtitleFilename(null)
   }
@@ -85,7 +91,7 @@ export default function SubtitleEditor() {
     try {
       const result = await createSubtitles(subtitles)
       setSubtitleFilename(result.filename)
-      setSaved(true)
+      setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Save failed')
@@ -100,7 +106,6 @@ export default function SubtitleEditor() {
       const result = await uploadSubtitle(file)
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
-      setSaved(false)
       setSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Upload failed')
@@ -126,7 +131,6 @@ export default function SubtitleEditor() {
       })
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
-      setSaved(false)
       setSubtitleFilename(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Auto subtitles failed')
@@ -139,7 +143,7 @@ export default function SubtitleEditor() {
     if (subtitles.length === 0) return
     if (pendingSubtitleFilename) {
       setSubtitleFilename(pendingSubtitleFilename)
-      setSaved(true)
+      setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
       return
     }
@@ -147,25 +151,9 @@ export default function SubtitleEditor() {
   }
 
   const isApplying = saving || autoLoading || uploadLoading
+  const hasUnappliedChanges = subtitleAppliedSignature !== currentSignature
   const canApply =
-    subtitles.length > 0 && (!saved || !subtitleFilename)
-
-  useEffect(() => {
-    if (!subtitleFilename || subtitles.length === 0) {
-      setSaved(false)
-    }
-  }, [subtitleFilename, subtitles.length])
-
-  useEffect(() => {
-    if (!subtitleFilename || subtitles.length === 0) return
-    setSaved(false)
-  }, [
-    subtitleStyle.size,
-    subtitleStyle.color,
-    subtitleStyle.backgroundColor,
-    subtitleFilename,
-    subtitles.length,
-  ])
+    subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
 
   return (
     <div className="space-y-3">
@@ -251,7 +239,7 @@ export default function SubtitleEditor() {
           >
             <Plus size={15} /> Add entry
           </button>
-          {subtitles.length > 0 && !saved && (
+          {subtitles.length > 0 && canApply && (
             <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 self-center">
               Ready
             </span>
@@ -268,7 +256,6 @@ export default function SubtitleEditor() {
               const file = e.dataTransfer.files?.[0]
               if (file) {
                 setPendingSrt(file)
-                setSaved(false)
                 setSubtitleFilename(null)
                 setPendingSubtitleFilename(null)
               }
@@ -301,7 +288,6 @@ export default function SubtitleEditor() {
                 const file = e.target.files?.[0] || null
                 setPendingSrt(file)
                 if (file) {
-                  setSaved(false)
                   setSubtitleFilename(null)
                   setPendingSubtitleFilename(null)
                 }
@@ -381,7 +367,7 @@ export default function SubtitleEditor() {
         <FileText size={16} />
       {isApplying ? 'Applying...' : 'Apply subtitles'}
       </button>
-      {pendingSubtitleFilename && !saved && (
+      {pendingSubtitleFilename && canApply && (
         <div className="text-xs text-zinc-500 text-center">
           List loaded. Click "Apply subtitles" to preview.
         </div>

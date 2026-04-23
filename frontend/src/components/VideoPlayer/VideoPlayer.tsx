@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
+import { getContainRect, getRenderedVideoDimensions } from '../../utils/videoLayout'
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
 function formatTime(s: number) {
@@ -21,6 +22,8 @@ export default function VideoPlayer() {
     isApplyingTitle,
     previewLoading,
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, setLogoDraftXY,
+    borderEnabled, borderWidth, borderHeight, borderMode,
+    exportQuality, exportAspectRatio,
     seekTo, setSeekTo,
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -192,16 +195,20 @@ export default function VideoPlayer() {
     })
   }
 
-  const getRelativePointInVideo = (clientX: number, clientY: number) => {
+  const getRelativePointInRect = (
+    clientX: number,
+    clientY: number,
+    targetRect: { left: number; top: number; width: number; height: number },
+  ) => {
     const rect = overlayRef.current?.getBoundingClientRect()
-    if (!rect || !videoDisplayRect.width || !videoDisplayRect.height) return null
+    if (!rect || !targetRect.width || !targetRect.height) return null
 
-    const localX = clientX - rect.left - videoDisplayRect.left
-    const localY = clientY - rect.top - videoDisplayRect.top
+    const localX = clientX - rect.left - targetRect.left
+    const localY = clientY - rect.top - targetRect.top
 
     return {
-      x: Math.min(1, Math.max(0, localX / videoDisplayRect.width)),
-      y: Math.min(1, Math.max(0, localY / videoDisplayRect.height)),
+      x: Math.min(1, Math.max(0, localX / targetRect.width)),
+      y: Math.min(1, Math.max(0, localY / targetRect.height)),
     }
   }
 
@@ -211,16 +218,40 @@ export default function VideoPlayer() {
     return () => window.removeEventListener('resize', updateVideoDisplayRect)
   }, [src])
 
+  const logoX = logoDraftX ?? 0.9
+  const logoY = logoDraftY ?? 0.1
+  const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
+  const videoIntrinsicHeight = videoRef.current?.videoHeight || 0
+  const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
+    ? videoDisplayRect.width / videoIntrinsicWidth
+    : 1
+  const renderedVideoDimensions = getRenderedVideoDimensions({
+    sourceWidth: videoIntrinsicWidth,
+    sourceHeight: videoIntrinsicHeight,
+    quality: exportQuality,
+    aspectRatio: exportAspectRatio,
+    borderEnabled,
+    borderWidth,
+    borderHeight,
+    borderMode,
+  })
+  const logoDraftRect = getContainRect({
+    containerWidth: overlayRef.current?.clientWidth || 0,
+    containerHeight: overlayRef.current?.clientHeight || 0,
+    contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
+    contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
+  })
+
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!draggingRef.current) return
-      const point = getRelativePointInVideo(e.clientX, e.clientY)
+      const point = getRelativePointInRect(e.clientX, e.clientY, videoDisplayRect)
       if (!point) return
       setTitleDraftXY(point.x, point.y)
     }
     const handleLogoMove = (e: MouseEvent) => {
       if (!logoDraggingRef.current) return
-      const point = getRelativePointInVideo(e.clientX, e.clientY)
+      const point = getRelativePointInRect(e.clientX, e.clientY, logoDraftRect)
       if (!point) return
       setLogoDraftXY(point.x, point.y)
     }
@@ -236,14 +267,7 @@ export default function VideoPlayer() {
       window.removeEventListener('mousemove', handleLogoMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [setTitleDraftXY, setLogoDraftXY, videoDisplayRect])
-
-  const logoX = logoDraftX ?? 0.9
-  const logoY = logoDraftY ?? 0.1
-  const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
-  const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
-    ? videoDisplayRect.width / videoIntrinsicWidth
-    : 1
+  }, [setTitleDraftXY, setLogoDraftXY, videoDisplayRect, logoDraftRect])
 
   return (
     <div className="space-y-2">
@@ -324,10 +348,10 @@ export default function VideoPlayer() {
               onMouseDown={() => { logoDraggingRef.current = true }}
               className="absolute cursor-move select-none"
               style={{
-                left: `${videoDisplayRect.left + (logoX * videoDisplayRect.width)}px`,
-                top: `${videoDisplayRect.top + (logoY * videoDisplayRect.height)}px`,
+                left: `${logoDraftRect.left + (logoX * logoDraftRect.width)}px`,
+                top: `${logoDraftRect.top + (logoY * logoDraftRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
-                width: `${(logoDraftSize / 100) * videoDisplayRect.width}px`,
+                width: `${(logoDraftSize / 100) * logoDraftRect.width}px`,
                 height: 'auto',
                 pointerEvents: 'auto',
               }}

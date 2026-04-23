@@ -104,6 +104,8 @@ interface EditorState {
   setSubtitleFilename: (f: string | null) => void
   subtitleStyle: SubtitleStyle
   setSubtitleStyle: (s: SubtitleStyle) => void
+  subtitleAppliedSignature: string | null
+  setSubtitleAppliedSignature: (s: string | null) => void
 
   logoImage: LogoAsset | null
   setLogoImage: (l: LogoAsset | null) => void
@@ -324,6 +326,8 @@ export const useStore = create<EditorState>((set) => ({
     backgroundColor: defaultSubtitleBackgroundColor,
   },
   setSubtitleStyle: s => set({ subtitleStyle: s }),
+  subtitleAppliedSignature: null,
+  setSubtitleAppliedSignature: s => set({ subtitleAppliedSignature: s }),
 
   logoImage: null,
   setLogoImage: l => set({ logoImage: l }),
@@ -413,6 +417,7 @@ export const useStore = create<EditorState>((set) => ({
       color: defaultSubtitleColor,
       backgroundColor: defaultSubtitleBackgroundColor,
     },
+    subtitleAppliedSignature: null,
     logoImage: null,
     logoDraftImage: null,
     logoSize: defaultLogoSize,
