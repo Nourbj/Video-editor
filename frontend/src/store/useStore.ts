@@ -203,7 +203,6 @@ const defaultTitleBorderWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_BORDER
 const defaultTitleFrameColor = import.meta.env.VITE_TITLE_DEFAULT_FRAME_COLOR || '#000000'
 const defaultTitleFrameWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_FRAME_WIDTH || 0)
 const defaultTitlePadding = Number(import.meta.env.VITE_TITLE_DEFAULT_PADDING || 8)
-const defaultTitlePosition = (import.meta.env.VITE_TITLE_DEFAULT_POSITION as TitlePosition) || 'top'
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
 

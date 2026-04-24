@@ -14,8 +14,11 @@ export function getMediaBase() {
   return ''
 }
 
+export function withMediaBase(url: string): string
+export function withMediaBase(url: null): null
+export function withMediaBase(url: undefined): undefined
 export function withMediaBase(url: string | null | undefined) {
-  if (!url) return url as any
+  if (url == null || url === '') return url
   if (url.startsWith('http')) return url
   const base = getMediaBase()
   return base ? `${base}${url}` : url

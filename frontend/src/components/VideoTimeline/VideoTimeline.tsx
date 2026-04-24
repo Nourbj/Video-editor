@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Scissors, GripVertical, Trash2, GitMerge, Film, Music, Loader2, CheckCircle2, Play, Download } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { createId } from '../../utils/id'
@@ -118,21 +118,21 @@ export default function VideoTimeline({
     [majorTicks],
   )
 
-  const getTrackMetrics = () => {
+  const getTrackMetrics = useCallback(() => {
     const rect = timelineRef.current?.getBoundingClientRect()
     if (!rect) return null
     const width = Math.max(1, rect.width - TRACK_CONTENT_LEFT - TRACK_CONTENT_RIGHT)
     return { rect, width }
-  }
+  }, [])
 
   const getPositionPercent = (time: number) => (timelineDuration > 0 ? (time / timelineDuration) * 100 : 0)
 
-  const getTimeFromClientX = (clientX: number) => {
+  const getTimeFromClientX = useCallback((clientX: number) => {
     const metrics = getTrackMetrics()
     if (!metrics || timelineDuration <= 0) return 0
     const x = Math.min(metrics.width, Math.max(0, clientX - metrics.rect.left - TRACK_CONTENT_LEFT))
     return (x / metrics.width) * timelineDuration
-  }
+  }, [getTrackMetrics, timelineDuration])
 
   const applySelection = (start: number, end: number) => {
     const nextStart = Math.max(0, Math.min(start, Math.max(0, videoDuration - minGap)))
@@ -212,7 +212,7 @@ export default function VideoTimeline({
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [dragging, timelineDuration, videoDuration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart, setAudioOffset, audioDuration, audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd])
+  }, [dragging, getTimeFromClientX, getTrackMetrics, timelineDuration, videoDuration, minGap, setTrimEnd, setTrimStart, trimEnd, trimStart, setAudioOffset, audioDuration, audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd])
 
   if (!video) return null
 
@@ -253,20 +253,17 @@ export default function VideoTimeline({
     }
   }
 
-  const trackVideoSegments = useMemo(() => {
-    return [{ id: 'current', start: trimStart, end: trimEnd, active: true }]
-  }, [trimStart, trimEnd])
+  const trackVideoSegments = [{ id: 'current', start: trimStart, end: trimEnd, active: true }]
 
-  const trackAudioSegments = useMemo(() => {
-    if (!audioTrack || !audioClip) return []
-    return [{
+  const trackAudioSegments = !audioTrack || !audioClip
+    ? []
+    : [{
       id: 'audio-main',
       start: audioClip.start,
       end: audioClip.end,
       active: true,
       label: audioTrack.filename
     }]
-  }, [audioTrack, audioClip])
 
   return (
     <div className="space-y-3">
@@ -492,7 +489,6 @@ export function EditSidebar() {
     clearSegments,
     reorderSegments,
     removeSegment,
-    setSegmentOutput,
     trimStart,
     trimEnd,
     setTrimStart,

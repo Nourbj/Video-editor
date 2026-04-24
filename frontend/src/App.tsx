@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
@@ -52,7 +52,7 @@ export default function App() {
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
 
-  const handlePreview = async () => {
+  const handlePreview = useCallback(async () => {
     if (!video) return
     setPreviewLoading(true)
     setPreviewError(null)
@@ -106,12 +106,47 @@ export default function App() {
     } finally {
       setPreviewLoading(false)
     }
-  }
+  }, [
+    video,
+    trimStart,
+    trimEnd,
+    audioTrack,
+    audioDuration,
+    audioApplied,
+    appliedAudioTrimStart,
+    appliedAudioTrimEnd,
+    subtitleFilename,
+    subtitleStyle,
+    titleText,
+    titleFont,
+    titleSize,
+    titleColor,
+    titleBgColor,
+    titleBorderColor,
+    titleBorderWidth,
+    titleFrameColor,
+    titleFrameWidth,
+    titlePadding,
+    titleX,
+    titleY,
+    borderEnabled,
+    borderWidth,
+    borderHeight,
+    borderColor,
+    borderMode,
+    exportQuality,
+    exportAspectRatio,
+    logoImage,
+    logoSize,
+    logoX,
+    logoY,
+    setPreviewLoading,
+    setProcessedUrl,
+  ])
 
   useEffect(() => {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
-    const hasAudio = !!audioTrack
     const hasSubtitlesApplied = subtitles.length > 0 && !!subtitleFilename
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
@@ -130,14 +165,26 @@ export default function App() {
     const sig = JSON.stringify({
       trimStart,
       trimEnd,
-      audio: hasAppliedAudio ? { id: audioTrack!.id, vol: appliedAudioVolume, replace: appliedReplaceOriginal, t0: appliedAudioTrimStart, t1: appliedAudioTrimEnd } : null,
+      audio: hasAppliedAudio
+        ? {
+          id: audioTrack!.id,
+          duration: audioDuration,
+          trimApplied: hasAppliedAudioTrim,
+          vol: appliedAudioVolume,
+          replace: appliedReplaceOriginal,
+          t0: appliedAudioTrimStart,
+          t1: appliedAudioTrimEnd,
+        }
+        : null,
       subtitles,
       subtitleFilename,
+      subtitleStyle,
       exportQuality,
+      exportAspectRatio,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding } : null,
       titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
-      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor } : null,
+      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor, mode: borderMode } : null,
     })
 
     if (sig === lastPreviewSig.current) return
@@ -160,9 +207,17 @@ export default function App() {
     trimStart,
     trimEnd,
     audioTrack,
+    audioDuration,
+    audioApplied,
+    appliedAudioVolume,
+    appliedReplaceOriginal,
+    appliedAudioTrimStart,
+    appliedAudioTrimEnd,
     subtitles,
     subtitleFilename,
+    subtitleStyle,
     exportQuality,
+    exportAspectRatio,
     logoImage,
     logoSize,
     logoX,
@@ -183,6 +238,8 @@ export default function App() {
     borderWidth,
     borderHeight,
     borderColor,
+    borderMode,
+    handlePreview,
     previewLoading,
     processedUrl,
     setProcessedUrl,
@@ -195,7 +252,7 @@ export default function App() {
       lastPreviewSig.current = pendingSig.current
       handlePreview()
     }
-  }, [previewLoading, video])
+  }, [handlePreview, previewLoading, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
 
@@ -360,7 +417,6 @@ function EditPanel() {
     video,
     trimStart,
     trimEnd,
-    segments,
     setTrimStart,
     setTrimEnd,
   } = useStore()

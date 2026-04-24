@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { Play, Pause, Volume2 } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Play, Pause } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
 import { getContainRect, getRenderedVideoDimensions } from '../../utils/videoLayout'
@@ -28,9 +28,11 @@ export default function VideoPlayer() {
   } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef(false)
+  const logoDraggingRef = useRef(false)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const [volume, setVolume] = useState(1)
   const [mediaDuration, setMediaDuration] = useState(0)
   const [videoDisplayRect, setVideoDisplayRect] = useState({ left: 0, top: 0, width: 0, height: 0 })
   const fullDuration = mediaDuration || video?.duration || 0
@@ -45,7 +47,7 @@ export default function VideoPlayer() {
 
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
-  }, [video])
+  }, [setTrimEnd, video])
 
   useEffect(() => {
     if (seekTo !== null && videoRef.current) {
@@ -149,20 +151,7 @@ export default function VideoPlayer() {
     }
     setCurrentTime(next)
   }
-
-  const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = parseFloat(e.target.value)
-    setVolume(v)
-    if (videoRef.current) videoRef.current.volume = v
-  }
-
-  if (!video) return null
-
-  const overlayRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef(false)
-  const logoDraggingRef = useRef(false)
-
-  const updateVideoDisplayRect = () => {
+  const updateVideoDisplayRect = useCallback(() => {
     const container = overlayRef.current
     const videoEl = videoRef.current
     if (!container || !videoEl) return
@@ -193,9 +182,9 @@ export default function VideoPlayer() {
       width,
       height,
     })
-  }
+  }, [])
 
-  const getRelativePointInRect = (
+  const getRelativePointInRect = useCallback((
     clientX: number,
     clientY: number,
     targetRect: { left: number; top: number; width: number; height: number },
@@ -210,13 +199,13 @@ export default function VideoPlayer() {
       x: Math.min(1, Math.max(0, localX / targetRect.width)),
       y: Math.min(1, Math.max(0, localY / targetRect.height)),
     }
-  }
+  }, [])
 
   useEffect(() => {
     updateVideoDisplayRect()
     window.addEventListener('resize', updateVideoDisplayRect)
     return () => window.removeEventListener('resize', updateVideoDisplayRect)
-  }, [src])
+  }, [src, updateVideoDisplayRect])
 
   const logoX = logoDraftX ?? 0.9
   const logoY = logoDraftY ?? 0.1
@@ -267,7 +256,9 @@ export default function VideoPlayer() {
       window.removeEventListener('mousemove', handleLogoMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [setTitleDraftXY, setLogoDraftXY, videoDisplayRect, logoDraftRect])
+  }, [getRelativePointInRect, setTitleDraftXY, setLogoDraftXY, videoDisplayRect, logoDraftRect])
+
+  if (!video) return null
 
   return (
     <div className="space-y-2">
