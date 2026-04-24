@@ -13,15 +13,61 @@ export interface SubtitleEntry {
   text: string
 }
 
+const SRT_TIMING_PATTERN = /^\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})(?:\s+.*)?$/
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
+function removeFileIfExists(filepath: string) {
+  if (!fs.existsSync(filepath)) return
+  fs.unlinkSync(filepath)
+}
+
+function normalizeTimestamp(value: string): string {
+  return value.trim().replace('.', ',')
+}
+
 function parseSRT(content: string): SubtitleEntry[] {
-  const blocks = content.trim().split(/\n\n+/)
-  return blocks.map(block => {
-    const lines = block.trim().split('\n')
-    const index = parseInt(lines[0])
-    const [startTime, endTime] = lines[1].split(' --> ')
-    const text = lines.slice(2).join('\n')
-    return { index, startTime: startTime.trim(), endTime: endTime.trim(), text }
-  }).filter(e => !isNaN(e.index))
+  const normalizedContent = content.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim()
+  if (!normalizedContent) {
+    throw new Error('Subtitle file is empty')
+  }
+
+  const blocks = normalizedContent.split(/\n{2,}/).map(block => block.trim()).filter(Boolean)
+
+  return blocks.map((block, blockIndex) => {
+    const lines = block.split('\n').map(line => line.trimEnd())
+    const firstLine = lines[0]?.trim() ?? ''
+
+    let index = blockIndex + 1
+    let timingLine = firstLine
+    let textStartIndex = 1
+
+    if (!firstLine.includes('-->')) {
+      index = Number.parseInt(firstLine, 10)
+      if (!Number.isInteger(index)) {
+        throw new Error(`Invalid subtitle index in block ${blockIndex + 1}`)
+      }
+      timingLine = lines[1]?.trim() ?? ''
+      textStartIndex = 2
+    }
+
+    const timingMatch = timingLine.match(SRT_TIMING_PATTERN)
+    if (!timingMatch) {
+      throw new Error(`Invalid time range in block ${blockIndex + 1}`)
+    }
+
+    const startTime = normalizeTimestamp(timingMatch[1])
+    const endTime = normalizeTimestamp(timingMatch[2])
+    const text = lines.slice(textStartIndex).join('\n').trim()
+
+    if (!text) {
+      throw new Error(`Missing subtitle text in block ${blockIndex + 1}`)
+    }
+
+    return { index, startTime, endTime, text }
+  })
 }
 
 function generateSRT(entries: SubtitleEntry[]): string {
@@ -51,10 +97,15 @@ export async function subtitleRoute(app: FastifyInstance) {
 
     await pipeline(data.file, fs.createWriteStream(filepath))
 
-    const content = fs.readFileSync(filepath, 'utf-8')
-    const entries = parseSRT(content)
+    try {
+      const content = fs.readFileSync(filepath, 'utf-8')
+      const entries = parseSRT(content)
 
-    return { id, filename, entries }
+      return { id, filename, entries }
+    } catch (err: unknown) {
+      removeFileIfExists(filepath)
+      return reply.code(400).send({ error: toErrorMessage(err, 'Invalid subtitle file') })
+    }
   })
 
   app.post('/subtitle/create', async (req, reply) => {
@@ -91,8 +142,7 @@ export async function subtitleRoute(app: FastifyInstance) {
       const outPath = await burnSubtitles({ inputPath, subtitlePath, style })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Subtitle burn failed'
-      return reply.code(500).send({ error: message })
+      return reply.code(500).send({ error: toErrorMessage(err, 'Subtitle burn failed') })
     }
   })
 
@@ -122,8 +172,7 @@ export async function subtitleRoute(app: FastifyInstance) {
       const entries = parseSRT(content)
       return { id, filename, entries }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Auto subtitles failed'
-      return reply.code(500).send({ error: message })
+      return reply.code(500).send({ error: toErrorMessage(err, 'Auto subtitles failed') })
     }
   })
 }

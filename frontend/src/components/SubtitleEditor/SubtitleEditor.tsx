@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Plus, Trash2, Upload, FileText } from 'lucide-react'
-import { autoSubtitles, createSubtitles, uploadSubtitle } from '../../api/client'
+import { autoSubtitles, createSubtitles, getApiErrorMessage, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SubtitleEntry } from '../../api/client'
 
@@ -94,7 +94,7 @@ export default function SubtitleEditor() {
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed')
+      setError(getApiErrorMessage(e, 'Save failed'))
     } finally {
       setSaving(false)
     }
@@ -108,7 +108,7 @@ export default function SubtitleEditor() {
       setPendingSubtitleFilename(result.filename)
       setSubtitleFilename(null)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
+      setError(getApiErrorMessage(e, 'Upload failed'))
     } finally {
       setUploadLoading(false)
     }
@@ -133,7 +133,7 @@ export default function SubtitleEditor() {
       setPendingSubtitleFilename(result.filename)
       setSubtitleFilename(null)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Auto subtitles failed')
+      setError(getApiErrorMessage(e, 'Auto subtitles failed'))
     } finally {
       setAutoLoading(false)
     }
