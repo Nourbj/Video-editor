@@ -4,6 +4,16 @@ import { withMediaBase } from '../utils/media'
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 const api = axios.create({ baseURL: apiBase })
 
+export function getApiErrorMessage(error: unknown, fallbackMessage: string) {
+  if (axios.isAxiosError(error)) {
+    const apiMessage = error.response?.data?.error
+    if (typeof apiMessage === 'string' && apiMessage.trim()) return apiMessage
+    if (error.message) return error.message
+  }
+  if (error instanceof Error && error.message) return error.message
+  return fallbackMessage
+}
+
 export interface VideoInfo {
   id: string
   title: string

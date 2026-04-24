@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Music, Upload, Link, Loader2, CheckCircle, X, Download } from 'lucide-react'
-import { uploadAudio, downloadAudioFromUrl } from '../../api/client'
+import { uploadAudio, downloadAudioFromUrl, getApiErrorMessage } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SocialIcon } from 'react-social-icons'
 import { PLATFORM_ICONS, detectPlatform } from './uploadConstants.tsx'
@@ -55,7 +55,7 @@ export default function AudioUploadSection() {
             setAudioApplied(false)
             hydrateAudioMetadata(result.url)
         } catch (e: unknown) {
-            setAudioError(e instanceof Error ? e.message : 'Upload failed')
+            setAudioError(getApiErrorMessage(e, 'Upload failed'))
         } finally {
             setAudioLoading(false)
         }
@@ -72,7 +72,7 @@ export default function AudioUploadSection() {
             hydrateAudioMetadata(result.url)
             setAudioUrlInput('')
         } catch (e: unknown) {
-            setAudioError(e instanceof Error ? e.message : 'Download failed')
+            setAudioError(getApiErrorMessage(e, 'Download failed'))
         } finally {
             setAudioLoading(false)
         }

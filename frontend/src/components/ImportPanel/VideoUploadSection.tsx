@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Upload, Link, Loader2, Download, CheckCircle, X } from 'lucide-react'
-import { downloadFromUrl, uploadVideo } from '../../api/client'
+import { downloadFromUrl, uploadVideo, getApiErrorMessage } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SocialIcon } from 'react-social-icons'
 import { PLATFORM_ICONS, detectPlatform, isLikelyPublicFacebookVideo } from './uploadConstants.tsx'
@@ -27,7 +27,7 @@ export default function VideoUploadSection() {
             setVideo(info)
             setVideoUrlInput('')
         } catch (e: unknown) {
-            setVideoError(e instanceof Error ? e.message : 'Download failed')
+            setVideoError(getApiErrorMessage(e, 'Download failed'))
         } finally {
             setVideoLoading(false)
         }
@@ -45,7 +45,7 @@ export default function VideoUploadSection() {
             const info = await uploadVideo(file, setUploadProgress)
             setVideo(info)
         } catch (e: unknown) {
-            setVideoError(e instanceof Error ? e.message : 'Upload failed')
+            setVideoError(getApiErrorMessage(e, 'Upload failed'))
         } finally {
             setVideoLoading(false)
             setUploadProgress(0)
