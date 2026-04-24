@@ -155,10 +155,9 @@ export async function processRoute(app: FastifyInstance) {
   })
 
   app.post('/merge-audio', async (req, reply) => {
-    const { videoFilename, audioFilename, volume, replaceOriginal } = req.body as {
+    const { videoFilename, audioFilename, replaceOriginal } = req.body as {
       videoFilename: string
       audioFilename: string
-      volume?: number
       replaceOriginal?: boolean
     }
 
@@ -169,7 +168,7 @@ export async function processRoute(app: FastifyInstance) {
     if (!audioPath) return reply.code(404).send({ error: 'Audio not found' })
 
     try {
-      const outPath = await mergeAudio({ inputPath, audioPath, volume, replaceOriginal })
+      const outPath = await mergeAudio({ inputPath, audioPath, replaceOriginal })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
       app.log.error(err)
@@ -224,7 +223,6 @@ export async function processRoute(app: FastifyInstance) {
       logoX?: number
       logoY?: number
       replaceOriginal?: boolean
-      audioVolume?: number
     }
 
     const inputPath = resolveMediaPath(body.filename)
@@ -252,7 +250,6 @@ export async function processRoute(app: FastifyInstance) {
         filename: body.filename,
         audioFilename: body.audioFilename,
         replaceOriginal: body.replaceOriginal,
-        audioVolume: body.audioVolume,
         logoFilename: body.logoFilename,
         logoSize: body.logoSize,
         logoX: body.logoX,
@@ -278,7 +275,6 @@ export async function processRoute(app: FastifyInstance) {
         logoX: body.logoX,
         logoY: body.logoY,
         replaceOriginal: body.replaceOriginal,
-        audioVolume: body.audioVolume,
       })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
@@ -334,7 +330,6 @@ export async function processRoute(app: FastifyInstance) {
       logoX?: number
       logoY?: number
       replaceOriginal?: boolean
-      audioVolume?: number
     }
 
     const inputPath = resolveMediaPath(body.filename)
@@ -378,7 +373,6 @@ export async function processRoute(app: FastifyInstance) {
         logoX: body.logoX,
         logoY: body.logoY,
         replaceOriginal: body.replaceOriginal,
-        audioVolume: body.audioVolume,
         outputDir: path.join(process.cwd(), 'temp'),
       })
       return { url: `/temp/${path.basename(outPath)}`, filename: path.basename(outPath) }

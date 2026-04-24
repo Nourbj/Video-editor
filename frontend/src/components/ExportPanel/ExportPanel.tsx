@@ -28,8 +28,8 @@ function formatTime(s: number) {
 export default function ExportPanel() {
   const {
     video, trimStart, trimEnd,
-    audioTrack, audioVolume, replaceOriginalAudio, audioDuration,
-    audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
+    audioTrack, audioDuration,
+    audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     subtitles, subtitleFilename,
     subtitleStyle,
     logoImage, logoSize, logoX, logoY,
@@ -69,12 +69,6 @@ export default function ExportPanel() {
       }
 
       setStep('Processing and exporting...')
-      console.log('[ExportPanel] Exporting with params:', {
-        filename: video.filename,
-        audioFilename: audioTrack?.filename,
-        audioVolume,
-        replaceOriginal: replaceOriginalAudio,
-      })
       const result = await exportVideo({
         filename: video.filename,
         quality: exportQuality,
@@ -83,7 +77,6 @@ export default function ExportPanel() {
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
         audioFilename: audioTrack?.filename,
-        audioVolume: hasAppliedAudio ? appliedAudioVolume : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
         audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
@@ -348,7 +341,7 @@ export default function ExportPanel() {
               <span className="flex items-center gap-2 text-zinc-500"><Music size={13} /> Audio</span>
               <span className="text-zinc-700 text-xs">
                 {hasAppliedAudio
-                  ? `${audioTrack!.filename} (${Math.round(appliedAudioVolume * 100)}%, ${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}${appliedAudioOffset > 0 ? ` — Offset ${formatTime(appliedAudioOffset)}` : ''}`
+                  ? `${audioTrack!.filename} (${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}${appliedAudioOffset > 0 ? ` — Offset ${formatTime(appliedAudioOffset)}` : ''}`
                   : hasAudio ? 'Not applied' : 'Original'}
               </span>
             </div>

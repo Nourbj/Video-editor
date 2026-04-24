@@ -15,8 +15,6 @@ export interface AudioTrack {
   id: string
   filename: string
   url: string
-  volume: number
-  replaceOriginal: boolean
 }
 
 export interface SubtitleStyle {
@@ -65,8 +63,6 @@ interface EditorState {
 
   audioTrack: AudioTrack | null
   setAudioTrack: (a: AudioTrack | null) => void
-  audioVolume: number
-  setAudioVolume: (v: number) => void
   replaceOriginalAudio: boolean
   setReplaceOriginalAudio: (r: boolean) => void
   audioDuration: number
@@ -79,12 +75,11 @@ interface EditorState {
   setAudioOffset: (t: number) => void
   audioApplied: boolean
   setAudioApplied: (a: boolean) => void
-  appliedAudioVolume: number
   appliedReplaceOriginal: boolean
   appliedAudioTrimStart: number
   appliedAudioTrimEnd: number
   appliedAudioOffset: number
-  setAppliedAudioSettings: (s: { volume: number; replaceOriginal: boolean; trimStart: number; trimEnd: number; offset: number }) => void
+  setAppliedAudioSettings: (s: { replaceOriginal: boolean; trimStart: number; trimEnd: number; offset: number }) => void
   audioUrlInput: string
   setAudioUrlInput: (url: string) => void
   audioLoading: boolean
@@ -269,14 +264,11 @@ export const useStore = create<EditorState>((set) => ({
     audioTrimEnd: 0,
     audioOffset: 0,
     audioApplied: false,
-    appliedAudioVolume: 1,
     appliedReplaceOriginal: false,
     appliedAudioTrimStart: 0,
     appliedAudioTrimEnd: 0,
     appliedAudioOffset: 0,
   }),
-  audioVolume: 1,
-  setAudioVolume: v => set({ audioVolume: v }),
   replaceOriginalAudio: false,
   setReplaceOriginalAudio: r => set({ replaceOriginalAudio: r }),
   audioDuration: 0,
@@ -289,13 +281,11 @@ export const useStore = create<EditorState>((set) => ({
   setAudioOffset: t => set({ audioOffset: t }),
   audioApplied: false,
   setAudioApplied: a => set({ audioApplied: a }),
-  appliedAudioVolume: 1,
   appliedReplaceOriginal: false,
   appliedAudioTrimStart: 0,
   appliedAudioTrimEnd: 0,
   appliedAudioOffset: 0,
   setAppliedAudioSettings: s => set({
-    appliedAudioVolume: s.volume,
     appliedReplaceOriginal: s.replaceOriginal,
     appliedAudioTrimStart: s.trimStart,
     appliedAudioTrimEnd: s.trimEnd,
@@ -408,8 +398,8 @@ export const useStore = create<EditorState>((set) => ({
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
     segments: [],
-    audioTrack: null, audioVolume: 1, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0,
-    audioApplied: false, appliedAudioVolume: 1, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0, appliedAudioOffset: 0,
+    audioTrack: null, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0, audioOffset: 0,
+    audioApplied: false, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0, appliedAudioOffset: 0,
     subtitles: [], subtitleFilename: null,
     subtitleStyle: {
       size: defaultSubtitleSize,

@@ -139,10 +139,9 @@ export const mergeSegments = async (filename: string, segments: SegmentDefinitio
 export const mergeAudio = async (
   videoFilename: string,
   audioFilename: string,
-  volume = 1,
   replaceOriginal = false
 ) => {
-  const { data } = await api.post('/merge-audio', { videoFilename, audioFilename, volume, replaceOriginal })
+  const { data } = await api.post('/merge-audio', { videoFilename, audioFilename, replaceOriginal })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
@@ -196,7 +195,6 @@ export const exportVideo = async (params: {
   logoX?: number
   logoY?: number
   replaceOriginal?: boolean
-  audioVolume?: number
   audioOffset?: number
 }) => {
   const { data } = await api.post('/export', params)
@@ -221,7 +219,6 @@ export const previewVideo = async (params: {
   logoX?: number
   logoY?: number
   replaceOriginal?: boolean
-  audioVolume?: number
   audioOffset?: number
 }) => {
   const { data } = await api.post('/preview', params)

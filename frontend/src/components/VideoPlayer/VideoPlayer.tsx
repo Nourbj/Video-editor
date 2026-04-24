@@ -14,8 +14,8 @@ function formatTime(s: number) {
 export default function VideoPlayer() {
   const {
     video, trimStart, trimEnd, setTrimEnd, processedUrl,
-    audioTrack, audioVolume, audioDuration,
-    audioApplied, appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
+    audioTrack, audioDuration,
+    audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     activeTab,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
     titleDraftText,
@@ -70,14 +70,6 @@ export default function VideoPlayer() {
     setCurrentTime(0)
     setPlaying(false)
   }, [src])
-
-
-  useEffect(() => {
-    if (audioRef.current) {
-      const vol = audioApplied ? appliedAudioVolume : audioVolume
-      audioRef.current.volume = Math.min(1, Math.max(0, vol || 1))
-    }
-  }, [audioVolume, audioApplied, appliedAudioVolume])
 
 
   useEffect(() => {

@@ -10,8 +10,6 @@ export default function AudioUploadSection() {
     const {
         audioTrack,
         setAudioTrack,
-        audioVolume,
-        replaceOriginalAudio,
         setAudioApplied,
         audioUrlInput,
         setAudioUrlInput,
@@ -53,7 +51,7 @@ export default function AudioUploadSection() {
         setAudioError(null)
         try {
             const result = await uploadAudio(file)
-            setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
+            setAudioTrack(result)
             setAudioApplied(false)
             hydrateAudioMetadata(result.url)
         } catch (e: unknown) {
@@ -69,7 +67,7 @@ export default function AudioUploadSection() {
         setAudioError(null)
         try {
             const result = await downloadAudioFromUrl(audioUrlInput.trim())
-            setAudioTrack({ ...result, volume: audioVolume, replaceOriginal: replaceOriginalAudio })
+            setAudioTrack(result)
             setAudioApplied(false)
             hydrateAudioMetadata(result.url)
             setAudioUrlInput('')

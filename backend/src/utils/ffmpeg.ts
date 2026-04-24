@@ -30,7 +30,6 @@ export interface MergeSegmentsOptions {
 export interface AudioOptions {
   inputPath: string
   audioPath: string
-  volume?: number    
   replaceOriginal?: boolean
 }
 
@@ -58,7 +57,6 @@ export interface ExportOptions {
   startTime?: number
   endTime?: number
   replaceOriginal?: boolean
-  audioVolume?: number
   audioStartTime?: number
   audioEndTime?: number
   audioOffset?: number
@@ -417,7 +415,7 @@ export async function mergeSegments({ inputPath, segments }: MergeSegmentsOption
   return mergeVideos({ inputPaths: outputs })
 }
 
-export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal = false }: AudioOptions): Promise<string> {
+export function mergeAudio({ inputPath, audioPath, replaceOriginal = false }: AudioOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const outFile = path.join(outputDir, `audio_${uuidv4()}.mp4`)
 
@@ -428,15 +426,14 @@ export function mergeAudio({ inputPath, audioPath, volume = 1, replaceOriginal =
         .outputOptions([
           '-map 0:v:0',
           '-map 1:a:0',
-          `-filter:a volume=${volume}`,
           '-c:v copy',
           '-c:a aac',
           '-shortest',
         ])
     } else {
       cmd.complexFilter([
-        `[0:a]volume=1[a0]`,
-        `[1:a]volume=${volume}[a1]`,
+        `[0:a]anull[a0]`,
+        `[1:a]anull[a1]`,
         `[a0][a1]amix=inputs=2:duration=first[aout]`,
       ], 'aout')
         .outputOptions(['-map 0:v', '-c:v copy', '-c:a aac'])
@@ -486,7 +483,6 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       audioPath,
       subtitlePath,
       replaceOriginal,
-      audioVolume,
       audioStartTime,
       audioEndTime,
       titleStyle,
@@ -502,14 +498,12 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       aspectRatio,
       audioPath: !!audioPath,
       replaceOriginal,
-      audioVolume,
       logoPath: !!logoPath,
       logoX,
       logoY,
     })
 
     const scaleFilter = buildScaleFilter(quality, aspectRatio)
-    const vol = audioVolume ?? 1
 
     let cmd = ffmpeg(inputPath)
 
@@ -527,8 +521,6 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
     const titleFilter = buildTitleDrawtext(titleStyle, borderStyle)
     const borderFilter = buildBorderFilter(borderStyle)
-    const hasAudioTrim = audioStartTime !== undefined && audioEndTime !== undefined && audioEndTime > audioStartTime
-    const audioTrimFilter = hasAudioTrim ? `atrim=start=${audioStartTime}:end=${audioEndTime},asetpts=PTS-STARTPTS` : null
 
     if (hasAudio) cmd.input(audioPath!)
     if (hasLogo) cmd.input(logoPath!).inputOptions(['-loop 1'])
@@ -567,24 +559,24 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
         const relativeOffset = audioOff - videoStart
         
         const offsetMs = Math.round(Math.max(0, relativeOffset) * 1000)
-        const delayChain = offsetMs > 0 ? `adelay=${offsetMs}|${offsetMs},` : ''
-        
         const extraAudioTrim = relativeOffset < 0 ? Math.abs(relativeOffset) : 0
         const finalAudioStart = (audioStartTime || 0) + extraAudioTrim
         const hasEffectiveAudioTrim = finalAudioStart > 0 || audioEndTime !== undefined
-        
-        const effectiveAudioTrimFilter = hasEffectiveAudioTrim 
-          ? `atrim=start=${finalAudioStart}${audioEndTime !== undefined ? `:end=${audioEndTime}` : ''},asetpts=PTS-STARTPTS` 
+
+        const effectiveAudioTrimFilter = hasEffectiveAudioTrim
+          ? `atrim=start=${finalAudioStart}${audioEndTime !== undefined ? `:end=${audioEndTime}` : ''},asetpts=PTS-STARTPTS`
           : null
+        const audioFilters: string[] = []
+        if (offsetMs > 0) audioFilters.push(`adelay=${offsetMs}|${offsetMs}`)
+        if (effectiveAudioTrimFilter) audioFilters.push(effectiveAudioTrimFilter)
+        const audioChain = audioFilters.join(',') || 'anull'
 
         if (replaceOriginal) {
-          const chain = `${delayChain}${effectiveAudioTrimFilter ? `${effectiveAudioTrimFilter},` : ''}volume=${vol}`
-          filters.push(`[1:a]${chain}[aout]`)
+          filters.push(`[1:a]${audioChain}[aout]`)
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         } else {
-          filters.push(`[0:a]volume=1[a0]`)
-          const chain = `${delayChain}${effectiveAudioTrimFilter ? `${effectiveAudioTrimFilter},` : ''}volume=${vol}`
-          filters.push(`[1:a]${chain}[a1]`)
+          filters.push(`[0:a]anull[a0]`)
+          filters.push(`[1:a]${audioChain}[a1]`)
           filters.push(`[a0][a1]amix=inputs=2:duration=first[aout]`)
           cmd.outputOptions(['-map [vout]', '-map [aout]', '-c:a aac'])
         }

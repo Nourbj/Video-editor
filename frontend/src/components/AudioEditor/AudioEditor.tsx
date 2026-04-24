@@ -10,7 +10,7 @@ export default function AudioEditor() {
     audioTrimStart, audioTrimEnd, setAudioTrimStart, setAudioTrimEnd,
     audioOffset,
     audioApplied, setAudioApplied, setAppliedAudioSettings,
-    appliedAudioVolume, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset,
+    appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset,
   } = useStore()
 
   const [currentTime, setCurrentTime] = useState(0)
@@ -207,13 +207,12 @@ export default function AudioEditor() {
             {audioApplied && (
               <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
                 <p className="text-xs text-blue-700">
-                  <span className="font-medium">Applied:</span> {formatTime(appliedAudioTrimStart)} → {formatTime(appliedAudioTrimEnd)} · {Math.round(appliedAudioVolume * 100)}% · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
+                  <span className="font-medium">Applied:</span> {formatTime(appliedAudioTrimStart)} → {formatTime(appliedAudioTrimEnd)} · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
                 </p>
               </div>
             )}
             <button
               onClick={() => setAppliedAudioSettings({
-                volume: 1,
                 replaceOriginal: replaceOriginalAudio,
                 trimStart: audioTrimStart,
                 trimEnd: audioTrimEnd,
