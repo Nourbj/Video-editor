@@ -151,9 +151,10 @@ export default function App() {
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
+    const hasOutputTransform = exportQuality !== '720p' || exportAspectRatio !== 'original'
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder
+    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
 
     if (!hasChanges) {
       pendingSig.current = ''
