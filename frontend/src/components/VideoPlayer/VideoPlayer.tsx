@@ -313,6 +313,10 @@ export default function VideoPlayer() {
                 WebkitTextStrokeColor: titleBorderColor,
                 padding: `${titlePadding * titlePreviewScale}px`,
                 pointerEvents: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxWidth: `${videoDisplayRect.width * 0.9}px`,
+                textAlign: 'center',
               }}
             >
               {((titleDraftText || titleText).trim() || 'Title')}

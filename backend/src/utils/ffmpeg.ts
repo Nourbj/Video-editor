@@ -199,7 +199,45 @@ function escapeDrawtext(text: string) {
     .replace(/\n/g, '\\n')
 }
 
-function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
+function wrapText(text: string, fontSize: number, videoWidth: number): string {
+  const charWidth = fontSize * 0.60
+  const maxWidth = videoWidth * 0.90
+  const maxChars = Math.max(5, Math.floor(maxWidth / charWidth))
+
+  const lines: string[] = []
+  const paragraphs = text.split('\n')
+
+  for (const p of paragraphs) {
+    const words = p.split(' ')
+    let currentLine = ''
+
+    for (const word of words) {
+      if (word.length > maxChars) {
+        if (currentLine) {
+          lines.push(currentLine)
+          currentLine = ''
+        }
+        for (let i = 0; i < word.length; i += maxChars) {
+          lines.push(word.substring(i, i + maxChars))
+        }
+      } else {
+        const testLine = currentLine ? `${currentLine} ${word}` : word
+        if (testLine.length > maxChars && currentLine) {
+          lines.push(currentLine)
+          currentLine = word
+        } else {
+          currentLine = testLine
+        }
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine)
+    }
+  }
+  return lines.join('\n')
+}
+
+function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, videoWidth = 1280) {
   const text = (style?.text || '').trim()
   if (!text) return null
 
@@ -248,17 +286,23 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
     'bottom-right': { x: outsideXRight, y: outsideYBottom },
   }
 
+  // Write text to file for reliable multi-line support
+  const wrappedText = wrapText(text, size, videoWidth)
+  const titleFile = path.join(tempDir, `title_text_${uuidv4()}.txt`)
+  fs.writeFileSync(titleFile, wrappedText, 'utf8')
+  const escapedFile = titleFile.replace(/\\/g, '/').replace(/:/g, '\\:')
+  const textArg = `textfile='${escapedFile}'`
+
   if (typeof style?.x === 'number' && typeof style?.y === 'number') {
     const safeX = clamp(style.x, 0, 1)
     const safeY = clamp(style.y, 0, 1)
     const x = `(${safeX}*w-text_w/2)`
     const y = `(${safeY}*h-text_h/2)`
-    const safeText = escapeDrawtext(text)
     const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
     const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
-    const base = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+    const base = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
     if (frameWidth <= 0) return base
-    const frameLayer = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+    const frameLayer = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
     return `${frameLayer},${base}`
   }
 
@@ -272,13 +316,12 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
 
   const posMap = frameMode === 'outside' ? outsidePosMap : insidePosMap
   const { x, y } = posMap[normalizedPosition as TitlePosition]
-  const safeText = escapeDrawtext(text)
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
   const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
-  const base = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
+  const base = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
   if (frameWidth <= 0) return base
-  const frameLayer = `drawtext=text='${safeText}':${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
+  const frameLayer = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
   return `${frameLayer},${base}`
 }
 
@@ -519,7 +562,17 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
     const hasAudio = !!(audioPath && fs.existsSync(audioPath))
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
-    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle)
+
+    const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
+    let estimatedVideoWidth = scaleMap[quality] || 1280
+    if (aspectRatio && aspectRatio !== 'original') {
+      const ar = aspectRatioMap[aspectRatio]
+      if (ar && ar.h > ar.w) {
+        estimatedVideoWidth = Math.round(estimatedVideoWidth * ar.w / ar.h)
+      }
+    }
+
+    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle, estimatedVideoWidth)
     const borderFilter = buildBorderFilter(borderStyle)
 
     if (hasAudio) cmd.input(audioPath!)
