@@ -26,18 +26,30 @@ pipeline {
       }
     }
 
-    stage('Verify Cookies File') {
-      steps {
-        sh 'ls -la "$VIDEO_EDITOR_DATA_ROOT/cookies" || true'
-        sh 'test -f "$VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt" && echo "OK: cookies file exists" || (echo "MISSING: $VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt" && exit 1)'
-      }
-    }
-
     stage('Checkout') {
       steps {
         dir(env.REPO_DIR) {
           checkout scm
         }
+      }
+    }
+
+    stage('Install Cookies File') {
+      steps {
+        dir(env.REPO_DIR) {
+          sh '''
+            test -f cookies/ytdlp_cookies.txt || (echo "MISSING in repo: cookies/ytdlp_cookies.txt" && exit 1)
+            cp cookies/ytdlp_cookies.txt "$VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt"
+            chmod 600 "$VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt"
+          '''
+        }
+      }
+    }
+
+    stage('Verify Cookies File') {
+      steps {
+        sh 'ls -la "$VIDEO_EDITOR_DATA_ROOT/cookies" || true'
+        sh 'test -f "$VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt" && echo "OK: runtime cookies file exists" || (echo "MISSING: $VIDEO_EDITOR_DATA_ROOT/cookies/ytdlp_cookies.txt" && exit 1)'
       }
     }
 
