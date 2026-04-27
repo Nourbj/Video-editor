@@ -12,11 +12,11 @@ services:
     ports:
       - "127.0.0.1:3005:3005"
     volumes:
-      - ./uploads:/app/uploads
-      - ./outputs:/app/outputs
-      - ./final-outputs:/app/final-outputs
-      - ./temp:/app/temp
-      - ./cookies:/app/cookies
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/uploads:/app/uploads
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/outputs:/app/outputs
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/final-outputs:/app/final-outputs
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/temp:/app/temp
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/cookies:/app/cookies
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
