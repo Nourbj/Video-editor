@@ -47,7 +47,7 @@ export async function downloadRoute(app: FastifyInstance) {
         duration = meta.format.duration || duration
       }
       if (thumbnailResult.status === 'fulfilled') {
-        thumbnailUrl = `/outputs/${path.basename(thumbnailResult.value)}`
+        thumbnailUrl = `/final-outputs/${path.basename(thumbnailResult.value)}`
       }
 
       return {

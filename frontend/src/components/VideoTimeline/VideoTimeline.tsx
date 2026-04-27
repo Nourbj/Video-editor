@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Scissors, GripVertical, Trash2, GitMerge, Film, Music, Loader2, CheckCircle2, Play, Download } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { createId } from '../../utils/id'
-import { mergeSegments, splitVideo } from '../../api/client'
+import { deleteOutputFile, mergeSegments, splitVideo } from '../../api/client'
 import { withMediaBase } from '../../utils/media'
 
 function formatTime(s: number) {
@@ -223,11 +223,27 @@ export default function VideoTimeline({
     }
 
     const label = `Clip ${segments.length + 1}`
+    const reusableSegment = segments.find(segment =>
+      !segment.isGenerating &&
+      !!segment.outputFilename &&
+      !!segment.outputUrl &&
+      Math.abs(segment.start - trimStart) < 0.02 &&
+      Math.abs(segment.end - trimEnd) < 0.02,
+    )
     const id = addSegment({
       label,
       start: trimStart,
       end: trimEnd,
     })
+
+    if (reusableSegment?.outputFilename && reusableSegment.outputUrl) {
+      setSegmentOutput(id, {
+        filename: reusableSegment.outputFilename,
+        url: reusableSegment.outputUrl,
+      })
+      setEditStatus(`${label} reused from an existing cut.`)
+      return
+    }
 
     setSegmentGenerating(id, true)
     setEditStatus(`Generating ${label}...`)
@@ -548,6 +564,37 @@ export function EditSidebar() {
     }
   }
 
+  const deleteSegmentOutputIfUnused = async (segmentId: string) => {
+    const segment = segments.find(item => item.id === segmentId)
+    const filename = segment?.outputFilename
+    if (!filename) return
+
+    const stillReferenced = segments.some(item => item.id !== segmentId && item.outputFilename === filename)
+    if (stillReferenced) return
+
+    try {
+      await deleteOutputFile(filename)
+    } catch {
+    }
+  }
+
+  const handleRemoveSegment = async (segmentId: string) => {
+    await deleteSegmentOutputIfUnused(segmentId)
+    removeSegment(segmentId)
+  }
+
+  const handleClearSegments = async () => {
+    const uniqueFilenames = [...new Set(segments.map(segment => segment.outputFilename).filter((value): value is string => !!value))]
+    await Promise.all(uniqueFilenames.map(async filename => {
+      try {
+        await deleteOutputFile(filename)
+      } catch {
+      }
+    }))
+    clearSegments()
+    setEditStatus('Clip list cleared.')
+  }
+
   return (
     <div className="space-y-2">
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-2">
@@ -557,7 +604,7 @@ export function EditSidebar() {
           </div>
           {segments.length > 0 && (
             <button
-              onClick={() => { clearSegments(); setEditStatus('Clip list cleared.') }}
+              onClick={() => { void handleClearSegments() }}
               className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
             >
               Clear
@@ -681,7 +728,7 @@ export function EditSidebar() {
                       <button
                         onClick={e => {
                           e.stopPropagation()
-                          removeSegment(segment.id)
+                          void handleRemoveSegment(segment.id)
                         }}
                         className={`p-2 rounded-xl border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${active
                           ? 'border-cyan-100 text-cyan-600 hover:bg-cyan-100 hover:border-cyan-200'

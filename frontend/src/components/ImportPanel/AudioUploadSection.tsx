@@ -142,7 +142,11 @@ export default function AudioUploadSection() {
                                 accept="audio/*"
                                 className="hidden"
                                 aria-label="Upload audio file"
-                                onChange={e => e.target.files?.[0] && handleAudioUpload(e.target.files[0])}
+                                onChange={e => {
+                                    const file = e.target.files?.[0]
+                                    e.currentTarget.value = ''
+                                    if (file) handleAudioUpload(file)
+                                }}
                             />
                             <Music size={32} className="mx-auto mb-3 text-zinc-400" />
                             <p className="text-zinc-700 font-medium text-sm">Upload audio track</p>

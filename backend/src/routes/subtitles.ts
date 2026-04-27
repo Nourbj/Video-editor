@@ -84,6 +84,9 @@ export async function subtitleRoute(app: FastifyInstance) {
     const outputPath = path.join(process.cwd(), 'outputs', filename)
     if (fs.existsSync(outputPath)) return outputPath
 
+    const finalOutputPath = path.join(process.cwd(), 'final-outputs', filename)
+    if (fs.existsSync(finalOutputPath)) return finalOutputPath
+
     return null
   }
 

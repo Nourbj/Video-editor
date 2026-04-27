@@ -120,7 +120,11 @@ export default function VideoUploadSection() {
                                 accept="video/*"
                                 className="hidden"
                                 aria-label="Upload video file"
-                                onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                                onChange={e => {
+                                    const file = e.target.files?.[0]
+                                    e.currentTarget.value = ''
+                                    if (file) handleFileUpload(file)
+                                }}
                             />
                             <Upload size={32} className="mx-auto mb-3 text-zinc-400" />
                             <p className="text-zinc-700 font-medium">Drop video here or click to browse</p>

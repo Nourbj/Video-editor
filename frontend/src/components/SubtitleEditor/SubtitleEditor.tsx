@@ -102,11 +102,14 @@ export default function SubtitleEditor() {
 
   const handleUploadSRT = async (file: File) => {
     setUploadLoading(true)
+    setError(null)
     try {
       const result = await uploadSubtitle(file)
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
       setSubtitleFilename(null)
+      setPendingSrt(null)
+      if (fileRef.current) fileRef.current.value = ''
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, 'Upload failed'))
     } finally {
@@ -286,6 +289,7 @@ export default function SubtitleEditor() {
               aria-label="Upload subtitles file (.srt)"
               onChange={e => {
                 const file = e.target.files?.[0] || null
+                e.currentTarget.value = ''
                 setPendingSrt(file)
                 if (file) {
                   setSubtitleFilename(null)

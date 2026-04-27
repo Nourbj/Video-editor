@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, deleteManagedCutOutput } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
 
@@ -34,6 +34,7 @@ export async function processRoute(app: FastifyInstance) {
     const candidates = [
       path.join(process.cwd(), 'uploads', filename),
       path.join(process.cwd(), 'outputs', filename),
+      path.join(process.cwd(), 'final-outputs', filename),
       path.join(process.cwd(), 'temp', filename),
     ]
 
@@ -82,6 +83,7 @@ export async function processRoute(app: FastifyInstance) {
     if (!inputPath) return reply.code(404).send({ error: 'File not found' })
 
     try {
+      cleanupStaleCutOutputs()
       const outPath = await cutVideo({ inputPath, startTime, endTime })
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
@@ -113,6 +115,7 @@ export async function processRoute(app: FastifyInstance) {
     }
 
     try {
+      cleanupStaleCutOutputs()
       const outPaths = await splitVideo(inputPath, segments)
       return {
         segments: outPaths.map((outPath, index) => ({
@@ -125,6 +128,19 @@ export async function processRoute(app: FastifyInstance) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Split failed'
       return reply.code(500).send({ error: message })
+    }
+  })
+
+  app.post('/output/delete', async (req, reply) => {
+    const { filename } = req.body as { filename?: string }
+    if (!filename) return reply.code(400).send({ error: 'Filename required' })
+
+    try {
+      const deleted = deleteManagedCutOutput(filename)
+      return { ok: true, deleted }
+    } catch (err: unknown) {
+      app.log.error(err)
+      return reply.code(500).send({ error: err instanceof Error ? err.message : 'Delete failed' })
     }
   })
 
@@ -310,8 +326,9 @@ export async function processRoute(app: FastifyInstance) {
         logoX: body.logoX,
         logoY: body.logoY,
         replaceOriginal: body.replaceOriginal,
+        outputDir: path.join(process.cwd(), 'final-outputs'),
       })
-      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+      return { url: `/final-outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Export failed'

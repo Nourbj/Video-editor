@@ -56,7 +56,7 @@ async function checkDependencies() {
   }
 }
 
-const dirs = ['uploads', 'outputs', 'temp']
+const dirs = ['uploads', 'outputs', 'temp', 'final-outputs']
 dirs.forEach(d => {
   const p = path.join(process.cwd(), d)
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true })
@@ -82,6 +82,12 @@ app.register(swaggerUi, {
 app.register(staticFiles, {
   root: path.join(process.cwd(), 'outputs'),
   prefix: '/outputs/',
+})
+
+app.register(staticFiles, {
+  root: path.join(process.cwd(), 'final-outputs'),
+  prefix: '/final-outputs/',
+  decorateReply: false,
 })
 
 app.register(staticFiles, {

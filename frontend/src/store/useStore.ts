@@ -226,17 +226,50 @@ const defaultCrop: CropSettings = { top: 0, bottom: 0, left: 0, right: 0 }
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
-  setVideo: v => set({
-    video: v,
-    trimStart: 0,
-    trimEnd: v?.duration || 0,
-    cropEnabled: false,
-    cropDraftEnabled: false,
-    crop: defaultCrop,
-    cropDraft: defaultCrop,
-    processedUrl: null,
-    segments: [],
-    editStatus: null,
+  setVideo: v => set(state => {
+    const isReplacingVideo = !!state.video && state.video.id !== v?.id
+
+    return {
+      video: v,
+      trimStart: 0,
+      trimEnd: v?.duration || 0,
+      cropEnabled: false,
+      cropDraftEnabled: false,
+      crop: defaultCrop,
+      cropDraft: defaultCrop,
+      processedUrl: null,
+      segments: [],
+      editStatus: null,
+      previewLoading: false,
+      seekTo: null,
+      exportFilename: '',
+      subtitleAppliedSignature: null,
+      ...(isReplacingVideo
+        ? {
+          audioApplied: false,
+          appliedReplaceOriginal: false,
+          appliedAudioTrimStart: 0,
+          appliedAudioTrimEnd: 0,
+          appliedAudioOffset: 0,
+          subtitles: [],
+          subtitleFilename: null,
+          logoImage: null,
+          logoDraftImage: null,
+          logoX: null,
+          logoY: null,
+          logoDraftX: null,
+          logoDraftY: null,
+          titleText: '',
+          titleDraftText: '',
+          titleX: null,
+          titleY: null,
+          titleDraftX: null,
+          titleDraftY: null,
+          isApplyingLogo: false,
+          isApplyingTitle: false,
+        }
+        : {}),
+    }
   }),
 
   trimStart: 0,

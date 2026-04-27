@@ -143,6 +143,11 @@ export const splitVideo = async (filename: string, segments: SegmentDefinition[]
   }
 }
 
+export const deleteOutputFile = async (filename: string) => {
+  const { data } = await api.post('/output/delete', { filename })
+  return data as { ok: true; deleted: boolean }
+}
+
 export const mergeVideos = async (filenames: string[]) => {
   const { data } = await api.post('/merge-videos', { filenames })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }

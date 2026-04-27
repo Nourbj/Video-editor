@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': backendUrl,
         '/outputs': backendUrl,
+        '/final-outputs': backendUrl,
         '/uploads': backendUrl,
         '/temp': backendUrl,
       },

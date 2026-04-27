@@ -48,7 +48,7 @@ export default function BorderEditor() {
       </div>
 
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+        <label htmlFor="border-enabled" className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input
             id="border-enabled"
             type="checkbox"
@@ -56,7 +56,8 @@ export default function BorderEditor() {
             onChange={e => setDraftEnabled(e.target.checked)}
             className="accent-cyan-600"
           />
-          <Square size={16} /> <label htmlFor="border-enabled">Enable border</label>
+          <Square size={16} />
+          <span>Enable border</span>
         </label>
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>

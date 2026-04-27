@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import fs from 'fs'
 
 const outputDir = path.join(process.cwd(), 'outputs')
+const finalOutputDir = path.join(process.cwd(), 'final-outputs')
 const tempDir = path.join(process.cwd(), 'temp')
 
 export interface CutOptions {
@@ -718,7 +719,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
 export function generateThumbnail(inputPath: string, atSecond = 1): Promise<string> {
   return new Promise((resolve, reject) => {
-    const outFile = path.join(outputDir, `thumb_${uuidv4()}.jpg`)
+    const outFile = path.join(finalOutputDir, `thumb_${uuidv4()}.jpg`)
     const width = Math.max(160, Number(process.env.THUMBNAIL_WIDTH || 640))
     const quality = clamp(Number(process.env.THUMBNAIL_QUALITY || 3), 2, 31)
     const seekSecond = Math.max(0, atSecond)
@@ -813,6 +814,7 @@ export function cleanupTempArtifacts(maxAgeMs?: number): void {
     /^whisper_.*\.srt$/,
     /^wave_.*\.raw$/,
     /^concat_.*\.txt$/,
+    /^title_text_.*\.txt$/,
   ]
 
   try {
@@ -821,6 +823,37 @@ export function cleanupTempArtifacts(maxAgeMs?: number): void {
       if (!removablePatterns.some(pattern => pattern.test(f))) continue
 
       const fp = path.join(tempDir, f)
+      try {
+        const stat = fs.statSync(fp)
+        if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)
+      } catch {
+      }
+    }
+  } catch {
+  }
+}
+
+export function deleteManagedCutOutput(filename: string): boolean {
+  const safeName = path.basename(filename || '')
+  if (!/^cut_[a-f0-9-]+\.mp4$/i.test(safeName)) return false
+
+  const targetPath = path.join(outputDir, safeName)
+  if (!fs.existsSync(targetPath)) return false
+
+  fs.unlinkSync(targetPath)
+  return true
+}
+
+export function cleanupStaleCutOutputs(maxAgeMs?: number): void {
+  const ageMs = maxAgeMs ?? Number(process.env.CUT_OUTPUT_TTL_MS || 24 * 60 * 60 * 1000)
+  const now = Date.now()
+
+  try {
+    const files = fs.readdirSync(outputDir)
+    for (const f of files) {
+      if (!/^cut_.*\.mp4$/i.test(f)) continue
+
+      const fp = path.join(outputDir, f)
       try {
         const stat = fs.statSync(fp)
         if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)

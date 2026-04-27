@@ -21,7 +21,7 @@ export default function VideoPlayer() {
     titleDraftText,
     isApplyingTitle,
     previewLoading,
-    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, setLogoDraftXY,
+    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
     borderEnabled, borderWidth, borderHeight, borderMode,
     cropEnabled,
     cropDraftEnabled,
@@ -39,12 +39,20 @@ export default function VideoPlayer() {
   const [currentTime, setCurrentTime] = useState(0)
   const [mediaDuration, setMediaDuration] = useState(0)
   const [videoDisplayRect, setVideoDisplayRect] = useState({ left: 0, top: 0, width: 0, height: 0 })
+  const hasPendingCropChanges =
+    activeTab === 'crop' && (
+      cropDraftEnabled !== cropEnabled ||
+      cropDraft.top !== crop.top ||
+      cropDraft.bottom !== crop.bottom ||
+      cropDraft.left !== crop.left ||
+      cropDraft.right !== crop.right
+    )
   const fullDuration = mediaDuration || video?.duration || 0
   const effectiveStart = trimStart
   const effectiveEnd = trimEnd || fullDuration
   const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
 
-  const src = withMediaBase(processedUrl || video?.url || '')
+  const src = withMediaBase((hasPendingCropChanges ? video?.url : (processedUrl || video?.url)) || '')
   const isMuted = audioApplied && appliedReplaceOriginal && !!audioTrack
   const audioSegStart = audioApplied ? appliedAudioTrimStart : 0
   const audioSegEnd = audioApplied ? (appliedAudioTrimEnd || audioDuration) : audioDuration
@@ -203,19 +211,11 @@ export default function VideoPlayer() {
     return () => window.removeEventListener('resize', updateVideoDisplayRect)
   }, [src, updateVideoDisplayRect])
 
-  const logoX = logoDraftX ?? 0.9
-  const logoY = logoDraftY ?? 0.1
+  const draftLogoX = logoDraftX ?? logoX ?? 0.9
+  const draftLogoY = logoDraftY ?? logoY ?? 0.1
   const previewCrop = activeTab === 'crop' && cropDraftEnabled ? cropDraft : crop
   const hasPreviewCrop = (activeTab === 'crop' ? cropDraftEnabled : cropEnabled)
     && (previewCrop.top > 0 || previewCrop.bottom > 0 || previewCrop.left > 0 || previewCrop.right > 0)
-  const hasPendingCropChanges =
-    activeTab === 'crop' && (
-      cropDraftEnabled !== cropEnabled ||
-      cropDraft.top !== crop.top ||
-      cropDraft.bottom !== crop.bottom ||
-      cropDraft.left !== crop.left ||
-      cropDraft.right !== crop.right
-    )
   const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
   const videoIntrinsicHeight = videoRef.current?.videoHeight || 0
   const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
@@ -302,7 +302,7 @@ export default function VideoPlayer() {
           )}
         </div>
 
-        {activeTab === 'crop' && cropDraftEnabled && hasPreviewCrop && videoDisplayRect.width > 0 && videoDisplayRect.height > 0 && (
+        {activeTab === 'crop' && cropDraftEnabled && hasPreviewCrop && hasPendingCropChanges && videoDisplayRect.width > 0 && videoDisplayRect.height > 0 && (
           <div className="absolute inset-0 pointer-events-none">
             {previewCrop.top > 0 && (
               <div
@@ -348,7 +348,7 @@ export default function VideoPlayer() {
                 }}
               />
             )}
-            {activeTab === 'crop' && hasPendingCropChanges && (
+            {hasPendingCropChanges && (
               <div
                 className="absolute rounded-xl border border-emerald-400/80 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]"
                 style={{
@@ -414,8 +414,8 @@ export default function VideoPlayer() {
               onMouseDown={() => { logoDraggingRef.current = true }}
               className="absolute cursor-move select-none"
               style={{
-                left: `${logoDraftRect.left + (logoX * logoDraftRect.width)}px`,
-                top: `${logoDraftRect.top + (logoY * logoDraftRect.height)}px`,
+                left: `${logoDraftRect.left + (draftLogoX * logoDraftRect.width)}px`,
+                top: `${logoDraftRect.top + (draftLogoY * logoDraftRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
                 width: `${(logoDraftSize / 100) * logoDraftRect.width}px`,
                 height: 'auto',

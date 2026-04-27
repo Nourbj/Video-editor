@@ -114,7 +114,7 @@ export async function uploadRoute(app: FastifyInstance) {
     let thumbnailUrl: string | null = null
     try {
       const thumbnailPath = await generateThumbnail(filepath, 1)
-      thumbnailUrl = `/outputs/${path.basename(thumbnailPath)}`
+      thumbnailUrl = `/final-outputs/${path.basename(thumbnailPath)}`
     } catch {
     }
 
