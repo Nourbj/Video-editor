@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -9,14 +9,16 @@ import LogoEditor from './components/LogoEditor/LogoEditor'
 import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
 import AudioEditor from './components/AudioEditor/AudioEditor'
+import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { previewVideo } from './api/client'
 
-type Tab = 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
+  { id: 'crop', label: 'Rogner', icon: <CropIcon size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
   { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
@@ -41,6 +43,8 @@ export default function App() {
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
+    cropEnabled,
+    crop,
     exportQuality,
     exportAspectRatio,
     processedUrl, setProcessedUrl,
@@ -58,6 +62,7 @@ export default function App() {
     setPreviewError(null)
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
+    const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
 
@@ -68,6 +73,7 @@ export default function App() {
         aspectRatio: exportAspectRatio,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
+        crop: hasCrop ? crop : undefined,
         audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
@@ -134,6 +140,8 @@ export default function App() {
     borderHeight,
     borderColor,
     borderMode,
+    cropEnabled,
+    crop,
     exportQuality,
     exportAspectRatio,
     logoImage,
@@ -147,6 +155,7 @@ export default function App() {
   useEffect(() => {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
+    const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
     const hasSubtitlesApplied = subtitles.length > 0 && !!subtitleFilename
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
@@ -154,7 +163,7 @@ export default function App() {
     const hasOutputTransform = exportQuality !== '720p' || exportAspectRatio !== 'original'
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasChanges = hasTrim || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
+    const hasChanges = hasTrim || hasCrop || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -166,6 +175,8 @@ export default function App() {
     const sig = JSON.stringify({
       trimStart,
       trimEnd,
+      cropEnabled,
+      crop,
       audio: hasAppliedAudio
         ? {
           id: audioTrack!.id,
@@ -206,6 +217,8 @@ export default function App() {
     video,
     trimStart,
     trimEnd,
+    cropEnabled,
+    crop,
     audioTrack,
     audioDuration,
     audioApplied,
@@ -326,6 +339,7 @@ export default function App() {
                       <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
                       <p className="text-xs text-zinc-500">
                         {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
+                        {cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0) && <>&nbsp;·&nbsp; <span className="text-emerald-600">Crop</span></>}
                         {segments.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{segments.length} segments</span></>}
                         {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
                         {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
@@ -398,6 +412,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-4 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'edit' && <EditPanel />}
+              {activeTab === 'crop' && <CropEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
               {activeTab === 'logo' && <LogoEditor />}
               {activeTab === 'title' && <TitleEditor />}

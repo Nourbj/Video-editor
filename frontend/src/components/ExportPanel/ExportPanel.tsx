@@ -4,6 +4,7 @@ import {
   Loader2,
   CheckCircle2,
   Scissors,
+  Crop as CropIcon,
   Music,
   FileText,
   Image as ImageIcon,
@@ -35,6 +36,8 @@ export default function ExportPanel() {
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
+    cropEnabled,
+    crop,
     exportQuality,
     exportAspectRatio, setExportAspectRatio,
     exportFilename, setExportFilename,
@@ -48,6 +51,7 @@ export default function ExportPanel() {
   const [exportTab, setExportTab] = useState<'ratio' | 'quality' | 'name' | 'summary'>('name')
 
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
+  const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
   const hasAudio = !!audioTrack
   const hasSubtitles = subtitles.length > 0
   const hasLogo = !!logoImage
@@ -76,6 +80,7 @@ export default function ExportPanel() {
         outputName: exportFilename.trim() || undefined,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
+        crop: hasCrop ? crop : undefined,
         audioFilename: audioTrack?.filename,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
@@ -335,6 +340,14 @@ export default function ExportPanel() {
               <span className="flex items-center gap-2 text-zinc-500"><Scissors size={13} /> Trim</span>
               <span className="text-zinc-700 font-mono text-xs">
                 {hasTrim ? `${formatTime(trimStart)} → ${formatTime(trimEnd)} (${formatTime(trimEnd - trimStart)})` : 'Full video'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-zinc-500"><CropIcon size={13} /> Crop</span>
+              <span className="text-zinc-700 font-mono text-xs">
+                {hasCrop
+                  ? `T ${Math.round(crop.top * 100)}% · B ${Math.round(crop.bottom * 100)}% · L ${Math.round(crop.left * 100)}% · R ${Math.round(crop.right * 100)}%`
+                  : 'None'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

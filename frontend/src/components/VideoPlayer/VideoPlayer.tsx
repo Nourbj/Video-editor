@@ -23,6 +23,10 @@ export default function VideoPlayer() {
     previewLoading,
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, setLogoDraftXY,
     borderEnabled, borderWidth, borderHeight, borderMode,
+    cropEnabled,
+    cropDraftEnabled,
+    crop,
+    cropDraft,
     exportQuality, exportAspectRatio,
     seekTo, setSeekTo,
   } = useStore()
@@ -201,6 +205,17 @@ export default function VideoPlayer() {
 
   const logoX = logoDraftX ?? 0.9
   const logoY = logoDraftY ?? 0.1
+  const previewCrop = activeTab === 'crop' && cropDraftEnabled ? cropDraft : crop
+  const hasPreviewCrop = (activeTab === 'crop' ? cropDraftEnabled : cropEnabled)
+    && (previewCrop.top > 0 || previewCrop.bottom > 0 || previewCrop.left > 0 || previewCrop.right > 0)
+  const hasPendingCropChanges =
+    activeTab === 'crop' && (
+      cropDraftEnabled !== cropEnabled ||
+      cropDraft.top !== crop.top ||
+      cropDraft.bottom !== crop.bottom ||
+      cropDraft.left !== crop.left ||
+      cropDraft.right !== crop.right
+    )
   const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
   const videoIntrinsicHeight = videoRef.current?.videoHeight || 0
   const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
@@ -286,6 +301,70 @@ export default function VideoPlayer() {
             </div>
           )}
         </div>
+
+        {activeTab === 'crop' && cropDraftEnabled && hasPreviewCrop && videoDisplayRect.width > 0 && videoDisplayRect.height > 0 && (
+          <div className="absolute inset-0 pointer-events-none">
+            {previewCrop.top > 0 && (
+              <div
+                className="absolute bg-black/55 backdrop-blur-[1px]"
+                style={{
+                  left: `${videoDisplayRect.left}px`,
+                  top: `${videoDisplayRect.top}px`,
+                  width: `${videoDisplayRect.width}px`,
+                  height: `${videoDisplayRect.height * previewCrop.top}px`,
+                }}
+              />
+            )}
+            {previewCrop.bottom > 0 && (
+              <div
+                className="absolute bg-black/55 backdrop-blur-[1px]"
+                style={{
+                  left: `${videoDisplayRect.left}px`,
+                  top: `${videoDisplayRect.top + videoDisplayRect.height * (1 - previewCrop.bottom)}px`,
+                  width: `${videoDisplayRect.width}px`,
+                  height: `${videoDisplayRect.height * previewCrop.bottom}px`,
+                }}
+              />
+            )}
+            {previewCrop.left > 0 && (
+              <div
+                className="absolute bg-black/55 backdrop-blur-[1px]"
+                style={{
+                  left: `${videoDisplayRect.left}px`,
+                  top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
+                  width: `${videoDisplayRect.width * previewCrop.left}px`,
+                  height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
+                }}
+              />
+            )}
+            {previewCrop.right > 0 && (
+              <div
+                className="absolute bg-black/55 backdrop-blur-[1px]"
+                style={{
+                  left: `${videoDisplayRect.left + videoDisplayRect.width * (1 - previewCrop.right)}px`,
+                  top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
+                  width: `${videoDisplayRect.width * previewCrop.right}px`,
+                  height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
+                }}
+              />
+            )}
+            {activeTab === 'crop' && hasPendingCropChanges && (
+              <div
+                className="absolute rounded-xl border border-emerald-400/80 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]"
+                style={{
+                  left: `${videoDisplayRect.left + videoDisplayRect.width * previewCrop.left}px`,
+                  top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
+                  width: `${videoDisplayRect.width * (1 - previewCrop.left - previewCrop.right)}px`,
+                  height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
+                }}
+              >
+                <div className="absolute left-2 top-2 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                  Visible frame
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'title' && (
           <div

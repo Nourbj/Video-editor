@@ -60,6 +60,7 @@ export interface ExportOptions {
   audioStartTime?: number
   audioEndTime?: number
   audioOffset?: number
+  crop?: CropSettings
 }
 
 export interface SubtitleStyle {
@@ -96,6 +97,13 @@ export interface BorderStyle {
   sizeY?: number
   color?: string 
   mode?: 'inside' | 'outside'
+}
+
+export interface CropSettings {
+  top?: number
+  bottom?: number
+  left?: number
+  right?: number
 }
 
 const aspectRatioMap: Record<NonNullable<ExportOptions['aspectRatio']>, { w: number; h: number }> = {
@@ -342,6 +350,30 @@ function buildBorderFilter(style?: BorderStyle) {
   return `crop=iw-2*${safeX}:ih-2*${safeY}:${safeX}:${safeY},pad=iw+${sx * 2}:ih+${sy * 2}:${sx}:${sy}:color=${color}`
 }
 
+function buildCropFilter(crop?: CropSettings) {
+  if (!crop) return null
+
+  const top = clamp(Number(crop.top ?? 0), 0, 0.45)
+  const bottom = clamp(Number(crop.bottom ?? 0), 0, 0.45)
+  const left = clamp(Number(crop.left ?? 0), 0, 0.45)
+  const right = clamp(Number(crop.right ?? 0), 0, 0.45)
+  const horizontalKeep = 1 - left - right
+  const verticalKeep = 1 - top - bottom
+
+  if (horizontalKeep <= 0.01 || verticalKeep <= 0.01) {
+    throw new Error('Invalid crop values. The remaining visible area must stay positive.')
+  }
+
+  if (top <= 0 && bottom <= 0 && left <= 0 && right <= 0) return null
+
+  const widthExpr = `max(2\\,floor(iw*${horizontalKeep}/2)*2)`
+  const heightExpr = `max(2\\,floor(ih*${verticalKeep}/2)*2)`
+  const xExpr = `min(iw-${widthExpr}\\,floor(iw*${left}))`
+  const yExpr = `min(ih-${heightExpr}\\,floor(ih*${top}))`
+
+  return `crop=${widthExpr}:${heightExpr}:${xExpr}:${yExpr}`
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
 }
@@ -532,6 +564,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       replaceOriginal,
       audioStartTime,
       audioEndTime,
+      crop,
       titleStyle,
       borderStyle,
       logoPath,
@@ -548,9 +581,11 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       logoPath: !!logoPath,
       logoX,
       logoY,
+      crop,
     })
 
     const scaleFilter = buildScaleFilter(quality, aspectRatio)
+    const cropFilter = buildCropFilter(crop)
 
     let cmd = ffmpeg(inputPath)
 
@@ -608,7 +643,9 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     if (hasAudio || hasLogo) {
       const filters: string[] = []
       const baseLabel = hasLogo ? 'vbase' : 'vout'
-      const vfParts: string[] = [scaleFilter]
+      const vfParts: string[] = []
+      if (cropFilter) vfParts.push(cropFilter)
+      vfParts.push(scaleFilter)
       if (borderFilter) vfParts.push(borderFilter)
       if (subtitleFilter) vfParts.push(subtitleFilter.slice(1))
       if (titleFilter) vfParts.push(titleFilter)
@@ -660,7 +697,9 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
 
       cmd.complexFilter(filters)
     } else {
-      const filters: string[] = [scaleFilter]
+      const filters: string[] = []
+      if (cropFilter) filters.push(cropFilter)
+      filters.push(scaleFilter)
       if (borderFilter) filters.push(borderFilter)
       if (subtitleFilter) filters.push(subtitleFilter.slice(1))
       if (titleFilter) filters.push(titleFilter)

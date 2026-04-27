@@ -29,6 +29,13 @@ export interface LogoAsset {
   url: string
 }
 
+export interface CropSettings {
+  top: number
+  bottom: number
+  left: number
+  right: number
+}
+
 export interface VideoSegment {
   id: string
   label: string
@@ -161,6 +168,21 @@ interface EditorState {
   borderMode: 'inside' | 'outside'
   setBorderMode: (m: 'inside' | 'outside') => void
 
+  cropEnabled: boolean
+  setCropEnabled: (enabled: boolean) => void
+  cropDraftEnabled: boolean
+  setCropDraftEnabled: (enabled: boolean) => void
+  crop: CropSettings
+  cropDraft: CropSettings
+  setCropDraftTop: (n: number) => void
+  setCropDraftBottom: (n: number) => void
+  setCropDraftLeft: (n: number) => void
+  setCropDraftRight: (n: number) => void
+  setCrop: (crop: CropSettings) => void
+  resetCrop: () => void
+  resetCropDraft: () => void
+  applyCropDraft: () => void
+
   exportQuality: '480p' | '720p' | '1080p'
   setExportQuality: (q: '480p' | '720p' | '1080p') => void
   exportAspectRatio: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
@@ -168,8 +190,8 @@ interface EditorState {
   exportFilename: string
   setExportFilename: (name: string) => void
 
-  activeTab: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
+  activeTab: 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+  setActiveTab: (t: 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
@@ -200,10 +222,22 @@ const defaultTitleFrameWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_FRAME_W
 const defaultTitlePadding = Number(import.meta.env.VITE_TITLE_DEFAULT_PADDING || 8)
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
+const defaultCrop: CropSettings = { top: 0, bottom: 0, left: 0, right: 0 }
 
 export const useStore = create<EditorState>((set) => ({
   video: null,
-  setVideo: v => set({ video: v, trimStart: 0, trimEnd: v?.duration || 0, processedUrl: null, segments: [], editStatus: null }),
+  setVideo: v => set({
+    video: v,
+    trimStart: 0,
+    trimEnd: v?.duration || 0,
+    cropEnabled: false,
+    cropDraftEnabled: false,
+    crop: defaultCrop,
+    cropDraft: defaultCrop,
+    processedUrl: null,
+    segments: [],
+    editStatus: null,
+  }),
 
   trimStart: 0,
   trimEnd: 0,
@@ -377,6 +411,25 @@ export const useStore = create<EditorState>((set) => ({
   borderMode: 'inside',
   setBorderMode: m => set({ borderMode: m }),
 
+  cropEnabled: false,
+  setCropEnabled: enabled => set({ cropEnabled: enabled }),
+  cropDraftEnabled: false,
+  setCropDraftEnabled: enabled => set({ cropDraftEnabled: enabled }),
+  crop: defaultCrop,
+  cropDraft: defaultCrop,
+  setCropDraftTop: n => set(state => ({ cropDraft: { ...state.cropDraft, top: n } })),
+  setCropDraftBottom: n => set(state => ({ cropDraft: { ...state.cropDraft, bottom: n } })),
+  setCropDraftLeft: n => set(state => ({ cropDraft: { ...state.cropDraft, left: n } })),
+  setCropDraftRight: n => set(state => ({ cropDraft: { ...state.cropDraft, right: n } })),
+  setCrop: crop => set({ crop, cropDraft: crop }),
+  resetCrop: () => set({ cropEnabled: false, cropDraftEnabled: false, crop: defaultCrop, cropDraft: defaultCrop }),
+  resetCropDraft: () => set({ cropDraftEnabled: false, cropDraft: defaultCrop }),
+  applyCropDraft: () => set(state => ({
+    cropEnabled: state.cropDraftEnabled,
+    crop: state.cropDraft,
+    cropDraft: state.cropDraft,
+  })),
+
   exportQuality: '720p',
   setExportQuality: q => set({ exportQuality: q }),
   exportAspectRatio: 'original',
@@ -437,6 +490,10 @@ export const useStore = create<EditorState>((set) => ({
     borderHeight: defaultBorderSize,
     borderColor: defaultBorderColor,
     borderMode: 'inside',
+    cropEnabled: false,
+    cropDraftEnabled: false,
+    crop: defaultCrop,
+    cropDraft: defaultCrop,
     exportQuality: '720p',
     exportAspectRatio: 'original',
     exportFilename: '',

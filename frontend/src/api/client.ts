@@ -61,6 +61,13 @@ export interface BorderStyle {
   mode?: 'inside' | 'outside'
 }
 
+export interface CropSettings {
+  top: number
+  bottom: number
+  left: number
+  right: number
+}
+
 export interface SegmentDefinition {
   startTime: number
   endTime: number
@@ -193,6 +200,7 @@ export const exportVideo = async (params: {
   outputName?: string
   startTime?: number
   endTime?: number
+  crop?: CropSettings
   audioFilename?: string
   audioStartTime?: number
   audioEndTime?: number
@@ -217,6 +225,7 @@ export const previewVideo = async (params: {
   aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
   startTime?: number
   endTime?: number
+  crop?: CropSettings
   audioFilename?: string
   audioStartTime?: number
   audioEndTime?: number

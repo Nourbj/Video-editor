@@ -4,6 +4,32 @@ import path from 'path'
 import fs from 'fs'
 
 export async function processRoute(app: FastifyInstance) {
+  const normalizeCrop = (crop?: {
+    top?: number
+    bottom?: number
+    left?: number
+    right?: number
+  }) => {
+    if (!crop) return undefined
+
+    const top = Number(crop.top ?? 0)
+    const bottom = Number(crop.bottom ?? 0)
+    const left = Number(crop.left ?? 0)
+    const right = Number(crop.right ?? 0)
+    const values = { top, bottom, left, right }
+
+    if (Object.values(values).some(value => !Number.isFinite(value) || value < 0 || value > 0.45)) {
+      throw new Error('Crop values must be between 0 and 0.45.')
+    }
+
+    if (top + bottom >= 0.99 || left + right >= 0.99) {
+      throw new Error('Crop values leave no visible area.')
+    }
+
+    if (top <= 0 && bottom <= 0 && left <= 0 && right <= 0) return undefined
+    return values
+  }
+
   const resolveMediaPath = (filename: string) => {
     const candidates = [
       path.join(process.cwd(), 'uploads', filename),
@@ -185,6 +211,12 @@ export async function processRoute(app: FastifyInstance) {
       outputName?: string
       startTime?: number
       endTime?: number
+      crop?: {
+        top?: number
+        bottom?: number
+        left?: number
+        right?: number
+      }
       audioFilename?: string
       audioStartTime?: number
       audioEndTime?: number
@@ -245,6 +277,7 @@ export async function processRoute(app: FastifyInstance) {
     }
 
     try {
+      const crop = normalizeCrop(body.crop)
       console.log('--- POST /api/export ---')
       console.log('body:', JSON.stringify({
         filename: body.filename,
@@ -254,6 +287,7 @@ export async function processRoute(app: FastifyInstance) {
         logoSize: body.logoSize,
         logoX: body.logoX,
         logoY: body.logoY,
+        crop,
       }))
       const outPath = await exportVideo({
         inputPath,
@@ -262,6 +296,7 @@ export async function processRoute(app: FastifyInstance) {
         outputName: body.outputName,
         startTime: body.startTime,
         endTime: body.endTime,
+        crop,
         audioPath,
         audioStartTime: body.audioStartTime,
         audioEndTime: body.audioEndTime,
@@ -292,6 +327,12 @@ export async function processRoute(app: FastifyInstance) {
       outputName?: string
       startTime?: number
       endTime?: number
+      crop?: {
+        top?: number
+        bottom?: number
+        left?: number
+        right?: number
+      }
       audioFilename?: string
       audioStartTime?: number
       audioEndTime?: number
@@ -352,6 +393,7 @@ export async function processRoute(app: FastifyInstance) {
     }
 
     try {
+      const crop = normalizeCrop(body.crop)
       cleanupTempPreviews()
       const outPath = await exportVideo({
         inputPath,
@@ -360,6 +402,7 @@ export async function processRoute(app: FastifyInstance) {
         outputName: body.outputName,
         startTime: body.startTime,
         endTime: body.endTime,
+        crop,
         audioPath,
         audioStartTime: body.audioStartTime,
         audioEndTime: body.audioEndTime,
