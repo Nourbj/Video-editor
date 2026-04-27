@@ -13,6 +13,7 @@ export default function LogoEditor() {
     logoX, logoY, setLogoXY,
     isApplyingLogo, setIsApplyingLogo,
     previewLoading,
+    setPendingPreviewAction,
   } = useStore()
 
   const [logoUploading, setLogoUploading] = useState(false)
@@ -54,6 +55,7 @@ export default function LogoEditor() {
   const applyLogo = () => {
     if (isApplyingLogo || previewLoading) return
     setIsApplyingLogo(true)
+    setPendingPreviewAction('Logo applied successfully.')
     setLogoImage(logoDraftImage)
     setLogoSize(logoDraftSize)
     setLogoXY(logoDraftX ?? null, logoDraftY ?? null)

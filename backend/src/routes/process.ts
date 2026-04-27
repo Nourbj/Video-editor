@@ -41,6 +41,23 @@ export async function processRoute(app: FastifyInstance) {
     return candidates.find(candidate => fs.existsSync(candidate)) || null
   }
 
+  const resolveFinalOutputPath = (filename: string) => {
+    const safeName = path.basename(filename)
+    const candidate = path.join(process.cwd(), 'final-outputs', safeName)
+    return fs.existsSync(candidate) ? candidate : null
+  }
+
+  app.get('/export/download/:filename', async (req, reply) => {
+    const { filename } = req.params as { filename: string }
+    const filePath = resolveFinalOutputPath(filename)
+    if (!filePath) return reply.code(404).send({ error: 'Export file not found' })
+
+    const safeName = path.basename(filePath)
+    reply.header('Content-Type', 'application/octet-stream')
+    reply.header('Content-Disposition', `attachment; filename="${safeName}"`)
+    return reply.send(fs.createReadStream(filePath))
+  })
+
   app.post('/meta', async (req, reply) => {
     const { filename } = req.body as { filename: string }
     const filepath = resolveMediaPath(filename)
@@ -328,7 +345,12 @@ export async function processRoute(app: FastifyInstance) {
         replaceOriginal: body.replaceOriginal,
         outputDir: path.join(process.cwd(), 'final-outputs'),
       })
-      return { url: `/final-outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+      const filename = path.basename(outPath)
+      return {
+        url: `/final-outputs/${filename}`,
+        downloadUrl: `/api/export/download/${encodeURIComponent(filename)}`,
+        filename,
+      }
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Export failed'

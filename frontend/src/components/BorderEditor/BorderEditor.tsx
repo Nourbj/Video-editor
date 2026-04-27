@@ -9,6 +9,7 @@ export default function BorderEditor() {
     borderHeight, setBorderHeight,
     borderColor, setBorderColor,
     borderMode, setBorderMode,
+    setPendingPreviewAction,
   } = useStore()
 
   const [draftEnabled, setDraftEnabled] = useState(borderEnabled)
@@ -33,6 +34,7 @@ export default function BorderEditor() {
     draftMode !== borderMode
 
   const applyChanges = () => {
+    setPendingPreviewAction('Border applied successfully.')
     setBorderEnabled(draftEnabled)
     setBorderWidth(draftWidth)
     setBorderHeight(draftHeight)

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -27,8 +27,15 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boo
 ]
 
 function formatTime(s: number) {
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
+  const totalSeconds = Math.max(0, Math.floor(s))
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const sec = totalSeconds % 60
+
+  if (h > 0) {
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+  }
+
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
@@ -49,6 +56,8 @@ export default function App() {
     exportAspectRatio,
     processedUrl, setProcessedUrl,
     previewLoading, setPreviewLoading,
+    pendingPreviewAction, setPendingPreviewAction,
+    actionToasts, pushActionToast, removeActionToast,
   } = useStore()
 
   const [previewError, setPreviewError] = useState<string | null>(null)
@@ -107,8 +116,13 @@ export default function App() {
       })
 
       setProcessedUrl(result.url)
+      if (pendingPreviewAction) {
+        pushActionToast(pendingPreviewAction)
+        setPendingPreviewAction(null)
+      }
     } catch (e: unknown) {
       setPreviewError(e instanceof Error ? e.message : 'Preview failed')
+      if (pendingPreviewAction) setPendingPreviewAction(null)
     } finally {
       setPreviewLoading(false)
     }
@@ -148,9 +162,24 @@ export default function App() {
     logoSize,
     logoX,
     logoY,
+    pendingPreviewAction,
+    pushActionToast,
     setPreviewLoading,
+    setPendingPreviewAction,
     setProcessedUrl,
   ])
+
+  useEffect(() => {
+    if (actionToasts.length === 0) return
+
+    const timers = actionToasts.map(toast => window.setTimeout(() => {
+      removeActionToast(toast.id)
+    }, 2600))
+
+    return () => {
+      timers.forEach(timer => window.clearTimeout(timer))
+    }
+  }, [actionToasts, removeActionToast])
 
   useEffect(() => {
     if (!video) return
@@ -267,6 +296,24 @@ export default function App() {
   }, [handlePreview, previewLoading, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
+  const hasTrim = !!video && (trimStart > 0 || trimEnd < video.duration)
+  const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
+  const hasAppliedSubtitles = subtitles.length > 0 && !!subtitleFilename
+  const hasLogo = !!logoImage
+  const hasTitle = titleText.trim().length > 0
+  const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
+  const hasAppliedAudio = !!audioTrack && audioApplied
+  const hasExportChanges = exportQuality !== '720p' || exportAspectRatio !== 'original'
+  const completedTabs: Partial<Record<Tab, boolean>> = {
+    import: !!video,
+    edit: hasTrim || hasAppliedAudio || segments.length > 0,
+    crop: hasCrop,
+    subtitles: hasAppliedSubtitles,
+    logo: hasLogo,
+    title: hasTitle,
+    border: hasBorder,
+    export: hasExportChanges,
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -302,6 +349,7 @@ export default function App() {
               {TABS.map(tab => {
                 const disabled = tab.requiresVideo && !video
                 const active = activeTab === tab.id
+                const completed = !!completedTabs[tab.id]
                 return (
                   <button
                     key={tab.id}
@@ -316,8 +364,15 @@ export default function App() {
                   >
                     {tab.icon}
                     {tab.label}
+                    {completed && (
+                      <span className={`ml-auto flex h-5 w-5 items-center justify-center rounded-full ${
+                        active ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'
+                      }`}>
+                        <CheckCircle2 size={13} />
+                      </span>
+                    )}
                     {/* badges */}
-                    {tab.id === 'subtitles' && subtitles.length > 0 && (
+                    {tab.id === 'subtitles' && subtitles.length > 0 && !completed && (
                       <span className="ml-auto text-xs bg-zinc-200 text-zinc-600 rounded-full px-1.5 py-0.5">
                         {subtitles.length}
                       </span>
@@ -349,7 +404,10 @@ export default function App() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={handlePreview}
+                      onClick={() => {
+                        setPendingPreviewAction('Preview updated successfully.')
+                        void handlePreview()
+                      }}
                       disabled={previewLoading}
                       className="px-2 py-2 rounded-lg text-[11px] font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
                     >
@@ -373,6 +431,32 @@ export default function App() {
                 <div className="bg-white rounded-2xl border border-zinc-200 px-4 py-2">
                   <VideoPlayer />
                 </div>
+
+                {actionToasts.length > 0 && (
+                  <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                    {actionToasts.map(toast => (
+                      <div
+                        key={toast.id}
+                        className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(5,150,105,0.16)] backdrop-blur-sm"
+                      >
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                          <CheckCircle2 size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Preview</p>
+                          <p className="mt-1 text-sm text-zinc-700">{toast.message}</p>
+                        </div>
+                        <button
+                          onClick={() => removeActionToast(toast.id)}
+                          className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                          aria-label="Close notification"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Subtitle preview overlay info */}
                 {activeTab === 'subtitles' && subtitles.length > 0 && (
@@ -546,8 +630,15 @@ function EditPanel() {
 }
 
 function formatTime2(s: number) {
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
+  const totalSeconds = Math.max(0, Math.floor(s))
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const sec = totalSeconds % 60
+
+  if (h > 0) {
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+  }
+
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 

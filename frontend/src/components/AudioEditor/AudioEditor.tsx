@@ -11,6 +11,7 @@ export default function AudioEditor() {
     audioOffset,
     audioApplied, setAudioApplied, setAppliedAudioSettings,
     appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset,
+    setPendingPreviewAction,
   } = useStore()
 
   const [currentTime, setCurrentTime] = useState(0)
@@ -36,6 +37,12 @@ export default function AudioEditor() {
     const sec = Math.floor(s % 60)
     return `${m}:${sec.toString().padStart(2, '0')}`
   }
+  const hasPendingAudioChanges =
+    !audioApplied ||
+    replaceOriginalAudio !== appliedReplaceOriginal ||
+    audioTrimStart !== appliedAudioTrimStart ||
+    audioTrimEnd !== appliedAudioTrimEnd ||
+    audioOffset !== appliedAudioOffset
 
   return (
     <div className="space-y-3">
@@ -212,12 +219,17 @@ export default function AudioEditor() {
               </div>
             )}
             <button
-              onClick={() => setAppliedAudioSettings({
-                replaceOriginal: replaceOriginalAudio,
-                trimStart: audioTrimStart,
-                trimEnd: audioTrimEnd,
-                offset: audioOffset,
-              })}
+              onClick={() => {
+                if (hasPendingAudioChanges) {
+                  setPendingPreviewAction('Audio applied successfully.')
+                }
+                setAppliedAudioSettings({
+                  replaceOriginal: replaceOriginalAudio,
+                  trimStart: audioTrimStart,
+                  trimEnd: audioTrimEnd,
+                  offset: audioOffset,
+                })
+              }}
               className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
               <Music size={16} />

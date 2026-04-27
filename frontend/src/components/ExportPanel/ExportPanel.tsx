@@ -46,7 +46,7 @@ export default function ExportPanel() {
 
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState('')
-  const [done, setDone] = useState<string | null>(null)
+  const [done, setDone] = useState<{ url: string; downloadUrl: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exportTab, setExportTab] = useState<'ratio' | 'quality' | 'name' | 'summary'>('name')
 
@@ -116,7 +116,7 @@ export default function ExportPanel() {
       })
 
       setProcessedUrl(result.url)
-      setDone(result.url)
+      setDone({ url: result.url, downloadUrl: result.downloadUrl })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Export failed')
     } finally {
@@ -429,7 +429,7 @@ export default function ExportPanel() {
             Export complete!
           </div>
           <a
-            href={done}
+            href={done.downloadUrl}
             download={exportFilename.trim() ? `${exportFilename.trim()}.mp4` : undefined}
             className="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white rounded-xl font-semibold text-base text-center transition-colors flex items-center justify-center gap-2"
           >

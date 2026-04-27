@@ -6,8 +6,15 @@ import { getContainRect, getRenderedVideoDimensions } from '../../utils/videoLay
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
 function formatTime(s: number) {
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
+  const totalSeconds = Math.max(0, Math.floor(s))
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const sec = totalSeconds % 60
+
+  if (h > 0) {
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+  }
+
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 

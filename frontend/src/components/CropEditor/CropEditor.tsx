@@ -13,7 +13,7 @@ function formatPercent(value: number) {
 }
 
 export default function CropEditor() {
-  const { cropEnabled, cropDraftEnabled, setCropDraftEnabled, crop, cropDraft, setCropDraftTop, setCropDraftBottom, setCropDraftLeft, setCropDraftRight, resetCrop, applyCropDraft, previewLoading, processedUrl, setProcessedUrl } = useStore()
+  const { cropEnabled, cropDraftEnabled, setCropDraftEnabled, crop, cropDraft, setCropDraftTop, setCropDraftBottom, setCropDraftLeft, setCropDraftRight, resetCrop, applyCropDraft, previewLoading, processedUrl, setProcessedUrl, setPendingPreviewAction } = useStore()
   const cropTopPct = Math.round(cropDraft.top * 100)
   const cropBottomPct = Math.round(cropDraft.bottom * 100)
   const cropLeftPct = Math.round(cropDraft.left * 100)
@@ -32,6 +32,7 @@ export default function CropEditor() {
 
   const handleApplyCrop = () => {
     if (previewLoading || !canApply) return
+    setPendingPreviewAction('Crop applied successfully.')
     applyCropDraft()
   }
 

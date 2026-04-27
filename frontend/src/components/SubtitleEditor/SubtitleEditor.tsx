@@ -38,6 +38,7 @@ export default function SubtitleEditor() {
     setSubtitleStyle,
     subtitleAppliedSignature,
     setSubtitleAppliedSignature,
+    setPendingPreviewAction,
   } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +91,7 @@ export default function SubtitleEditor() {
     setError(null)
     try {
       const result = await createSubtitles(subtitles)
+      setPendingPreviewAction('Subtitles applied successfully.')
       setSubtitleFilename(result.filename)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
@@ -145,6 +147,7 @@ export default function SubtitleEditor() {
   const handleApply = async () => {
     if (subtitles.length === 0) return
     if (pendingSubtitleFilename) {
+      setPendingPreviewAction('Subtitles applied successfully.')
       setSubtitleFilename(pendingSubtitleFilename)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)

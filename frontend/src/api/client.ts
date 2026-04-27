@@ -4,6 +4,12 @@ import { withMediaBase } from '../utils/media'
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 const api = axios.create({ baseURL: apiBase })
 
+function withApiBase(url: string): string {
+  if (!url) return url
+  if (url.startsWith('http')) return url
+  return api.getUri({ url })
+}
+
 export function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   if (axios.isAxiosError(error)) {
     const apiMessage = error.response?.data?.error
@@ -221,7 +227,11 @@ export const exportVideo = async (params: {
   audioOffset?: number
 }) => {
   const { data } = await api.post('/export', params)
-  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
+  return {
+    ...data,
+    url: withMediaBase(data.url),
+    downloadUrl: withApiBase(data.downloadUrl || `/export/download/${encodeURIComponent(data.filename)}`),
+  } as { url: string; downloadUrl: string; filename: string }
 }
 
 export const previewVideo = async (params: {

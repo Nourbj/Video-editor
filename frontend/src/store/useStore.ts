@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { SubtitleEntry } from '../api/client'
 import { createId } from '../utils/id'
 
@@ -34,6 +35,11 @@ export interface CropSettings {
   bottom: number
   left: number
   right: number
+}
+
+export interface ActionToast {
+  id: string
+  message: string
 }
 
 export interface VideoSegment {
@@ -200,12 +206,76 @@ interface EditorState {
   setEditStatus: (s: string | null) => void
   previewLoading: boolean
   setPreviewLoading: (p: boolean) => void
+  pendingPreviewAction: string | null
+  setPendingPreviewAction: (message: string | null) => void
+  actionToasts: ActionToast[]
+  pushActionToast: (message: string) => void
+  removeActionToast: (id: string) => void
 
   seekTo: number | null
   setSeekTo: (t: number | null) => void
 
   reset: () => void
 }
+
+type PersistedEditorState = Pick<EditorState,
+  | 'video'
+  | 'trimStart'
+  | 'trimEnd'
+  | 'segments'
+  | 'audioTrack'
+  | 'replaceOriginalAudio'
+  | 'audioDuration'
+  | 'audioTrimStart'
+  | 'audioTrimEnd'
+  | 'audioOffset'
+  | 'audioApplied'
+  | 'appliedReplaceOriginal'
+  | 'appliedAudioTrimStart'
+  | 'appliedAudioTrimEnd'
+  | 'appliedAudioOffset'
+  | 'subtitles'
+  | 'subtitleFilename'
+  | 'subtitleStyle'
+  | 'subtitleAppliedSignature'
+  | 'logoImage'
+  | 'logoDraftImage'
+  | 'logoSize'
+  | 'logoDraftSize'
+  | 'logoX'
+  | 'logoY'
+  | 'logoDraftX'
+  | 'logoDraftY'
+  | 'titleText'
+  | 'titleDraftText'
+  | 'titleFont'
+  | 'titleSize'
+  | 'titleColor'
+  | 'titleBgColor'
+  | 'titleBorderColor'
+  | 'titleBorderWidth'
+  | 'titleFrameColor'
+  | 'titleFrameWidth'
+  | 'titlePadding'
+  | 'titleX'
+  | 'titleY'
+  | 'titleDraftX'
+  | 'titleDraftY'
+  | 'borderEnabled'
+  | 'borderWidth'
+  | 'borderHeight'
+  | 'borderColor'
+  | 'borderMode'
+  | 'cropEnabled'
+  | 'cropDraftEnabled'
+  | 'crop'
+  | 'cropDraft'
+  | 'exportQuality'
+  | 'exportAspectRatio'
+  | 'exportFilename'
+  | 'activeTab'
+  | 'processedUrl'
+>
 
 const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
 const defaultSubtitleColor = import.meta.env.VITE_SUBTITLE_DEFAULT_COLOR || '#ffffff'
@@ -224,7 +294,7 @@ const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
 const defaultCrop: CropSettings = { top: 0, bottom: 0, left: 0, right: 0 }
 
-export const useStore = create<EditorState>((set) => ({
+export const useStore = create<EditorState>()(persist((set) => ({
   video: null,
   setVideo: v => set(state => {
     const isReplacingVideo = !!state.video && state.video.id !== v?.id
@@ -241,6 +311,8 @@ export const useStore = create<EditorState>((set) => ({
       segments: [],
       editStatus: null,
       previewLoading: false,
+      pendingPreviewAction: null,
+      actionToasts: [],
       seekTo: null,
       exportFilename: '',
       subtitleAppliedSignature: null,
@@ -480,6 +552,15 @@ export const useStore = create<EditorState>((set) => ({
   setEditStatus: s => set({ editStatus: s }),
   previewLoading: false,
   setPreviewLoading: p => set({ previewLoading: p }),
+  pendingPreviewAction: null,
+  setPendingPreviewAction: message => set({ pendingPreviewAction: message }),
+  actionToasts: [],
+  pushActionToast: message => set(state => ({
+    actionToasts: [...state.actionToasts, { id: createId(), message }].slice(-4),
+  })),
+  removeActionToast: id => set(state => ({
+    actionToasts: state.actionToasts.filter(toast => toast.id !== id),
+  })),
 
   reset: () => set({
     video: null, trimStart: 0, trimEnd: 0,
@@ -532,9 +613,71 @@ export const useStore = create<EditorState>((set) => ({
     exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
     previewLoading: false,
+    pendingPreviewAction: null,
+    actionToasts: [],
     seekTo: null,
   }),
 
   seekTo: null,
   setSeekTo: t => set({ seekTo: t }),
+}), {
+  name: 'video-editor-project',
+  partialize: (state): PersistedEditorState => ({
+    video: state.video,
+    trimStart: state.trimStart,
+    trimEnd: state.trimEnd,
+    segments: state.segments,
+    audioTrack: state.audioTrack,
+    replaceOriginalAudio: state.replaceOriginalAudio,
+    audioDuration: state.audioDuration,
+    audioTrimStart: state.audioTrimStart,
+    audioTrimEnd: state.audioTrimEnd,
+    audioOffset: state.audioOffset,
+    audioApplied: state.audioApplied,
+    appliedReplaceOriginal: state.appliedReplaceOriginal,
+    appliedAudioTrimStart: state.appliedAudioTrimStart,
+    appliedAudioTrimEnd: state.appliedAudioTrimEnd,
+    appliedAudioOffset: state.appliedAudioOffset,
+    subtitles: state.subtitles,
+    subtitleFilename: state.subtitleFilename,
+    subtitleStyle: state.subtitleStyle,
+    subtitleAppliedSignature: state.subtitleAppliedSignature,
+    logoImage: state.logoImage,
+    logoDraftImage: state.logoDraftImage,
+    logoSize: state.logoSize,
+    logoDraftSize: state.logoDraftSize,
+    logoX: state.logoX,
+    logoY: state.logoY,
+    logoDraftX: state.logoDraftX,
+    logoDraftY: state.logoDraftY,
+    titleText: state.titleText,
+    titleDraftText: state.titleDraftText,
+    titleFont: state.titleFont,
+    titleSize: state.titleSize,
+    titleColor: state.titleColor,
+    titleBgColor: state.titleBgColor,
+    titleBorderColor: state.titleBorderColor,
+    titleBorderWidth: state.titleBorderWidth,
+    titleFrameColor: state.titleFrameColor,
+    titleFrameWidth: state.titleFrameWidth,
+    titlePadding: state.titlePadding,
+    titleX: state.titleX,
+    titleY: state.titleY,
+    titleDraftX: state.titleDraftX,
+    titleDraftY: state.titleDraftY,
+    borderEnabled: state.borderEnabled,
+    borderWidth: state.borderWidth,
+    borderHeight: state.borderHeight,
+    borderColor: state.borderColor,
+    borderMode: state.borderMode,
+    cropEnabled: state.cropEnabled,
+    cropDraftEnabled: state.cropDraftEnabled,
+    crop: state.crop,
+    cropDraft: state.cropDraft,
+    exportQuality: state.exportQuality,
+    exportAspectRatio: state.exportAspectRatio,
+    exportFilename: state.exportFilename,
+    activeTab: state.activeTab,
+    processedUrl: state.processedUrl,
+  }),
 }))
