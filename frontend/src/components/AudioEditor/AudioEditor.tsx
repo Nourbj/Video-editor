@@ -72,7 +72,7 @@ export default function AudioEditor() {
                   <p className="text-xs text-zinc-500">Audio track loaded</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setAudioTrack(null)}
                 aria-label="Remove audio track"
                 className="p-1.5 hover:bg-zinc-200 rounded-lg transition-colors text-zinc-500 hover:text-zinc-900"
@@ -189,7 +189,7 @@ export default function AudioEditor() {
               Mode
             </h3>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => { setReplaceOriginalAudio(false); setAudioApplied(false) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'
@@ -198,7 +198,7 @@ export default function AudioEditor() {
               >
                 Mix with original
               </button>
-              <button
+              <button type="button"
                 onClick={() => { setReplaceOriginalAudio(true); setAudioApplied(false) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${replaceOriginalAudio
                     ? 'bg-cyan-600 text-white'
@@ -218,7 +218,7 @@ export default function AudioEditor() {
                 </p>
               </div>
             )}
-            <button
+            <button type="button"
               onClick={() => {
                 if (hasPendingAudioChanges) {
                   setPendingPreviewAction('Audio applied successfully.')

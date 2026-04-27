@@ -45,6 +45,17 @@ function buildTicks(duration: number, step: number) {
   return ticks
 }
 
+function playPreview(videoEl: HTMLVideoElement) {
+  const playPromise = videoEl.play()
+  if (!playPromise || typeof playPromise.catch !== 'function') return
+
+  playPromise.catch(error => {
+    // Fast hover in/out can interrupt play() with pause(); ignore that browser noise.
+    if (error instanceof DOMException && error.name === 'AbortError') return
+    console.error('Preview playback failed:', error)
+  })
+}
+
 export default function VideoTimeline({
   currentTime,
   onSeek,
@@ -59,7 +70,9 @@ export default function VideoTimeline({
     setTrimStart,
     setTrimEnd,
     segments,
+    segmentHistory,
     addSegment,
+    addSegmentHistoryEntry,
     setEditStatus,
     audioTrack,
     audioDuration,
@@ -75,6 +88,7 @@ export default function VideoTimeline({
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
     appliedAudioOffset,
+    setMergedVideo,
   } = useStore()
 
   const [dragging, setDragging] = useState<DragMode>(null)
@@ -480,13 +494,13 @@ export default function VideoTimeline({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <button type="button"
             onClick={handleAddSegment}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium transition-colors"
           >
             <Scissors size={14} /> Cut Selection
           </button>
-          <button
+          <button type="button"
             onClick={() => applySelection(0, videoDuration)}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-cyan-200 text-cyan-800 text-xs font-medium hover:bg-cyan-50"
           >
@@ -502,14 +516,16 @@ export function EditSidebar() {
   const {
     video,
     segments,
+    segmentHistory,
     clearSegments,
     reorderSegments,
     removeSegment,
+    addSegmentHistoryEntry,
     trimStart,
     trimEnd,
     setTrimStart,
     setTrimEnd,
-    setVideo,
+    setMergedVideo,
     setProcessedUrl,
     editStatus,
     setEditStatus,
@@ -548,7 +564,17 @@ export function EditSidebar() {
 
       const nextDuration = segments.reduce((total, segment) => total + Math.max(0, segment.end - segment.start), 0)
 
-      setVideo({
+      addSegmentHistoryEntry({
+        label: `Merged timeline ${new Date().toLocaleTimeString()}`,
+        start: 0,
+        end: nextDuration,
+        outputFilename: result.filename,
+        outputUrl: result.url,
+        isGenerating: false,
+        kind: 'merge',
+      })
+
+      setMergedVideo({
         ...video,
         id: createId(),
         filename: result.filename,
@@ -595,6 +621,11 @@ export function EditSidebar() {
     setEditStatus('Clip list cleared.')
   }
 
+  const archivedSegments = useMemo(
+    () => segments.length === 0 ? [...segmentHistory].reverse() : [],
+    [segmentHistory, segments.length],
+  )
+
   return (
     <div className="space-y-2">
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-2">
@@ -603,7 +634,7 @@ export function EditSidebar() {
             <p className="text-xs text-yellow-600">Clips - Drag to reorder your clips</p>
           </div>
           {segments.length > 0 && (
-            <button
+            <button type="button"
               onClick={() => { void handleClearSegments() }}
               className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
             >
@@ -660,7 +691,7 @@ export function EditSidebar() {
                         src={`${video.url}#t=${segment.start},${segment.end}`}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
                         muted
-                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseEnter={e => playPreview(e.currentTarget)}
                         onMouseLeave={(e) => {
                           e.currentTarget.pause()
                           e.currentTarget.currentTime = segment.start
@@ -725,7 +756,7 @@ export function EditSidebar() {
                           <Download size={15} />
                         </a>
                       )}
-                      <button
+                      <button type="button"
                         onClick={e => {
                           e.stopPropagation()
                           void handleRemoveSegment(segment.id)
@@ -756,12 +787,82 @@ export function EditSidebar() {
         </div>
       </div>
 
+      {archivedSegments.length > 0 && (
+        <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-2">
+          <div>
+            <p className="text-xs text-zinc-500">History - Previous cut/merge actions</p>
+          </div>
+          <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
+            {archivedSegments.map((segment, index) => (
+              <div
+                key={segment.id}
+                className="relative flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/70 px-2 py-3"
+              >
+                <div className="w-44 aspect-video bg-black rounded-2xl overflow-hidden relative flex-shrink-0 border border-zinc-200 shadow-sm ring-1 ring-zinc-950/5">
+                  {segment.outputUrl ? (
+                    <video
+                      src={withMediaBase(segment.outputUrl!)}
+                      className="w-full h-full object-cover"
+                      muted
+                      onMouseEnter={e => playPreview(e.currentTarget)}
+                      onMouseLeave={e => {
+                        e.currentTarget.pause()
+                        e.currentTarget.currentTime = 0
+                      }}
+                      preload="metadata"
+                      playsInline
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                      No preview
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
+                    {formatTime(segment.end - segment.start)}
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1 pr-12">
+                  <p className="truncate text-base font-bold tracking-tight text-zinc-800">
+                    {segment.label || `${segment.kind === 'merge' ? 'Merge' : 'Clip'} ${index + 1}`}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <div className="px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-2 border bg-white border-zinc-200 text-zinc-500">
+                      <Play size={10} className="fill-current" />
+                      {formatTime(segment.start)} <span className="opacity-30">—</span> {formatTime(segment.end)}
+                    </div>
+                    <div className={`px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wide border ${
+                      segment.kind === 'merge'
+                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                        : 'bg-cyan-50 border-cyan-100 text-cyan-700'
+                    }`}>
+                      {segment.kind === 'merge' ? 'Merged' : 'Cut'}
+                    </div>
+                  </div>
+                </div>
+
+                {segment.outputUrl && (
+                  <a
+                    href={withMediaBase(segment.outputUrl!)}
+                    download
+                    className="absolute right-3 top-3 p-2 rounded-xl bg-white/90 backdrop-blur-sm border border-zinc-100 text-zinc-400 hover:text-cyan-600 hover:border-cyan-200 hover:bg-cyan-50 shadow-sm transition-all duration-200"
+                    title="Download clip from history"
+                  >
+                    <Download size={15} />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-zinc-200 px-3 py-3 space-y-3">
         <div>
           <p className="text-xs text-green-600">Export - Merge the timeline</p>
         </div>
         <div className="grid grid-cols-1 gap-2">
-          <button
+          <button type="button"
             onClick={handleMerge}
             disabled={mergeLoading || segments.length < 2}
             className="py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"

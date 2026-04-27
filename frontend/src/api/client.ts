@@ -7,6 +7,7 @@ const api = axios.create({ baseURL: apiBase })
 function withApiBase(url: string): string {
   if (!url) return url
   if (url.startsWith('http')) return url
+  if (url.startsWith(apiBase)) return url
   return api.getUri({ url })
 }
 

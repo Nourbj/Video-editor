@@ -62,7 +62,7 @@ export default function CropEditor() {
               <div className="text-xs text-zinc-500">Enable crop, adjust the frame, then click Rogner to apply it.</div>
             </div>
           </div>
-          <button
+          <button type="button"
             onClick={handleResetCrop}
             disabled={previewLoading || (!cropDraftEnabled && !hasDraftCrop)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -117,7 +117,7 @@ export default function CropEditor() {
         <MetricCard label="Horizontal keep" value={formatPercent(1 - cropDraft.left - cropDraft.right)} />
       </div>
 
-      <button
+      <button type="button"
         onClick={handleApplyCrop}
         disabled={!canApply || previewLoading}
         className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"

@@ -69,7 +69,7 @@ export default function BorderEditor() {
               { id: 'inside', label: 'Inside (crop)' },
               { id: 'outside', label: 'Outside (pad)' },
             ] as const).map(option => (
-              <button
+              <button type="button"
                 key={option.id}
                 onClick={() => setDraftMode(option.id)}
                 disabled={!draftEnabled}
@@ -144,7 +144,7 @@ export default function BorderEditor() {
         </div>
       </div>
 
-      <button
+      <button type="button"
         onClick={applyChanges}
         disabled={!hasChanges}
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"

@@ -150,7 +150,7 @@ export default function ExportPanel() {
             { id: 'ratio', label: 'Aspect ratio' },
             { id: 'summary', label: 'Summary' },
           ] as const).map(tab => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setExportTab(tab.id)}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -187,7 +187,7 @@ export default function ExportPanel() {
           <label className="text-sm font-medium text-zinc-700">Output quality</label>
           <div className="flex gap-2">
             {(['480p', '720p', '1080p'] as const).map(q => (
-              <button
+              <button type="button"
                 key={q}
                 onClick={() => setExportQuality(q)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -280,7 +280,7 @@ export default function ExportPanel() {
               ],
             },
           ] as const).map(r => (
-            <button
+            <button type="button"
               key={`${r.id}-${r.label}`}
               onClick={() => setExportAspectRatio(r.id)}
               className={`p-2 rounded-xl text-sm font-medium transition-all ${exportAspectRatio === r.id
@@ -405,7 +405,7 @@ export default function ExportPanel() {
 
       {/* Export button */}
       {!done ? (
-        <button
+        <button type="button"
           onClick={handleExport}
           disabled={loading}
           className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
@@ -436,7 +436,7 @@ export default function ExportPanel() {
             <Download size={18} />
             Download MP4
           </a>
-          <button
+          <button type="button"
             onClick={() => { setDone(null); setError(null) }}
             className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm transition-colors"
           >

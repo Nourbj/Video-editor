@@ -42,6 +42,11 @@ export interface ActionToast {
   message: string
 }
 
+export interface ActionHistoryEntry {
+  id: string
+  message: string
+}
+
 export interface VideoSegment {
   id: string
   label: string
@@ -50,6 +55,7 @@ export interface VideoSegment {
   outputFilename: string | null
   outputUrl: string | null
   isGenerating?: boolean
+  kind?: 'cut' | 'merge'
 }
 
 export type TitlePosition =
@@ -66,13 +72,17 @@ interface EditorState {
   setTrimStart: (t: number) => void
   setTrimEnd: (t: number) => void
   segments: VideoSegment[]
+  segmentHistory: VideoSegment[]
   addSegment: (segment: Omit<VideoSegment, 'id' | 'outputFilename' | 'outputUrl'>) => string
+  addSegmentHistoryEntry: (segment: Omit<VideoSegment, 'id'>) => string
   removeSegment: (id: string) => void
   clearSegments: () => void
+  clearSegmentHistory: () => void
   reorderSegments: (activeId: string, overId: string) => void
   resetSegmentOutputs: () => void
   setSegmentOutput: (id: string, output: { filename: string; url: string }) => void
   setSegmentGenerating: (id: string, generating: boolean) => void
+  setMergedVideo: (v: VideoProject) => void
 
   audioTrack: AudioTrack | null
   setAudioTrack: (a: AudioTrack | null) => void
@@ -209,6 +219,7 @@ interface EditorState {
   pendingPreviewAction: string | null
   setPendingPreviewAction: (message: string | null) => void
   actionToasts: ActionToast[]
+  actionHistory: ActionHistoryEntry[]
   pushActionToast: (message: string) => void
   removeActionToast: (id: string) => void
 
@@ -223,6 +234,7 @@ type PersistedEditorState = Pick<EditorState,
   | 'trimStart'
   | 'trimEnd'
   | 'segments'
+  | 'segmentHistory'
   | 'audioTrack'
   | 'replaceOriginalAudio'
   | 'audioDuration'
@@ -275,6 +287,7 @@ type PersistedEditorState = Pick<EditorState,
   | 'exportFilename'
   | 'activeTab'
   | 'processedUrl'
+  | 'actionHistory'
 >
 
 const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
@@ -309,10 +322,12 @@ export const useStore = create<EditorState>()(persist((set) => ({
       cropDraft: defaultCrop,
       processedUrl: null,
       segments: [],
+      segmentHistory: [],
       editStatus: null,
       previewLoading: false,
       pendingPreviewAction: null,
       actionToasts: [],
+      actionHistory: [],
       seekTo: null,
       exportFilename: '',
       subtitleAppliedSignature: null,
@@ -360,6 +375,32 @@ export const useStore = create<EditorState>()(persist((set) => ({
           outputFilename: null,
           outputUrl: null,
           isGenerating: false,
+          kind: segment.kind || 'cut',
+        },
+      ],
+      segmentHistory: [
+        ...state.segmentHistory,
+        {
+          ...segment,
+          id,
+          outputFilename: null,
+          outputUrl: null,
+          isGenerating: false,
+          kind: segment.kind || 'cut',
+        },
+      ],
+    }))
+    return id
+  },
+  segmentHistory: [],
+  addSegmentHistoryEntry: segment => {
+    const id = createId()
+    set(state => ({
+      segmentHistory: [
+        ...state.segmentHistory,
+        {
+          ...segment,
+          id,
         },
       ],
     }))
@@ -367,6 +408,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   },
   removeSegment: id => set(state => ({ segments: state.segments.filter(segment => segment.id !== id) })),
   clearSegments: () => set({ segments: [] }),
+  clearSegmentHistory: () => set({ segmentHistory: [] }),
   reorderSegments: (activeId, overId) => set(state => {
     if (activeId === overId) return state
     const fromIndex = state.segments.findIndex(segment => segment.id === activeId)
@@ -383,9 +425,17 @@ export const useStore = create<EditorState>()(persist((set) => ({
       outputFilename: null,
       outputUrl: null,
     })),
+    segmentHistory: state.segmentHistory.map(segment => ({
+      ...segment,
+      outputFilename: null,
+      outputUrl: null,
+    })),
   })),
   setSegmentOutput: (id, output) => set(state => ({
     segments: state.segments.map(segment => segment.id === id
+      ? { ...segment, outputFilename: output.filename, outputUrl: output.url, isGenerating: false }
+      : segment),
+    segmentHistory: state.segmentHistory.map(segment => segment.id === id
       ? { ...segment, outputFilename: output.filename, outputUrl: output.url, isGenerating: false }
       : segment),
   })),
@@ -393,6 +443,27 @@ export const useStore = create<EditorState>()(persist((set) => ({
     segments: state.segments.map(segment => segment.id === id
       ? { ...segment, isGenerating: generating }
       : segment),
+    segmentHistory: state.segmentHistory.map(segment => segment.id === id
+      ? { ...segment, isGenerating: generating }
+      : segment),
+  })),
+  setMergedVideo: v => set(state => ({
+    video: v,
+    trimStart: 0,
+    trimEnd: v.duration || 0,
+    cropEnabled: false,
+    cropDraftEnabled: false,
+    crop: defaultCrop,
+    cropDraft: defaultCrop,
+    processedUrl: null,
+    segments: [],
+    editStatus: null,
+    previewLoading: false,
+    pendingPreviewAction: null,
+    actionToasts: [],
+    seekTo: null,
+    exportFilename: '',
+    subtitleAppliedSignature: null,
   })),
 
   audioTrack: null,
@@ -555,8 +626,10 @@ export const useStore = create<EditorState>()(persist((set) => ({
   pendingPreviewAction: null,
   setPendingPreviewAction: message => set({ pendingPreviewAction: message }),
   actionToasts: [],
+  actionHistory: [],
   pushActionToast: message => set(state => ({
     actionToasts: [...state.actionToasts, { id: createId(), message }].slice(-4),
+    actionHistory: [...state.actionHistory, { id: createId(), message }].slice(-6),
   })),
   removeActionToast: id => set(state => ({
     actionToasts: state.actionToasts.filter(toast => toast.id !== id),
@@ -615,6 +688,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
     previewLoading: false,
     pendingPreviewAction: null,
     actionToasts: [],
+    actionHistory: [],
+    segmentHistory: [],
     seekTo: null,
   }),
 
@@ -627,6 +702,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     trimStart: state.trimStart,
     trimEnd: state.trimEnd,
     segments: state.segments,
+    segmentHistory: state.segmentHistory,
     audioTrack: state.audioTrack,
     replaceOriginalAudio: state.replaceOriginalAudio,
     audioDuration: state.audioDuration,
@@ -679,5 +755,6 @@ export const useStore = create<EditorState>()(persist((set) => ({
     exportFilename: state.exportFilename,
     activeTab: state.activeTab,
     processedUrl: state.processedUrl,
+    actionHistory: state.actionHistory,
   }),
 }))

@@ -100,7 +100,7 @@ export default function AudioUploadSection() {
                                 <p className="text-xs text-blue-700 mt-0.5">Audio track loaded</p>
                             </div>
                         </div>
-                        <button
+                        <button type="button"
                             onClick={() => setAudioTrack(null)}
                             className="p-1 hover:bg-blue-200 rounded-lg transition-colors text-blue-600"
                             aria-label="Remove audio track"
@@ -113,14 +113,14 @@ export default function AudioUploadSection() {
                 <>
                     {/* Tab switcher */}
                     <div className="flex gap-2 border-b border-zinc-200">
-                        <button
+                        <button type="button"
                             onClick={() => setTab('file')}
                             className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${tab === 'file' ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
                         >
                             <Upload size={13} /> File
                         </button>
-                        <button
+                        <button type="button"
                             onClick={() => setTab('url')}
                             className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${tab === 'url' ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
@@ -169,7 +169,7 @@ export default function AudioUploadSection() {
                                     className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all text-sm"
                                 />
                             </div>
-                            <button
+                            <button type="button"
                                 onClick={handleAudioUrl}
                                 disabled={audioLoading || !audioUrlInput.trim()}
                                 className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full text-sm"

@@ -82,7 +82,7 @@ export default function LogoEditor() {
             className="hidden"
             onChange={e => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
           />
-          <button
+          <button type="button"
             onClick={() => logoFileRef.current?.click()}
             disabled={logoUploading}
             className="px-3 py-2 rounded-lg text-xs font-medium bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 disabled:bg-zinc-200 disabled:text-zinc-400 transition-colors"
@@ -93,7 +93,7 @@ export default function LogoEditor() {
             <div className="flex items-center gap-2 text-xs text-zinc-600">
               <img src={logoDraftImage!.url} alt="" className="w-10 h-10 rounded-md object-contain bg-white border border-zinc-200" />
               <span className="truncate max-w-[160px]">{logoDraftImage!.filename}</span>
-              <button
+              <button type="button"
                 onClick={() => {
                   setLogoImage(null)
                   setLogoDraftImage(null)
@@ -137,7 +137,7 @@ export default function LogoEditor() {
         </div>
       </div>
 
-      <button
+      <button type="button"
         onClick={applyLogo}
         disabled={!hasLogo || !hasChanges || logoUploading || isApplyingLogo || previewLoading}
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"

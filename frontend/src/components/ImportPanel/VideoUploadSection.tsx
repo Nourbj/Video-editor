@@ -77,7 +77,7 @@ export default function VideoUploadSection() {
                                 <p className="text-xs text-green-700 mt-0.5">{video.filename}</p>
                             </div>
                         </div>
-                        <button
+                        <button type="button"
                             onClick={() => setVideo(null)}
                             className="p-1 hover:bg-green-200 rounded-lg transition-colors text-green-600"
                             aria-label="Remove video"
@@ -90,14 +90,14 @@ export default function VideoUploadSection() {
                 <>
                     {/* Tab switcher for File/URL */}
                     <div className="flex gap-2 border-b border-zinc-200">
-                        <button
+                        <button type="button"
                             onClick={() => setVideoTab('file')}
                             className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${videoTab === 'file' ? 'border-cyan-600 text-cyan-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
                         >
                             <Upload size={13} /> File
                         </button>
-                        <button
+                        <button type="button"
                             onClick={() => setVideoTab('url')}
                             className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${videoTab === 'url' ? 'border-cyan-600 text-cyan-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
                                 }`}
@@ -158,7 +158,7 @@ export default function VideoUploadSection() {
                                     className="w-full bg-white border border-zinc-300 rounded-xl pl-10 pr-4 py-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all text-sm"
                                 />
                             </div>
-                            <button
+                            <button type="button"
                                 onClick={handleUrlDownload}
                                 disabled={videoLoading || !videoUrlInput.trim()}
                                 className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 w-full text-sm"

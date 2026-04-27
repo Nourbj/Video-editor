@@ -280,7 +280,7 @@ export default function TitleEditor() {
         </div>
       </div>
 
-      <button
+      <button type="button"
         onClick={applyChanges}
         disabled={!hasChanges || isApplyingTitle || previewLoading}
         className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"

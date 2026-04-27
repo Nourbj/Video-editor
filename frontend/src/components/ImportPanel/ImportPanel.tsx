@@ -19,7 +19,7 @@ export default function ImportPanel() {
             { id: 'video', label: 'Video' },
             { id: 'audio', label: 'Audio' },
           ].map(tab => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setImportTab(tab.id as typeof importTab)}
               className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${importTab === tab.id

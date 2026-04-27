@@ -221,7 +221,7 @@ export default function SubtitleEditor() {
             { id: 'import', label: 'Import .srt' },
             { id: 'ai', label: 'AI' },
           ].map(tab => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveMode(tab.id as typeof activeMode)}
               className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
@@ -239,7 +239,7 @@ export default function SubtitleEditor() {
       {/* Tab content */}
       {activeMode === 'manual' && (
         <div className="flex flex-wrap gap-2">
-          <button
+          <button type="button"
             onClick={addEntry}
             className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
           >
@@ -301,7 +301,7 @@ export default function SubtitleEditor() {
               }}
             />
           </div>
-          <button
+          <button type="button"
             onClick={() => pendingSrt && handleUploadSRT(pendingSrt)}
             disabled={!pendingSrt || uploadLoading}
             className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
@@ -355,7 +355,7 @@ export default function SubtitleEditor() {
             />
             Fast mode (less accurate)
           </label>
-          <button
+          <button type="button"
             onClick={handleAutoSubtitles}
             disabled={!video || autoLoading}
             className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
@@ -366,7 +366,7 @@ export default function SubtitleEditor() {
         </div>
       )}
 
-      <button
+      <button type="button"
         onClick={handleApply}
         disabled={!canApply || isApplying}
         className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
@@ -407,7 +407,7 @@ export default function SubtitleEditor() {
                   aria-label={`End time for subtitle ${entry.index}`}
                   className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
-                <button
+                <button type="button"
                   onClick={() => removeEntry(i)}
                   className="p-1 hover:bg-red-500/10 rounded text-zinc-500 hover:text-red-500 transition-colors"
                 >

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -43,7 +43,7 @@ export default function App() {
   const {
     video, activeTab, setActiveTab, reset,
     trimStart, trimEnd,
-    segments,
+    segments, segmentHistory,
     audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename,
     subtitleStyle,
@@ -57,10 +57,11 @@ export default function App() {
     processedUrl, setProcessedUrl,
     previewLoading, setPreviewLoading,
     pendingPreviewAction, setPendingPreviewAction,
-    actionToasts, pushActionToast, removeActionToast,
+    actionToasts, actionHistory, pushActionToast, removeActionToast,
   } = useStore()
 
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [actionsOpen, setActionsOpen] = useState(false)
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
@@ -296,6 +297,8 @@ export default function App() {
   }, [handlePreview, previewLoading, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
+  const recentActions = actionHistory.slice(-6).reverse()
+  const showActionHistoryCard = recentActions.length > 0
   const hasTrim = !!video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
   const hasAppliedSubtitles = subtitles.length > 0 && !!subtitleFilename
@@ -306,7 +309,7 @@ export default function App() {
   const hasExportChanges = exportQuality !== '720p' || exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     import: !!video,
-    edit: hasTrim || hasAppliedAudio || segments.length > 0,
+    edit: hasTrim || hasAppliedAudio || segments.length > 0 || segmentHistory.length > 0,
     crop: hasCrop,
     subtitles: hasAppliedSubtitles,
     logo: hasLogo,
@@ -318,7 +321,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <header className="border-b border-zinc-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="w-full px-8 h-14 flex items-center justify-start gap-4">
+        <div className="w-full px-8 min-h-14 py-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
               <Film size={16} className="text-white" />
@@ -327,11 +330,39 @@ export default function App() {
           </div>
 
           {video && (
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-zinc-500 max-w-xs truncate hidden sm:block">
+            <div className="flex items-center justify-end gap-2 sm:gap-3 ml-auto">
+              <div className="text-xs text-zinc-500 max-w-[12rem] sm:max-w-xs truncate hidden sm:block">
                 {video.title}
               </div>
+              {showActionHistoryCard && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setActionsOpen(open => !open)}
+                    className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                    aria-label="Toggle recent actions"
+                  >
+                    <History size={13} />
+                    <span className="hidden sm:inline">Recent actions</span>
+                    <ChevronDown size={13} className={`transition-transform ${actionsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {actionsOpen && (
+                    <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[80] w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-zinc-200 bg-white p-3 shadow-[0_18px_40px_rgba(24,24,27,0.12)]">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Recent actions</p>
+                      <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
+                        {recentActions.map(action => (
+                          <div key={action.id} className="flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2">
+                            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-zinc-400" />
+                            <p className="min-w-0 text-sm text-zinc-700">{action.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <button
+                type="button"
                 onClick={reset}
                 className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
               >
@@ -352,6 +383,7 @@ export default function App() {
                 const completed = !!completedTabs[tab.id]
                 return (
                   <button
+                    type="button"
                     key={tab.id}
                     onClick={() => !disabled && setActiveTab(tab.id)}
                     disabled={disabled}
@@ -404,6 +436,7 @@ export default function App() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => {
                         setPendingPreviewAction('Preview updated successfully.')
                         void handlePreview()
@@ -447,6 +480,7 @@ export default function App() {
                           <p className="mt-1 text-sm text-zinc-700">{toast.message}</p>
                         </div>
                         <button
+                          type="button"
                           onClick={() => removeActionToast(toast.id)}
                           className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
                           aria-label="Close notification"
@@ -547,6 +581,7 @@ function EditPanel() {
       {/* Edit Tabs */}
       <div className="flex gap-2 border-b border-zinc-200">
         <button
+          type="button"
           onClick={() => setEditTab('video')}
           className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${editTab === 'video' ? 'border-cyan-600 text-cyan-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
             }`}
@@ -554,6 +589,7 @@ function EditPanel() {
           <Film size={13} /> Video
         </button>
         <button
+          type="button"
           onClick={() => setEditTab('audio')}
           className={`py-2 px-1 text-xs font-medium transition-all flex items-center justify-center gap-1.5 border-b-2 ${editTab === 'audio' ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-500 hover:text-zinc-600'
             }`}
@@ -576,6 +612,7 @@ function EditPanel() {
                   <span className="text-sm font-semibold text-zinc-900">{formatTime2(trimStart)}</span>
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => nudgeStart(-1)}
                       className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
                       aria-label="Move start earlier by one second"
@@ -583,6 +620,7 @@ function EditPanel() {
                       <ChevronLeft size={12} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => nudgeStart(1)}
                       className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
                       aria-label="Move start later by one second"
@@ -599,6 +637,7 @@ function EditPanel() {
                   <span className="text-sm font-semibold text-zinc-900">{formatTime2(trimEnd)}</span>
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => nudgeEnd(-1)}
                       className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
                       aria-label="Move end earlier by one second"
@@ -606,6 +645,7 @@ function EditPanel() {
                       <ChevronLeft size={12} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => nudgeEnd(1)}
                       className="rounded-md border border-cyan-200 bg-cyan-50 p-1 text-cyan-700 hover:bg-cyan-100"
                       aria-label="Move end later by one second"
