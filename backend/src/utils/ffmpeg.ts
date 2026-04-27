@@ -352,17 +352,21 @@ function buildLogoOverlayFilters(params: {
   size?: number
   x?: number
   y?: number
+  isGif?: boolean
+  estimatedVideoWidth: number
 }) {
   const sizePct = clamp(params.size ?? 15, 5, 60)
+  const targetW = Math.max(1, Math.round((params.estimatedVideoWidth * sizePct) / 100))
 
   const logoIn = `[${params.logoInputIndex}:v]`
   const x = `((${clamp(params.x ?? 0.9, 0, 1)}*main_w)-(overlay_w/2))`
   const y = `((${clamp(params.y ?? 0.1, 0, 1)}*main_h)-(overlay_h/2))`
 
+  const shortestOpt = params.isGif ? ':shortest=1' : ''
+
   return [
-    `${logoIn}format=rgba[logo]`,
-    `[logo][${params.baseLabel}]scale2ref=w=main_w*${sizePct}/100:h=-1[logo_s][vref]`,
-    `[vref][logo_s]overlay=${x}:${y}:shortest=1[vout]`,
+    `${logoIn}format=rgba,scale=${targetW}:-1[logo_s]`,
+    `[${params.baseLabel}][logo_s]overlay=${x}:${y}${shortestOpt}[vout]`,
   ]
 }
 
@@ -564,19 +568,34 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
     const hasLogo = !!(logoPath && fs.existsSync(logoPath))
 
     const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
-    let estimatedVideoWidth = scaleMap[quality] || 1280
+    const baseLong = scaleMap[quality] || 1280
+    let estimatedVideoWidth = baseLong
     if (aspectRatio && aspectRatio !== 'original') {
-      const ar = aspectRatioMap[aspectRatio]
-      if (ar && ar.h > ar.w) {
-        estimatedVideoWidth = Math.round(estimatedVideoWidth * ar.w / ar.h)
+      const ar = aspectRatioMap[aspectRatio] || aspectRatioMap['16:9']
+      const ratio = ar.w / ar.h
+      if (ratio < 1) {
+        estimatedVideoWidth = makeEven(baseLong * ratio)
+      } else {
+        estimatedVideoWidth = makeEven(baseLong)
       }
+    }
+
+    if (borderStyle?.enabled && borderStyle.mode === 'outside') {
+      const sizeX = clamp(Number(borderStyle.sizeX ?? 0), 0, 300)
+      estimatedVideoWidth += sizeX * 2
     }
 
     const titleFilter = buildTitleDrawtext(titleStyle, borderStyle, estimatedVideoWidth)
     const borderFilter = buildBorderFilter(borderStyle)
 
+    const isGif = hasLogo && logoPath!.toLowerCase().endsWith('.gif')
     if (hasAudio) cmd.input(audioPath!)
-    if (hasLogo) cmd.input(logoPath!).inputOptions(['-loop 1'])
+    if (hasLogo) {
+      cmd.input(logoPath!)
+      if (isGif) {
+        cmd.inputOptions(['-ignore_loop 0'])
+      }
+    }
 
     const subtitleFilter = subtitlePath && fs.existsSync(subtitlePath)
       ? (() => {
@@ -603,6 +622,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
           size: logoSize,
           x: options.logoX,
           y: options.logoY,
+          isGif,
+          estimatedVideoWidth,
         }))
       }
 
