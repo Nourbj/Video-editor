@@ -13,6 +13,7 @@ export default function LogoEditor() {
     logoX, logoY, setLogoXY,
     isApplyingLogo, setIsApplyingLogo,
     previewLoading,
+    processedUrl, setProcessedUrl,
   } = useStore()
 
   const [logoUploading, setLogoUploading] = useState(false)
@@ -57,6 +58,7 @@ export default function LogoEditor() {
     setLogoImage(logoDraftImage)
     setLogoSize(logoDraftSize)
     setLogoXY(logoDraftX ?? null, logoDraftY ?? null)
+    if (processedUrl) setProcessedUrl(null)
     window.setTimeout(() => setIsApplyingLogo(false), 0)
   }
 
@@ -121,7 +123,10 @@ export default function LogoEditor() {
             max={60}
             step={1}
             value={logoDraftSize}
-            onChange={e => setLogoDraftSize(Number(e.target.value))}
+            onChange={e => {
+              setLogoDraftSize(Number(e.target.value))
+              if (processedUrl) setProcessedUrl(null)
+            }}
             disabled={!hasLogo}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
