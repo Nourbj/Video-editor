@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { Music, X, Replace, ArrowRight } from 'lucide-react'
+import { Music, X, Replace, ArrowRight, Scissors } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
 export default function AudioEditor() {
@@ -11,6 +11,7 @@ export default function AudioEditor() {
     audioOffset,
     audioApplied, setAudioApplied, setAppliedAudioSettings,
     appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset,
+    previewLoading,
     setPendingPreviewAction,
   } = useStore()
 
@@ -43,9 +44,10 @@ export default function AudioEditor() {
     audioTrimStart !== appliedAudioTrimStart ||
     audioTrimEnd !== appliedAudioTrimEnd ||
     audioOffset !== appliedAudioOffset
+  const controlsDisabled = previewLoading
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h3 className="text-sm font-semibold text-zinc-900 mb-1 flex items-center gap-2">
           <Music size={16} />
@@ -61,15 +63,14 @@ export default function AudioEditor() {
         </div>
       ) : (
         <>
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-200">
+          <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-cyan-600/20 rounded-lg flex items-center justify-center">
                   <Music size={18} className="text-cyan-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{audioTrack.filename}</p>
-                  <p className="text-xs text-zinc-500">Audio track loaded</p>
+                  <p className="text-[14px] font-medium text-zinc-900">{audioTrack.filename}</p>
                 </div>
               </div>
               <button type="button"
@@ -133,8 +134,11 @@ export default function AudioEditor() {
 
           <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-700">Trim</h3>
-              <p className="text-xs text-zinc-500">
+              <h3 className="text-sm font-medium text-zinc-700 flex items-center gap-2">
+                <Scissors size={14} />
+                Trim
+              </h3>
+              <p className="text-[12px] text-zinc-500">
                 Selection: {formatTime(Math.max(0, audioTrimEnd - audioTrimStart))} ({formatTime(audioTrimStart)}  {formatTime(audioTrimEnd)})
               </p>
             </div>
@@ -149,8 +153,9 @@ export default function AudioEditor() {
                     if (v < audioTrimEnd) setAudioTrimStart(v)
                     setAudioApplied(false)
                   }}
+                  disabled={controlsDisabled}
                   aria-label="Audio trim start"
-                  className="flex-1 accent-yellow-600 h-1"
+                  className="flex-1 accent-yellow-600 h-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -162,8 +167,9 @@ export default function AudioEditor() {
                     if (v > audioTrimStart) setAudioTrimEnd(v)
                     setAudioApplied(false)
                   }}
+                  disabled={controlsDisabled}
                   aria-label="Audio trim end"
-                  className="flex-1 accent-yellow-600 h-1"
+                  className="flex-1 accent-yellow-600 h-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -183,15 +189,16 @@ export default function AudioEditor() {
             </div>
           </div>
 
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
+          <div className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
             <h3 className="text-sm font-medium text-zinc-700 flex items-center gap-2">
-              <Replace size={14} />
+              <Replace size={12} />
               Mode
             </h3>
             <div className="flex gap-2">
               <button type="button"
+                disabled={controlsDisabled}
                 onClick={() => { setReplaceOriginalAudio(false); setAudioApplied(false) }}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!replaceOriginalAudio
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border disabled:border-zinc-200 ${!replaceOriginalAudio
                   ? 'bg-cyan-600 text-white'
                   : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                   }`}
@@ -199,8 +206,9 @@ export default function AudioEditor() {
                 Mix with original
               </button>
               <button type="button"
+                disabled={controlsDisabled}
                 onClick={() => { setReplaceOriginalAudio(true); setAudioApplied(false) }}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${replaceOriginalAudio
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border disabled:border-zinc-200 ${replaceOriginalAudio
                   ? 'bg-cyan-600 text-white'
                   : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                   }`}
@@ -210,19 +218,11 @@ export default function AudioEditor() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            {audioApplied && (
-              <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                <p className="text-xs text-blue-700">
-                  <span className="font-medium">Applied:</span>
-                  {formatTime(appliedAudioTrimStart)}
-                  <ArrowRight size={12} className="text-zinc-500 shrink-0" />
-                  {formatTime(appliedAudioTrimEnd)} · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
-                </p>
-              </div>
-            )}
+          <div className="space-y-1">
             <button type="button"
+              disabled={previewLoading || !hasPendingAudioChanges}
               onClick={() => {
+                if (previewLoading) return
                 if (hasPendingAudioChanges) {
                   setPendingPreviewAction('Audio applied successfully.')
                 }
@@ -236,8 +236,20 @@ export default function AudioEditor() {
               className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
               <Music size={16} />
-              Apply audio
+              {previewLoading ? 'Applying...' : 'Apply audio'}
             </button>
+            {audioApplied && (
+              <div className="bg-blue-50 rounded-xl px-3 py-1 border border-blue-200">
+                <p className="flex items-center gap-1 whitespace-nowrap text-[12px] text-blue-700">
+                  <span className="font-medium">Applied:</span>
+                  <span>{formatTime(appliedAudioTrimStart)}</span>
+                  <ArrowRight size={12} className="text-zinc-500 shrink-0" />
+                  <span>{formatTime(appliedAudioTrimEnd)}</span>
+                  <span>{`· ${appliedReplaceOriginal ? 'replace' : 'mix'}`}</span>
+                  {appliedAudioOffset > 0 ? <span>{`· Offset ${formatTime(appliedAudioOffset)}`}</span> : null}
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}

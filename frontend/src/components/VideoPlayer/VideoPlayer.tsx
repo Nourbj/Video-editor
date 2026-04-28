@@ -384,9 +384,8 @@ export default function VideoPlayer() {
                 if (previewLoading || isApplyingTitle || activeTab !== 'title') return
                 draggingRef.current = true
               }}
-              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${
-                activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
-              } ${((activeTab === 'title' ? titleDraftText || titleText : titleText).trim() ? '' : 'opacity-60 italic')}`}
+              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
+                } ${((activeTab === 'title' ? titleDraftText || titleText : titleText).trim() ? '' : 'opacity-60 italic')}`}
               style={{
                 left: `${videoDisplayRect.left + ((activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5) * videoDisplayRect.width)}px`,
                 top: `${videoDisplayRect.top + ((activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2) * videoDisplayRect.height)}px`,
@@ -410,8 +409,6 @@ export default function VideoPlayer() {
             </div>
           </div>
         )}
-
-        {/* Logo Overlay */}
         {(activeTab === 'logo' ? logoDraftImage : logoImage) && (
           <div
             className="absolute inset-0"
@@ -434,10 +431,7 @@ export default function VideoPlayer() {
           </div>
         )}
       </div>
-
-      {/* Controls */}
       <div className="bg-zinc-50 rounded-xl px-3 py-2 space-y-2 border border-zinc-200">
-        {/* Scrubber */}
         <div className="flex items-center gap-3">
           <button type="button" onClick={togglePlay} className="text-zinc-900 hover:text-cyan-600 transition-colors flex-shrink-0">
             {playing ? <Pause size={18} /> : <Play size={18} />}
@@ -456,23 +450,10 @@ export default function VideoPlayer() {
             {formatTime(Math.max(0, currentTime - effectiveStart))} / {formatTime(effectiveDuration)}
           </span>
         </div>
-        {/*
-        <div className="flex items-center gap-2">
-          <Volume2 size={14} className="text-zinc-500" />
-          <input
-            type="range" min={0} max={1} step={0.05} value={volume}
-            onChange={handleVolume}
-            aria-label="Video volume"
-            className="w-24 accent-cyan-600 h-1"
-          />
-        </div>
-        */}
       </div>
 
       {activeTab === 'edit' && (
-        <div className="space-y-4 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] bg-zinc-50 border border-zinc-200 mt-4 rounded-xl p-3">
-          <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
-        </div>
+        <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
       )}
 
       {audioTrack && audioApplied && (

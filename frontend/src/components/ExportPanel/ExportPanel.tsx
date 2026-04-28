@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText, 
-  Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight } from 'lucide-react'
+import {
+  Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText,
+  Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo
+} from 'lucide-react'
 import { createSubtitles, exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -112,35 +114,29 @@ export default function ExportPanel() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Export</h2>
         <p className="text-xs text-zinc-500">Review settings and export your final video</p>
       </div>
-
-      {/* Export tabs */}
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          {([
-            { id: 'name', label: 'File name' },
-            // { id: 'quality', label: 'Quality' },
-            { id: 'ratio', label: 'Aspect ratio' },
-            { id: 'summary', label: 'Summary' },
-          ] as const).map(tab => (
-            <button type="button"
-              key={tab.id}
-              onClick={() => setExportTab(tab.id)}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${exportTab === tab.id
-                ? 'bg-zinc-900 text-white'
-                : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-2">
+        {([
+          { id: 'name', label: 'File name' },
+          { id: 'ratio', label: 'Aspect ratio' },
+          { id: 'summary', label: 'Summary' },
+        ] as const).map(tab => (
+          <button type="button"
+            key={tab.id}
+            onClick={() => setExportTab(tab.id)}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${exportTab === tab.id
+              ? 'bg-zinc-900 text-white'
+              : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+              }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
-
       {exportTab === 'name' && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-700">File name</label>
@@ -150,14 +146,14 @@ export default function ExportPanel() {
               value={exportFilename}
               onChange={e => setExportFilename(e.target.value)}
               placeholder="my_export"
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+              className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
             />
             <span className="text-xs text-zinc-500">.mp4</span>
           </div>
         </div>
       )}
       {exportTab === 'ratio' && (
-        <div className="space-y-2">
+        <div className="space-y-1">
           <label className="text-sm font-medium text-zinc-700">Aspect ratio</label>
           <div className="grid grid-cols-2 gap-2">
             {([
@@ -248,7 +244,7 @@ export default function ExportPanel() {
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`relative border border-current/40 ${exportAspectRatio === r.id ? 'text-white/90' : 'text-zinc-500'
+                        className={`relative border border-current/10 ${exportAspectRatio === r.id ? 'text-white/90' : 'text-zinc-500'
                           } ${r.id === '16:9'
                             ? 'w-12 h-7'
                             : r.id === '9:16'
@@ -287,7 +283,7 @@ export default function ExportPanel() {
       {exportTab === 'summary' && (
         <div className="bg-zinc-50 rounded-xl p-4 space-y-3 border border-zinc-200">
           <h3 className="text-sm font-semibold text-zinc-700">Export summary</h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Scissors size={13} /> Trim</span>
               {hasTrim ? (
@@ -342,11 +338,18 @@ export default function ExportPanel() {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><ImageIcon size={13} /> Logo</span>
-              <span className="text-zinc-700 text-xs">
-                {hasLogo
-                  ? `${logoImage!.filename} (${logoSize}%, x:${Math.round((logoX ?? 0) * 100)}%, y:${Math.round((logoY ?? 0) * 100)}%)`
-                  : 'None'}
-              </span>
+              {hasLogo ? (
+                <span className="min-w-0 max-w-[75%] flex items-center justify-end gap-1 whitespace-nowrap text-zinc-700 text-xs">
+                  <span className="min-w-0 truncate" title={logoImage!.filename}>
+                    {logoImage!.filename}
+                  </span>
+                  <span className="shrink-0">
+                    {` (${logoSize}%, x:${Math.round((logoX ?? 0) * 100)}%, y:${Math.round((logoY ?? 0) * 100)}%)`}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-zinc-700 text-xs">None</span>
+              )}
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Type size={13} /> Title</span>
@@ -363,13 +366,13 @@ export default function ExportPanel() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Aspect</span>
+              <span className="flex items-center gap-2 text-zinc-500"><Monitor size={13} /> Aspect</span>
               <span className="text-zinc-700 text-xs">
                 {exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> File name</span>
+              <span className="flex items-center gap-2 text-zinc-500"><FileVideo size={13} /> File name</span>
               <span className="text-zinc-700 text-xs">
                 {exportFilename.trim() ? `${exportFilename.trim()}.mp4` : 'Auto'}
               </span>
@@ -381,7 +384,7 @@ export default function ExportPanel() {
         <button type="button"
           onClick={handleExport}
           disabled={loading}
-          className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
+          className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

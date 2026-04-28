@@ -142,7 +142,7 @@ export default function TitleEditor() {
               value={draftSize}
               onChange={e => setDraftSize(Number(e.target.value))}
               aria-label="Title font size"
-              className="w-full accent-cyan-600 h-1"
+              className="w-full -mt-1 accent-cyan-600 h-1"
             />
           </div>
         </div>
@@ -164,8 +164,8 @@ export default function TitleEditor() {
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-1 items-center gap-2 min-w-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <label className="text-[11px] text-zinc-500 w-8 shrink-0">Color</label>
             <input
               type="color"
@@ -181,7 +181,7 @@ export default function TitleEditor() {
               className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
             />
           </div>
-          <div className="flex flex-1 items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <label className="text-[11px] text-zinc-500 w-16 shrink-0">Background</label>
             <input
               type="color"
@@ -198,49 +198,53 @@ export default function TitleEditor() {
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-[11px] text-zinc-500 w-16">Text border</label>
-          <input
-            type="color"
-            value={draftBorderColor}
-            onChange={e => setDraftBorderColor(e.target.value)}
-            aria-label="Title text border color"
-            className="w-6 h-6 p-0 border border-zinc-200 rounded bg-white"
-          />
-          <input
-            value={draftBorderColor}
-            onChange={e => setDraftBorderColor(e.target.value)}
-            aria-label="Title text border color value"
-            className="flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-          />
-          <div className="w-24 self-center">
-            <div className="flex justify-between text-[11px] text-zinc-500">
-              <span>Size</span>
-              <span className="font-mono">{draftBorderWidth}px</span>
-            </div>
-            <input type="range" min={0} max={16} step={1} value={draftBorderWidth} onChange={e => setDraftBorderWidth(Number(e.target.value))}
-              aria-label="Title text border width" className="w-full accent-cyan-600 h-1"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-[11px] text-zinc-500 sm:w-16 sm:shrink-0">Text border</label>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <input
+              type="color"
+              value={draftBorderColor}
+              onChange={e => setDraftBorderColor(e.target.value)}
+              aria-label="Title text border color"
+              className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
             />
+            <input
+              value={draftBorderColor}
+              onChange={e => setDraftBorderColor(e.target.value)}
+              aria-label="Title text border color value"
+              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
+            />
+            <div className="w-24 shrink-0 self-center">
+              <div className="flex justify-between text-[11px] text-zinc-500">
+                <span>Size</span>
+                <span className="font-mono">{draftBorderWidth}px</span>
+              </div>
+              <input type="range" min={0} max={16} step={1} value={draftBorderWidth} onChange={e => setDraftBorderWidth(Number(e.target.value))}
+                aria-label="Title text border width" className="w-full -mt-1 accent-cyan-600 h-1"
+              />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-[11px] text-zinc-500 w-16">Background frame</label>
-          <input type="color" value={draftFrameColor} onChange={e => setDraftFrameColor(e.target.value)}
-            aria-label="Title background frame color" className="w-6 h-6 p-0 border border-zinc-200 rounded bg-white"
-          />
-          <input value={draftFrameColor} onChange={e => setDraftFrameColor(e.target.value)}
-            aria-label="Title background frame color value"
-            className="flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-          />
-          <div className="w-24 self-center">
-            <div className="flex justify-between text-[11px] text-zinc-500">
-              <span>Size</span>
-              <span className="font-mono">{draftFrameWidth}px</span>
-            </div>
-            <input type="range" min={0} max={24} step={1} value={draftFrameWidth}
-              onChange={e => setDraftFrameWidth(Number(e.target.value))} aria-label="Title background frame width"
-              className="w-full accent-cyan-600 h-1"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-[11px] text-zinc-500 sm:w-16 sm:shrink-0">Background frame</label>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <input type="color" value={draftFrameColor} onChange={e => setDraftFrameColor(e.target.value)}
+              aria-label="Title background frame color" className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
             />
+            <input value={draftFrameColor} onChange={e => setDraftFrameColor(e.target.value)}
+              aria-label="Title background frame color value"
+              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
+            />
+            <div className="w-24 shrink-0 self-center">
+              <div className="flex justify-between text-[11px] text-zinc-500">
+                <span>Size</span>
+                <span className="font-mono">{draftFrameWidth}px</span>
+              </div>
+              <input type="range" min={0} max={24} step={1} value={draftFrameWidth}
+                onChange={e => setDraftFrameWidth(Number(e.target.value))} aria-label="Title background frame width"
+                className="w-full -mt-1 accent-cyan-600 h-1"
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -251,7 +255,7 @@ export default function TitleEditor() {
               <span className="font-mono">{draftPadding}px</span>
             </div>
             <input type="range" min={0} max={24} step={1} value={draftPadding} onChange={e => setDraftPadding(Number(e.target.value))}
-              aria-label="Title padding" className="w-full accent-cyan-600 h-1"
+              aria-label="Title padding" className="w-full -mt-1 accent-cyan-600 h-1"
             />
           </div>
         </div>

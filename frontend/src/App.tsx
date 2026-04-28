@@ -168,7 +168,6 @@ export default function App() {
 
   useEffect(() => {
     if (!video) return
-    const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
     const hasSubtitlesApplied = subtitles.length > 0 && !!subtitleFilename
     const hasLogo = !!logoImage
@@ -177,7 +176,7 @@ export default function App() {
     const hasOutputTransform = exportQuality !== '720p' || exportAspectRatio !== 'original'
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasChanges = hasTrim || hasCrop || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
+    const hasChanges = hasCrop || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
 
     if (!hasChanges) {
       pendingSig.current = ''
@@ -187,8 +186,6 @@ export default function App() {
     }
 
     const sig = JSON.stringify({
-      trimStart,
-      trimEnd,
       cropEnabled,
       crop,
       audio: hasAppliedAudio
