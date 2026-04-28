@@ -62,28 +62,7 @@ export default function BorderEditor() {
           <span>Enable border</span>
         </label>
 
-        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
-          <label className="text-xs text-zinc-500">Border position</label>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { id: 'inside', label: 'Inside (crop)' },
-              { id: 'outside', label: 'Outside (pad)' },
-            ] as const).map(option => (
-              <button type="button"
-                key={option.id}
-                onClick={() => setDraftMode(option.id)}
-                disabled={!draftEnabled}
-                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  draftMode === option.id
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Border position selection removed as requested */}
 
         <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
