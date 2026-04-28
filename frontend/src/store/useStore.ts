@@ -447,7 +447,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
       ? { ...segment, isGenerating: generating }
       : segment),
   })),
-  setMergedVideo: v => set(state => ({
+  setMergedVideo: v => set(() => ({
     video: v,
     trimStart: 0,
     trimEnd: v.duration || 0,
@@ -584,7 +584,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setBorderHeight: s => set({ borderHeight: s }),
   borderColor: defaultBorderColor,
   setBorderColor: c => set({ borderColor: c }),
-  borderMode: 'inside',
+  borderMode: 'outside',
   setBorderMode: m => set({ borderMode: m }),
 
   cropEnabled: false,
@@ -676,7 +676,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     borderWidth: defaultBorderSize,
     borderHeight: defaultBorderSize,
     borderColor: defaultBorderColor,
-    borderMode: 'inside',
+    borderMode: 'outside',
     cropEnabled: false,
     cropDraftEnabled: false,
     crop: defaultCrop,

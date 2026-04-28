@@ -376,7 +376,10 @@ export default function VideoPlayer() {
         {activeTab === 'title' && (
           <div
             className="absolute inset-0"
-            style={{ pointerEvents: 'none' }}
+            style={{ 
+              pointerEvents: 'none',
+              visibility: (processedUrl && titleDraftText === titleText && titleText.trim() !== '') ? 'hidden' : 'visible'
+            }}
           >
             <div
               onMouseDown={() => {
@@ -413,7 +416,10 @@ export default function VideoPlayer() {
         {activeTab === 'logo' && logoDraftImage && (
           <div
             className="absolute inset-0"
-            style={{ pointerEvents: 'none' }}
+            style={{ 
+              pointerEvents: 'none',
+              visibility: (processedUrl && !logoDraftX && !logoDraftY && !logoDraftSize) ? 'hidden' : 'visible'
+            }}
           >
             <img
               src={logoDraftImage.url}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Scissors, GripVertical, Trash2, GitMerge, Film, Music, Loader2, CheckCircle2, Play, Download } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { createId } from '../../utils/id'
@@ -70,9 +70,7 @@ export default function VideoTimeline({
     setTrimStart,
     setTrimEnd,
     segments,
-    segmentHistory,
     addSegment,
-    addSegmentHistoryEntry,
     setEditStatus,
     audioTrack,
     audioDuration,
@@ -88,7 +86,6 @@ export default function VideoTimeline({
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
     appliedAudioOffset,
-    setMergedVideo,
   } = useStore()
 
   const [dragging, setDragging] = useState<DragMode>(null)
@@ -540,7 +537,13 @@ export function EditSidebar() {
     [segments],
   )
 
+  const archivedSegments = useMemo(
+    () => segments.length === 0 ? [...segmentHistory].reverse() : [],
+    [segmentHistory, segments.length],
+  )
+
   if (!video) return null
+
   const isActiveSegment = (segment: { start: number; end: number }) => {
     const epsilon = 0.02
     return Math.abs(segment.start - trimStart) < epsilon && Math.abs(segment.end - trimEnd) < epsilon
@@ -601,6 +604,7 @@ export function EditSidebar() {
     try {
       await deleteOutputFile(filename)
     } catch {
+      // Ignore deletion errors for cleanup
     }
   }
 
@@ -615,16 +619,12 @@ export function EditSidebar() {
       try {
         await deleteOutputFile(filename)
       } catch {
+        // Ignore deletion errors for cleanup
       }
     }))
     clearSegments()
     setEditStatus('Clip list cleared.')
   }
-
-  const archivedSegments = useMemo(
-    () => segments.length === 0 ? [...segmentHistory].reverse() : [],
-    [segmentHistory, segments.length],
-  )
 
   return (
     <div className="space-y-2">
