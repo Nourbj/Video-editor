@@ -170,6 +170,8 @@ interface EditorState {
   titleDraftX: number | null
   titleDraftY: number | null
   setTitleDraftXY: (x: number | null, y: number | null) => void
+  titleAlign: 'left' | 'center' | 'right'
+  setTitleAlign: (a: 'left' | 'center' | 'right') => void
   isApplyingTitle: boolean
   setIsApplyingTitle: (v: boolean) => void
 
@@ -273,6 +275,7 @@ type PersistedEditorState = Pick<EditorState,
   | 'titleY'
   | 'titleDraftX'
   | 'titleDraftY'
+  | 'titleAlign'
   | 'borderEnabled'
   | 'borderWidth'
   | 'borderHeight'
@@ -303,6 +306,7 @@ const defaultTitleBorderWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_BORDER
 const defaultTitleFrameColor = import.meta.env.VITE_TITLE_DEFAULT_FRAME_COLOR || '#000000'
 const defaultTitleFrameWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_FRAME_WIDTH || 0)
 const defaultTitlePadding = Number(import.meta.env.VITE_TITLE_DEFAULT_PADDING || 8)
+const defaultTitleAlign = (import.meta.env.VITE_TITLE_DEFAULT_ALIGN || 'center') as 'left' | 'center' | 'right'
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
 const defaultCrop: CropSettings = { top: 0, bottom: 0, left: 0, right: 0 }
@@ -352,6 +356,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
           titleY: null,
           titleDraftX: null,
           titleDraftY: null,
+          titleAlign: defaultTitleAlign,
           isApplyingLogo: false,
           isApplyingTitle: false,
         }
@@ -573,6 +578,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
   titleDraftX: null,
   titleDraftY: null,
   setTitleDraftXY: (x, y) => set({ titleDraftX: x, titleDraftY: y }),
+  titleAlign: defaultTitleAlign,
+  setTitleAlign: a => set({ titleAlign: a }),
   isApplyingTitle: false,
   setIsApplyingTitle: v => set({ isApplyingTitle: v }),
 
@@ -741,6 +748,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     titleY: state.titleY,
     titleDraftX: state.titleDraftX,
     titleDraftY: state.titleDraftY,
+    titleAlign: state.titleAlign,
     borderEnabled: state.borderEnabled,
     borderWidth: state.borderWidth,
     borderHeight: state.borderHeight,

@@ -89,20 +89,7 @@ export default function App() {
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
         subtitleFilename: subtitleFilename || undefined,
         subtitleStyle,
-        titleStyle: titleText.trim() ? {
-          text: titleText.trim(),
-          font: titleFont,
-          size: titleSize,
-          color: titleColor,
-          bgColor: titleBgColor,
-          borderColor: titleBorderColor,
-          borderWidth: titleBorderWidth,
-          frameColor: titleFrameColor,
-          frameWidth: titleFrameWidth,
-          padding: titlePadding,
-          x: titleX ?? undefined,
-          y: titleY ?? undefined,
-        } : undefined,
+        titleStyle: undefined,
         borderStyle: {
           enabled: borderEnabled,
           sizeX: borderWidth,
@@ -110,10 +97,7 @@ export default function App() {
           color: borderColor,
           mode: borderMode,
         },
-        logoFilename: logoImage?.filename,
-        logoSize,
-        logoX: logoX ?? undefined,
-        logoY: logoY ?? undefined,
+        logoFilename: undefined,
       })
 
       setProcessedUrl(result.url)

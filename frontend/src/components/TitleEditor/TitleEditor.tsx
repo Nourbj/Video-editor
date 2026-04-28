@@ -26,6 +26,7 @@ export default function TitleEditor() {
     titleFrameColor, setTitleFrameColor,
     titleFrameWidth, setTitleFrameWidth,
     titlePadding, setTitlePadding,
+    titleAlign, setTitleAlign,
     titleX, titleY, setTitleXY,
     titleDraftX, titleDraftY, setTitleDraftXY,
     isApplyingTitle, setIsApplyingTitle,
@@ -148,6 +149,26 @@ export default function TitleEditor() {
               aria-label="Title font size"
               className="w-full accent-cyan-600 h-1 mt-2"
             />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[11px] text-zinc-500">Alignment</label>
+          <div className="flex gap-1.5 p-1 bg-white border border-zinc-200 rounded-xl">
+            {(['left', 'center', 'right'] as const).map(align => (
+              <button
+                key={align}
+                type="button"
+                onClick={() => setTitleAlign(align)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                  titleAlign === align
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-transparent text-zinc-500 hover:bg-zinc-50'
+                }`}
+              >
+                {align}
+              </button>
+            ))}
           </div>
         </div>
 

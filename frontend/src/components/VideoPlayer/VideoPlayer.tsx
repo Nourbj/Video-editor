@@ -25,10 +25,10 @@ export default function VideoPlayer() {
     audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
     activeTab,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
-    titleDraftText,
+    titleDraftText, titleAlign,
     isApplyingTitle,
     previewLoading,
-    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
+    logoImage, logoSize, logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
     borderEnabled, borderWidth, borderHeight, borderMode,
     cropEnabled,
     cropDraftEnabled,
@@ -373,25 +373,23 @@ export default function VideoPlayer() {
           </div>
         )}
 
-        {activeTab === 'title' && (
+        {/* Title Overlay */}
+        {(activeTab === 'title' || (titleText && titleText.trim() !== '')) && (
           <div
             className="absolute inset-0"
-            style={{ 
-              pointerEvents: 'none',
-              visibility: (processedUrl && titleDraftText === titleText && titleText.trim() !== '') ? 'hidden' : 'visible'
-            }}
+            style={{ pointerEvents: 'none' }}
           >
             <div
               onMouseDown={() => {
-                if (previewLoading || isApplyingTitle) return
+                if (previewLoading || isApplyingTitle || activeTab !== 'title') return
                 draggingRef.current = true
               }}
               className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${
-                (previewLoading || isApplyingTitle) ? 'cursor-not-allowed' : 'cursor-move'
-              } ${((titleDraftText || titleText).trim() ? '' : 'opacity-60 italic')}`}
+                activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
+              } ${((activeTab === 'title' ? titleDraftText || titleText : titleText).trim() ? '' : 'opacity-60 italic')}`}
               style={{
-                left: `${videoDisplayRect.left + ((titleDraftX ?? titleX ?? 0.5) * videoDisplayRect.width)}px`,
-                top: `${videoDisplayRect.top + ((titleDraftY ?? titleY ?? 0.2) * videoDisplayRect.height)}px`,
+                left: `${videoDisplayRect.left + ((activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5) * videoDisplayRect.width)}px`,
+                top: `${videoDisplayRect.top + ((activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2) * videoDisplayRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
                 color: titleColor,
                 fontFamily: titleFont,
@@ -401,38 +399,36 @@ export default function VideoPlayer() {
                 WebkitTextStrokeWidth: titleBorderWidth > 0 ? `${titleBorderWidth * titlePreviewScale}px` : '0px',
                 WebkitTextStrokeColor: titleBorderColor,
                 padding: `${titlePadding * titlePreviewScale}px`,
-                pointerEvents: 'auto',
+                pointerEvents: activeTab === 'title' ? 'auto' : 'none',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxWidth: `${videoDisplayRect.width * 0.9}px`,
-                textAlign: 'center',
+                textAlign: titleAlign,
               }}
             >
-              {((titleDraftText || titleText).trim() || 'Title')}
+              {activeTab === 'title' ? ((titleDraftText || titleText).trim() || 'Title') : titleText}
             </div>
           </div>
         )}
 
-        {activeTab === 'logo' && logoDraftImage && (
+        {/* Logo Overlay */}
+        {(activeTab === 'logo' ? logoDraftImage : logoImage) && (
           <div
             className="absolute inset-0"
-            style={{ 
-              pointerEvents: 'none',
-              visibility: (processedUrl && !logoDraftX && !logoDraftY && !logoDraftSize) ? 'hidden' : 'visible'
-            }}
+            style={{ pointerEvents: 'none' }}
           >
             <img
-              src={logoDraftImage.url}
-              alt="Logo preview"
-              onMouseDown={() => { logoDraggingRef.current = true }}
-              className="absolute cursor-move select-none"
+              src={(activeTab === 'logo' ? logoDraftImage : logoImage)!.url}
+              alt="Logo overlay"
+              onMouseDown={() => { if (activeTab === 'logo') logoDraggingRef.current = true }}
+              className={`absolute select-none ${activeTab === 'logo' ? 'cursor-move' : ''}`}
               style={{
-                left: `${logoDraftRect.left + (draftLogoX * logoDraftRect.width)}px`,
-                top: `${logoDraftRect.top + (draftLogoY * logoDraftRect.height)}px`,
+                left: `${logoDraftRect.left + ((activeTab === 'logo' ? draftLogoX : logoX ?? 0.9) * logoDraftRect.width)}px`,
+                top: `${logoDraftRect.top + ((activeTab === 'logo' ? draftLogoY : logoY ?? 0.1) * logoDraftRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
-                width: `${(logoDraftSize / 100) * logoDraftRect.width}px`,
+                width: `${((activeTab === 'logo' ? logoDraftSize : logoSize) / 100) * logoDraftRect.width}px`,
                 height: 'auto',
-                pointerEvents: 'auto',
+                pointerEvents: activeTab === 'logo' ? 'auto' : 'none',
               }}
             />
           </div>
