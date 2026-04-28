@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { Music, X, Replace } from 'lucide-react'
+import { Music, X, Replace, ArrowRight } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
 export default function AudioEditor() {
@@ -192,8 +192,8 @@ export default function AudioEditor() {
               <button type="button"
                 onClick={() => { setReplaceOriginalAudio(false); setAudioApplied(false) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!replaceOriginalAudio
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                   }`}
               >
                 Mix with original
@@ -201,8 +201,8 @@ export default function AudioEditor() {
               <button type="button"
                 onClick={() => { setReplaceOriginalAudio(true); setAudioApplied(false) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${replaceOriginalAudio
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
                   }`}
               >
                 Replace original
@@ -214,7 +214,10 @@ export default function AudioEditor() {
             {audioApplied && (
               <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
                 <p className="text-xs text-blue-700">
-                  <span className="font-medium">Applied:</span> {formatTime(appliedAudioTrimStart)} → {formatTime(appliedAudioTrimEnd)} · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
+                  <span className="font-medium">Applied:</span>
+                  {formatTime(appliedAudioTrimStart)}
+                  <ArrowRight size={12} className="text-zinc-500 shrink-0" />
+                  {formatTime(appliedAudioTrimEnd)} · {appliedReplaceOriginal ? 'replace' : 'mix'}{appliedAudioOffset > 0 ? ` · Offset ${formatTime(appliedAudioOffset)}` : ''}
                 </p>
               </div>
             )}

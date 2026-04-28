@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Upload, FileText } from 'lucide-react'
+import { ArrowRight, Plus, Trash2, Upload, FileText } from 'lucide-react'
 import { autoSubtitles, createSubtitles, getApiErrorMessage, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SubtitleEntry } from '../../api/client'
@@ -26,20 +26,8 @@ function getSubtitleSignature(entries: SubtitleEntry[], style: { size: number; c
 }
 
 export default function SubtitleEditor() {
-  const {
-    video,
-    trimStart,
-    trimEnd,
-    subtitles,
-    subtitleFilename,
-    setSubtitles,
-    setSubtitleFilename,
-    subtitleStyle,
-    setSubtitleStyle,
-    subtitleAppliedSignature,
-    setSubtitleAppliedSignature,
-    setPendingPreviewAction,
-  } = useStore()
+  const { video, trimStart, trimEnd, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle,
+    setSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, setPendingPreviewAction } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -101,7 +89,6 @@ export default function SubtitleEditor() {
       setSaving(false)
     }
   }
-
   const handleUploadSRT = async (file: File) => {
     setUploadLoading(true)
     setError(null)
@@ -118,12 +105,10 @@ export default function SubtitleEditor() {
       setUploadLoading(false)
     }
   }
-
   const handleAutoSubtitles = async () => {
     if (!video) return
     setAutoLoading(true)
     setError(null)
-
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     try {
       const result = await autoSubtitles({
@@ -143,7 +128,6 @@ export default function SubtitleEditor() {
       setAutoLoading(false)
     }
   }
-
   const handleApply = async () => {
     if (subtitles.length === 0) return
     if (pendingSubtitleFilename) {
@@ -155,25 +139,17 @@ export default function SubtitleEditor() {
     }
     await handleSave()
   }
-
   const isApplying = saving || autoLoading || uploadLoading
   const hasUnappliedChanges = subtitleAppliedSignature !== currentSignature
-  const canApply =
-    subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
-
+  const canApply = subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Subtitles</h2>
         <p className="text-xs text-zinc-500">Choose a method then apply subtitles</p>
       </div>
-
-      {/* Style controls */}
-      <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-zinc-700">Style</h3>
-          <p className="text-[10px] text-zinc-400">Changes apply on preview/export.</p>
-        </div>
+      <div className="bg-zinc-50 rounded-xl p-2 border border-zinc-200 space-y-1">
+        <h3 className="text-sm font-medium text-zinc-700">Style</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <label className="text-[11px] text-zinc-500">
             Size
@@ -206,14 +182,11 @@ export default function SubtitleEditor() {
           </label>
         </div>
       </div>
-
       <div className="flex items-center gap-3 text-zinc-500">
         <div className="flex-1 h-px bg-zinc-200" />
         <span className="text-[10px] font-semibold uppercase tracking-wider">Method</span>
         <div className="flex-1 h-px bg-zinc-200" />
       </div>
-
-      {/* Tabs */}
       <div className="bg-zinc-100 rounded-2xl p-1 border border-zinc-200">
         <div className="grid grid-cols-3 gap-1">
           {[
@@ -224,37 +197,34 @@ export default function SubtitleEditor() {
             <button type="button"
               key={tab.id}
               onClick={() => setActiveMode(tab.id as typeof activeMode)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeMode === tab.id
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
-              }`}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${activeMode === tab.id
+                ? 'bg-white text-zinc-900 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-700'
+                }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
       </div>
-
-      {/* Tab content */}
       {activeMode === 'manual' && (
-        <div className="flex flex-wrap gap-2">
-          <button type="button"
-            onClick={addEntry}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            <Plus size={15} /> Add entry
-          </button>
-          {subtitles.length > 0 && canApply && (
-            <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 self-center">
-              Ready
-            </span>
-          )}
+        <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={addEntry}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <Plus size={15} /> Add entry
+            </button>
+            {subtitles.length > 0 && canApply && (
+              <span className="px-2 py-1 text-[10px] font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 self-center">
+                Ready
+              </span>
+            )}
+          </div>
         </div>
       )}
-
       {activeMode === 'import' && (
-        <div className="space-y-3">
+        <div className="bg-zinc-50 rounded-xl p-3 border border-zinc-200 space-y-2">
           <div
             onDrop={e => {
               e.preventDefault()
@@ -269,13 +239,12 @@ export default function SubtitleEditor() {
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-              dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
-            }`}
+            className={`border-2 border-dashed rounded-2xl p-2 text-center cursor-pointer transition-all ${dragOver ? 'border-cyan-600 bg-cyan-600/10' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'
+              }`}
           >
-            <Upload size={28} className={`mx-auto mb-3 ${dragOver ? 'text-cyan-600' : 'text-zinc-400'}`} />
+            <Upload size={24} className={`mx-auto mb-2 ${dragOver ? 'text-cyan-600' : 'text-zinc-400'}`} />
             <p className="text-zinc-700 font-medium">{dragOver ? 'Drop file here' : 'Import a .srt file'}</p>
-            <p className="text-zinc-500 text-sm mt-1">SRT only</p>
+            <p className="text-zinc-500 text-[11px] font-bold">SRT only</p>
             {pendingSrt && (
               <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-xs text-zinc-500 truncate max-w-[220px]">{pendingSrt.name}</span>
@@ -366,60 +335,50 @@ export default function SubtitleEditor() {
         </div>
       )}
 
-      <button type="button"
-        onClick={handleApply}
-        disabled={!canApply || isApplying}
-        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-      >
+      <button type="button" onClick={handleApply} disabled={!canApply || isApplying} className="w-full py-2 bg-green-600 hover:bg-green-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
         <FileText size={16} />
-      {isApplying ? 'Applying...' : 'Apply subtitles'}
+        {isApplying ? 'Applying...' : 'Apply subtitles'}
       </button>
       {pendingSubtitleFilename && canApply && (
         <div className="text-xs text-zinc-500 text-center">
           List loaded. Click "Apply subtitles" to preview.
         </div>
       )}
-
-      {/* Subtitle list */}
       {subtitles.length === 0 ? (
-        <div className="text-center py-6 text-zinc-500">
+        <div className="text-center py-4 text-zinc-500">
           <FileText size={24} className="mx-auto mb-2" />
           <p className="text-sm">No subtitles yet. Add an entry or upload a .srt file.</p>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[190px] overflow-y-auto">
           {subtitles.map((entry, i) => (
-            <div key={i} className="bg-zinc-50 rounded-xl p-3 space-y-2 border border-zinc-200">
+            <div key={i} className="bg-zinc-50 rounded-xl px-2 py-1 space-y-1 border border-zinc-200">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-500 font-mono w-5">{entry.index}</span>
+                <span className="text-xs text-zinc-500 font-mono w-4">{entry.index}</span>
                 <input
                   type="text"
                   value={entry.startTime}
                   onChange={e => updateEntry(i, 'startTime', e.target.value)}
                   aria-label={`Start time for subtitle ${entry.index}`}
-                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  className="w-29 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
-                <span className="text-xs text-zinc-500">→</span>
+                <ArrowRight size={12} className="text-zinc-500 shrink-0" />
                 <input
                   type="text"
                   value={entry.endTime}
                   onChange={e => updateEntry(i, 'endTime', e.target.value)}
                   aria-label={`End time for subtitle ${entry.index}`}
-                  className="flex-1 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  className="w-29 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
-                <button type="button"
-                  onClick={() => removeEntry(i)}
-                  className="p-1 hover:bg-red-500/10 rounded text-zinc-500 hover:text-red-500 transition-colors"
+                <button type="button" onClick={() => removeEntry(i)}
+                  className="p-1 hover:bg-red-500/10 rounded text-red-700 hover:text-red-500 transition-colors"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={14} />
                 </button>
               </div>
-              <textarea
-                value={entry.text}
-                onChange={e => updateEntry(i, 'text', e.target.value)}
-                rows={2}
+              <textarea value={entry.text} onChange={e => updateEntry(i, 'text', e.target.value)} rows={2}
                 aria-label={`Subtitle text for entry ${entry.index}`}
-                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600 resize-none"
+                className="w-full bg-white rounded-2lg p-2 text-sm text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600 resize-none"
               />
             </div>
           ))}

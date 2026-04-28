@@ -1,22 +1,6 @@
 import { useState } from 'react'
-import {
-  Download,
-  Loader2,
-  CheckCircle2,
-  Scissors,
-  Crop as CropIcon,
-  Music,
-  FileText,
-  Image as ImageIcon,
-  Type,
-  Square,
-  Youtube,
-  Instagram,
-  Facebook,
-  Linkedin,
-  Twitter,
-  Music2,
-} from 'lucide-react'
+import { Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText, 
+  Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight } from 'lucide-react'
 import { createSubtitles, exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
@@ -28,20 +12,13 @@ function formatTime(s: number) {
 
 export default function ExportPanel() {
   const {
-    video, trimStart, trimEnd,
-    audioTrack, audioDuration,
-    audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
-    subtitles, subtitleFilename,
-    subtitleStyle,
-    logoImage, logoSize, logoX, logoY,
-    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY,
-    borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
-    cropEnabled,
-    crop,
-    exportQuality,
-    exportAspectRatio, setExportAspectRatio,
-    exportFilename, setExportFilename,
-    setProcessedUrl,
+    video, trimStart, trimEnd, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
+    appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, subtitleStyle,
+    logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
+    titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX,
+    titleY, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
+    cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
+    setExportFilename, setProcessedUrl,
   } = useStore()
 
   const [loading, setLoading] = useState(false)
@@ -135,7 +112,7 @@ export default function ExportPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Export</h2>
         <p className="text-xs text-zinc-500">Review settings and export your final video</p>
@@ -153,11 +130,10 @@ export default function ExportPanel() {
             <button type="button"
               key={tab.id}
               onClick={() => setExportTab(tab.id)}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                exportTab === tab.id
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-              }`}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${exportTab === tab.id
+                ? 'bg-zinc-900 text-white'
+                : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+                }`}
             >
               {tab.label}
             </button>
@@ -180,154 +156,130 @@ export default function ExportPanel() {
           </div>
         </div>
       )}
-
-      {/*
-      {exportTab === 'quality' && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-700">Output quality</label>
-          <div className="flex gap-2">
-            {(['480p', '720p', '1080p'] as const).map(q => (
-              <button type="button"
-                key={q}
-                onClick={() => setExportQuality(q)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  exportQuality === q
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      */}
-
       {exportTab === 'ratio' && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-700">Aspect ratio</label>
           <div className="grid grid-cols-2 gap-2">
-          {([
-            {
-              id: 'original',
-              ratioLabel: 'Original',
-              label: 'Original',
-              icons: [],
-            },
-            {
-              id: '16:9',
-              ratioLabel: '16:9',
-              label: 'Standard',
-              icons: [
-                { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
-                { node: <Linkedin size={12} className="text-white" />, className: 'bg-[#0A66C2]' },
-                { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
-              ],
-            },
-            {
-              id: '9:16',
-              ratioLabel: '9:16',
-              label: 'Reels / Stories / Shorts',
-              icons: [
-                { node: <Music2 size={12} className="text-white" />, className: 'bg-black' },
-                { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-                { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-                { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
-                { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
-              ],
-            },
-            {
-              id: '4:5',
-              ratioLabel: '4:5',
-              label: 'Feed (best)',
-              icons: [
-                { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-                { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-              ],
-            },
-            {
-              id: '1:1',
-              ratioLabel: '1:1',
-              label: 'Feed',
-              icons: [
-                { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-                { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-              ],
-            },
-            {
-              id: '5:4',
-              ratioLabel: '5:4',
-              label: 'Classic (desktop)',
-              icons: [
-                { node: <Square size={12} className="text-white" />, className: 'bg-zinc-600' },
-              ],
-            },
-            {
-              id: '4:3',
-              ratioLabel: '4:3',
-              label: 'Classic (TV)',
-              icons: [
-                { node: <Square size={12} className="text-white" />, className: 'bg-zinc-700' },
-              ],
-            },
-            {
-              id: '3:2',
-              ratioLabel: '3:2',
-              label: 'Photo',
-              icons: [
-                { node: <ImageIcon size={12} className="text-white" />, className: 'bg-zinc-700' },
-              ],
-            },
-          ] as const).map(r => (
-            <button type="button"
-              key={`${r.id}-${r.label}`}
-              onClick={() => setExportAspectRatio(r.id)}
-              className={`p-2 rounded-xl text-sm font-medium transition-all ${exportAspectRatio === r.id
-                ? 'bg-cyan-600 text-white border border-cyan-700 shadow-[0_8px_20px_rgba(8,145,178,0.25)]'
-                : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                }`}
-            >
-              {r.id === 'original' ? (
-                <div className="flex h-full items-center justify-center">
-                  <div className={`text-[11px] font-semibold ${exportAspectRatio === r.id ? 'text-white' : 'text-zinc-700'}`}>{r.label}</div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`relative border border-current/40 ${exportAspectRatio === r.id ? 'text-white/90' : 'text-zinc-500'
-                        } ${r.id === '16:9'
-                          ? 'w-12 h-7'
-                          : r.id === '9:16'
-                            ? 'w-7 h-12'
-                            : r.id === '4:5'
-                              ? 'w-7 h-9'
-                              : r.id === '1:1'
-                                ? 'w-8 h-8'
-                                : 'w-10 h-7'
-                        }`}
-                    >
-                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold">
-                        {r.ratioLabel}
-                      </span>
-                    </div>
+            {([
+              {
+                id: 'original',
+                ratioLabel: 'Original',
+                label: 'Original',
+                icons: [],
+              },
+              {
+                id: '16:9',
+                ratioLabel: '16:9',
+                label: 'Standard',
+                icons: [
+                  { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
+                  { node: <Linkedin size={12} className="text-white" />, className: 'bg-[#0A66C2]' },
+                  { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
+                ],
+              },
+              {
+                id: '9:16',
+                ratioLabel: '9:16',
+                label: 'Reels / Stories / Shorts',
+                icons: [
+                  { node: <Music2 size={12} className="text-white" />, className: 'bg-black' },
+                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
+                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
+                  { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
+                  { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
+                ],
+              },
+              {
+                id: '4:5',
+                ratioLabel: '4:5',
+                label: 'Feed (best)',
+                icons: [
+                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
+                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
+                ],
+              },
+              {
+                id: '1:1',
+                ratioLabel: '1:1',
+                label: 'Feed',
+                icons: [
+                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
+                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
+                ],
+              },
+              {
+                id: '5:4',
+                ratioLabel: '5:4',
+                label: 'Classic (desktop)',
+                icons: [
+                  { node: <Square size={12} className="text-white" />, className: 'bg-zinc-600' },
+                ],
+              },
+              {
+                id: '4:3',
+                ratioLabel: '4:3',
+                label: 'Classic (TV)',
+                icons: [
+                  { node: <Square size={12} className="text-white" />, className: 'bg-zinc-700' },
+                ],
+              },
+              {
+                id: '3:2',
+                ratioLabel: '3:2',
+                label: 'Photo',
+                icons: [
+                  { node: <ImageIcon size={12} className="text-white" />, className: 'bg-zinc-700' },
+                ],
+              },
+            ] as const).map(r => (
+              <button type="button"
+                key={`${r.id}-${r.label}`}
+                onClick={() => setExportAspectRatio(r.id)}
+                className={`p-2 rounded-xl text-sm font-medium transition-all ${exportAspectRatio === r.id
+                  ? 'bg-cyan-600 text-white border border-cyan-700 shadow-[0_8px_20px_rgba(8,145,178,0.25)]'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+                  }`}
+              >
+                {r.id === 'original' ? (
+                  <div className="flex h-full items-center justify-center">
                     <div className={`text-[11px] font-semibold ${exportAspectRatio === r.id ? 'text-white' : 'text-zinc-700'}`}>{r.label}</div>
                   </div>
-                  <div className="flex flex-wrap gap-1 min-h-[28px] justify-center">
-                    {r.icons.map((icon, index) => (
-                      <span
-                        key={`${r.id}-${index}`}
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${icon.className} ${exportAspectRatio === r.id ? 'ring-2 ring-white/40' : ''}`}
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`relative border border-current/40 ${exportAspectRatio === r.id ? 'text-white/90' : 'text-zinc-500'
+                          } ${r.id === '16:9'
+                            ? 'w-12 h-7'
+                            : r.id === '9:16'
+                              ? 'w-7 h-12'
+                              : r.id === '4:5'
+                                ? 'w-7 h-9'
+                                : r.id === '1:1'
+                                  ? 'w-8 h-8'
+                                  : 'w-10 h-7'
+                          }`}
                       >
-                        {icon.node}
-                      </span>
-                    ))}
+                        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold">
+                          {r.ratioLabel}
+                        </span>
+                      </div>
+                      <div className={`text-[11px] font-semibold ${exportAspectRatio === r.id ? 'text-white' : 'text-zinc-700'}`}>{r.label}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 min-h-[28px] justify-center">
+                      {r.icons.map((icon, index) => (
+                        <span
+                          key={`${r.id}-${index}`}
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${icon.className} ${exportAspectRatio === r.id ? 'ring-2 ring-white/40' : ''}`}
+                        >
+                          {icon.node}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </button>
-          ))}
+                )}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -338,9 +290,16 @@ export default function ExportPanel() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Scissors size={13} /> Trim</span>
-              <span className="text-zinc-700 font-mono text-xs">
-                {hasTrim ? `${formatTime(trimStart)} → ${formatTime(trimEnd)} (${formatTime(trimEnd - trimStart)})` : 'Full video'}
-              </span>
+              {hasTrim ? (
+                <span className="text-zinc-700 font-mono text-xs flex items-center gap-1">
+                  <span>{formatTime(trimStart)}</span>
+                  <ArrowRight size={12} className="text-zinc-500 shrink-0" />
+                  <span>{formatTime(trimEnd)}</span>
+                  <span>{`(${formatTime(trimEnd - trimStart)})`}</span>
+                </span>
+              ) : (
+                <span className="text-zinc-700 font-mono text-xs">Full video</span>
+              )}
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><CropIcon size={13} /> Crop</span>
@@ -352,11 +311,28 @@ export default function ExportPanel() {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Music size={13} /> Audio</span>
-              <span className="text-zinc-700 text-xs">
-                {hasAppliedAudio
-                  ? `${audioTrack!.filename} (${appliedReplaceOriginal ? 'replace' : 'mix'})${hasAppliedAudioTrim ? ` — Trim ${formatTime(appliedAudioTrimStart)}→${formatTime(appliedAudioTrimEnd)}` : ''}${appliedAudioOffset > 0 ? ` — Offset ${formatTime(appliedAudioOffset)}` : ''}`
-                  : hasAudio ? 'Not applied' : 'Original'}
-              </span>
+              {hasAppliedAudio ? (
+                <span className="min-w-0 max-w-[75%] flex items-center justify-end gap-1 whitespace-nowrap text-zinc-700 text-xs">
+                  <span className="min-w-0 truncate" title={audioTrack!.filename}>
+                    {audioTrack!.filename}
+                  </span>
+                  <span className="shrink-0 flex items-center gap-1">
+                    {` (${appliedReplaceOriginal ? 'replace' : 'mix'})`}
+                    {hasAppliedAudioTrim ? (
+                      <>
+                        <span>{`— Trim ${formatTime(appliedAudioTrimStart)}`}</span>
+                        <ArrowRight size={12} className="text-zinc-500 shrink-0" />
+                        <span>{formatTime(appliedAudioTrimEnd)}</span>
+                      </>
+                    ) : null}
+                    {appliedAudioOffset > 0 ? ` — Offset ${formatTime(appliedAudioOffset)}` : ''}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-zinc-700 text-xs">
+                  {hasAudio ? 'Not applied' : 'Original'}
+                </span>
+              )}
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><FileText size={13} /> Subtitles</span>
@@ -379,13 +355,13 @@ export default function ExportPanel() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
-            <span className="text-zinc-700 text-xs">
-              {borderEnabled && (borderWidth > 0 || borderHeight > 0)
-                ? `${borderWidth}px × ${borderHeight}px ${borderColor} (${borderMode})`
-                : 'None'}
-            </span>
-          </div>
+              <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
+              <span className="text-zinc-700 text-xs">
+                {borderEnabled && (borderWidth > 0 || borderHeight > 0)
+                  ? `${borderWidth}px × ${borderHeight}px ${borderColor} (${borderMode})`
+                  : 'None'}
+              </span>
+            </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Aspect</span>
               <span className="text-zinc-700 text-xs">
@@ -401,9 +377,6 @@ export default function ExportPanel() {
           </div>
         </div>
       )}
-
-
-      {/* Export button */}
       {!done ? (
         <button type="button"
           onClick={handleExport}

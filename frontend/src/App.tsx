@@ -381,9 +381,8 @@ export default function App() {
                     {tab.icon}
                     {tab.label}
                     {completed && (
-                      <span className={`ml-auto flex h-5 w-5 items-center justify-center rounded-full ${
-                        active ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'
-                      }`}>
+                      <span className={`ml-auto flex h-5 w-5 items-center justify-center rounded-full ${active ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'
+                        }`}>
                         <CheckCircle2 size={13} />
                       </span>
                     )}
@@ -438,12 +437,11 @@ export default function App() {
                         Show original
                       </button>
                     )}
-                    {previewError && (
-                      <span className="text-xs text-red-400">{previewError}</span>
-                    )}
                   </div>
                 </div>
-
+                {previewError && (
+                  <span className="text-xs text-red-400">{previewError}</span>
+                )}
                 {/* Player */}
                 <div className="bg-white rounded-2xl border border-zinc-200 px-4 py-2">
                   <VideoPlayer />
@@ -511,7 +509,7 @@ export default function App() {
           </div>
           {/* Active Panel (Right) */}
           <div className="w-full lg:w-96 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px]">
-            <div className="bg-white rounded-2xl p-4 border border-zinc-200 min-h-[300px] shadow-sm">
+            <div className="bg-white rounded-2xl px-4 py-2 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'edit' && <EditPanel />}
               {activeTab === 'crop' && <CropEditor />}
