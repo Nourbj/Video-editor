@@ -389,9 +389,11 @@ export default function TitleEditor() {
           </div>
         </div>
         <div>
-          <div className="text-[11px] text-zinc-500">Position</div>
-          <div className="text-xs text-zinc-500">
-            Move the text directly on the video (drag &amp; drop).
+          <div className="flex items-center gap-3">
+            <div className="text-[11px] text-zinc-500">Position</div>
+            <div className="flex-1 text-xs text-zinc-500">
+              Move the text directly on the video (drag &amp; drop).
+            </div>
           </div>
         </div>
       </div>

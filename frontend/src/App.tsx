@@ -13,6 +13,8 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { getApiErrorMessage, previewVideo } from './api/client'
+import { getRenderedTitleFontSize, getTitleRenderLayout } from './utils/titleLayout'
+import { getCroppedSourceDimensions, getRenderedVideoDimensions } from './utils/videoLayout'
 
 type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -86,7 +88,7 @@ export default function App() {
     video, activeTab, setActiveTab, reset,
     trimStart, trimEnd,
     segments, segmentHistory,
-    audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
+    audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles,
     subtitleFilename,
     appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY,
@@ -96,6 +98,8 @@ export default function App() {
     crop,
     exportQuality,
     exportAspectRatio,
+    videoSourceWidth,
+    videoSourceHeight,
     processedUrl, setProcessedUrl,
     previewLoading, setPreviewLoading,
     pendingPreviewAction, setPendingPreviewAction,
@@ -107,12 +111,42 @@ export default function App() {
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
-  const titleRenderLayoutRef = useRef(titleRenderLayout)
   const validatedProjectSig = useRef<string>('')
-
-  useEffect(() => {
-    titleRenderLayoutRef.current = titleRenderLayout
-  }, [titleRenderLayout])
+  const effectiveTitleSourceDimensions = getCroppedSourceDimensions({
+    sourceWidth: videoSourceWidth,
+    sourceHeight: videoSourceHeight,
+    cropEnabled,
+    crop,
+  })
+  const renderedTitleSize = getRenderedTitleFontSize(titleSize)
+  const titleRenderedVideoDimensions = getRenderedVideoDimensions({
+    sourceWidth: effectiveTitleSourceDimensions.width,
+    sourceHeight: effectiveTitleSourceDimensions.height,
+    quality: exportQuality,
+    aspectRatio: exportAspectRatio,
+    borderEnabled,
+    borderWidth,
+    borderHeight,
+    borderMode,
+  })
+  const resolvedTitleRenderLayout = titleText.trim() && titleRenderedVideoDimensions.width > 0
+    ? getTitleRenderLayout({
+      text: titleText,
+      fontSize: renderedTitleSize,
+      videoWidth: titleRenderedVideoDimensions.width,
+      padding: titlePadding,
+      frameWidth: titleFrameWidth,
+      lineSpacing: titleLineSpacing,
+      fontFamily: titleFont,
+      borderWidth: titleBorderWidth,
+      align: titleAlign,
+    })
+    : titleRenderLayout
+  const resolvedTitleX = titleX ?? 0.5
+  const resolvedTitleY = titleY ?? 0.2
+  const resolvedTitleRenderLayoutKey = resolvedTitleRenderLayout
+    ? JSON.stringify(resolvedTitleRenderLayout)
+    : ''
 
   useEffect(() => {
     if (!video) {
@@ -162,11 +196,10 @@ export default function App() {
 
   const handlePreview = useCallback(async () => {
     if (!video) return
-    const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
-    if (isPendingTitleApply && titleText.trim() && !titleRenderLayoutRef.current) return
+    if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
     setPreviewLoading(true)
     setPreviewError(null)
-    const currentTitleRenderLayout = titleRenderLayoutRef.current
+    const currentTitleRenderLayout = resolvedTitleRenderLayout
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
@@ -185,12 +218,13 @@ export default function App() {
         audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
+        audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
         subtitleFilename: hasAppliedSubtitles ? subtitleFilename || undefined : undefined,
         subtitleStyle: hasAppliedSubtitles ? appliedSubtitleStyle || undefined : undefined,
         titleStyle: titleText.trim() ? {
           text: titleText.trim(),
           font: titleFont,
-          size: titleSize,
+          size: renderedTitleSize,
           color: titleColor,
           bgColor: titleBgColor,
           borderColor: titleBorderColor,
@@ -200,15 +234,10 @@ export default function App() {
           padding: titlePadding,
           lineSpacing: titleLineSpacing,
           align: titleAlign,
-          x: titleX ?? undefined,
-          y: titleY ?? undefined,
-          wrappedText: currentTitleRenderLayout?.wrappedText,
-          lineWidths: currentTitleRenderLayout?.lineWidths,
-          textBlockWidth: currentTitleRenderLayout?.textBlockWidth,
-          textBlockHeight: currentTitleRenderLayout?.textBlockHeight,
-          layoutBlockWidth: currentTitleRenderLayout?.layoutBlockWidth,
-          layoutBlockHeight: currentTitleRenderLayout?.layoutBlockHeight,
-          lineHeight: currentTitleRenderLayout?.lineHeight,
+          frameMode: borderEnabled && borderMode === 'outside' ? 'outside' : 'inside',
+          x: resolvedTitleX,
+          y: resolvedTitleY,
+          layout: currentTitleRenderLayout || undefined,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,
@@ -246,11 +275,12 @@ export default function App() {
     audioApplied,
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
+    appliedAudioOffset,
     subtitleFilename,
     appliedSubtitleStyle,
     titleText,
     titleFont,
-    titleSize,
+    renderedTitleSize,
     titleColor,
     titleBgColor,
     titleBorderColor,
@@ -259,8 +289,10 @@ export default function App() {
     titleFrameWidth,
     titlePadding,
     titleLineSpacing,
-    titleX,
-    titleY,
+    titleAlign,
+    resolvedTitleX,
+    resolvedTitleY,
+    resolvedTitleRenderLayoutKey,
     borderEnabled,
     borderWidth,
     borderHeight,
@@ -326,6 +358,7 @@ export default function App() {
           replace: appliedReplaceOriginal,
           t0: appliedAudioTrimStart,
           t1: appliedAudioTrimEnd,
+          offset: appliedAudioOffset,
         }
         : null,
       subtitles: hasSubtitlesApplied ? ['applied'] : [],
@@ -345,8 +378,7 @@ export default function App() {
     if (debounceRef.current) window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       if (previewLoading) return
-      const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
-      if (isPendingTitleApply && titleText.trim() && !titleRenderLayoutRef.current) return
+      if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
       if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
         lastPreviewSig.current = pendingSig.current
         handlePreview()
@@ -368,6 +400,7 @@ export default function App() {
     appliedReplaceOriginal,
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
+    appliedAudioOffset,
     subtitleFilename,
     appliedSubtitleStyle,
     exportQuality,
@@ -387,9 +420,10 @@ export default function App() {
     titleFrameWidth,
     titlePadding,
     titleLineSpacing,
+    titleAlign,
     titleX,
     titleY,
-    titleRenderLayout,
+    resolvedTitleRenderLayoutKey,
     borderEnabled,
     borderWidth,
     borderHeight,
@@ -405,13 +439,12 @@ export default function App() {
   useEffect(() => {
     if (!video) return
     if (previewLoading) return
-    const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
-    if (isPendingTitleApply && titleText.trim() && !titleRenderLayout) return
+    if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
     if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
       lastPreviewSig.current = pendingSig.current
       handlePreview()
     }
-  }, [handlePreview, pendingPreviewAction, previewLoading, titleRenderLayout, titleText, video])
+  }, [handlePreview, previewLoading, resolvedTitleRenderLayoutKey, titleText, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
   const recentActions = actionHistory.slice(-6).reverse()
@@ -864,4 +897,3 @@ function formatTime2(s: number) {
 
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
-

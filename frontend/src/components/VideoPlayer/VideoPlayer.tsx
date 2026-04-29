@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Play, Pause } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
-import { clampNormalizedCenter, getAlignedLineOffset, getTitleLayoutMetrics } from '../../utils/titleLayout'
-import { getContainRect, getRenderedVideoDimensions } from '../../utils/videoLayout'
+import { clampNormalizedCenter, getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
+import { getContainRect, getCroppedSourceDimensions, getRenderedVideoDimensions } from '../../utils/videoLayout'
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
 function formatTime(s: number) {
@@ -20,15 +20,16 @@ function formatTime(s: number) {
 export default function VideoPlayer() {
   const {
     video, trimStart, trimEnd, setTrimEnd, processedUrl, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
-    appliedAudioTrimStart, appliedAudioTrimEnd, activeTab, titleText, titleFont, titleDraftFont, titleSize, titleDraftSize, titleColor, titleDraftColor, titleBgColor, titleDraftBgColor,
+    appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, activeTab, titleText, titleFont, titleDraftFont, titleSize, titleDraftSize, titleColor, titleDraftColor, titleBgColor, titleDraftBgColor,
     titleBorderColor, titleDraftBorderColor, titleBorderWidth, titleDraftBorderWidth, titleFrameColor, titleDraftFrameColor, titleFrameWidth, titleDraftFrameWidth, titlePadding, titleDraftPadding, titleLineSpacing, titleDraftLineSpacing, titleX, titleY, titleDraftX,
     titleDraftY, setTitleDraftXY, titleDraftText, titleAlign, titleDraftAlign, isApplyingTitle, previewLoading, logoImage, logoSize,
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY, borderEnabled, borderWidth,
     borderHeight, borderMode, cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
-    setSeekTo, setTitleRenderLayout } = useStore()
+    setSeekTo, setTitleRenderLayout, videoSourceWidth, videoSourceHeight, setVideoSourceDimensions } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const titleCanvasRef = useRef<HTMLCanvasElement>(null)
   const draggingRef = useRef(false)
   const logoDraggingRef = useRef(false)
   const [playing, setPlaying] = useState(false)
@@ -49,9 +50,40 @@ export default function VideoPlayer() {
   const effectiveDuration = Math.max(0, effectiveEnd - effectiveStart)
 
   const src = withMediaBase((hasPendingCropChanges ? video?.url : (processedUrl || video?.url)) || '')
+  const originalVideoSrc = withMediaBase(video?.url || '')
   const isMuted = audioApplied && appliedReplaceOriginal && !!audioTrack
   const audioSegStart = audioApplied ? appliedAudioTrimStart : 0
   const audioSegEnd = audioApplied ? (appliedAudioTrimEnd || audioDuration) : audioDuration
+  const syncAudioToVideo = useCallback((videoTime: number, shouldPlay: boolean) => {
+    const audioEl = audioRef.current
+    if (!audioEl || !audioApplied) return
+
+    const audioLead = videoTime - appliedAudioOffset
+    if (audioLead < 0) {
+      audioEl.pause()
+      audioEl.currentTime = audioSegStart
+      return
+    }
+
+    const nextAudioTime = audioSegStart + audioLead
+    if (nextAudioTime >= audioSegEnd) {
+      audioEl.pause()
+      if (audioSegEnd > audioSegStart) {
+        audioEl.currentTime = audioSegEnd
+      }
+      return
+    }
+
+    if (Math.abs(audioEl.currentTime - nextAudioTime) > 0.3) {
+      audioEl.currentTime = nextAudioTime
+    }
+
+    if (shouldPlay) {
+      void audioEl.play().catch(() => {})
+    } else {
+      audioEl.pause()
+    }
+  }, [appliedAudioOffset, audioApplied, audioSegEnd, audioSegStart])
 
   useEffect(() => {
     if (video) setTrimEnd(video.duration)
@@ -61,17 +93,13 @@ export default function VideoPlayer() {
     if (seekTo !== null && videoRef.current) {
       const next = Math.min(Math.max(seekTo, 0), fullDuration)
       videoRef.current.currentTime = next
-      if (audioRef.current && audioApplied) {
-        const offset = Math.max(0, next - effectiveStart)
-        audioRef.current.currentTime = audioSegStart + offset
-      }
+      syncAudioToVideo(next, true)
       setCurrentTime(next)
       setSeekTo(null)
       videoRef.current.play()
-      audioRef.current?.play()
       setPlaying(true)
     }
-  }, [seekTo, fullDuration, audioApplied, audioSegStart, effectiveStart, setSeekTo])
+  }, [seekTo, fullDuration, setSeekTo, syncAudioToVideo])
 
   useEffect(() => {
     setMediaDuration(0)
@@ -85,21 +113,21 @@ export default function VideoPlayer() {
     if (!v) return
     if (v.currentTime < effectiveStart || v.currentTime > effectiveEnd) {
       v.currentTime = effectiveStart
-      if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
+      syncAudioToVideo(effectiveStart, false)
       setCurrentTime(effectiveStart)
     }
-  }, [effectiveStart, effectiveEnd, audioApplied, audioSegStart])
+  }, [effectiveStart, effectiveEnd, syncAudioToVideo])
 
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
     v.currentTime = effectiveStart
-    if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
+    syncAudioToVideo(effectiveStart, false)
     setCurrentTime(effectiveStart)
     setPlaying(false)
     v.pause()
     audioRef.current?.pause()
-  }, [effectiveStart, effectiveEnd, audioApplied, audioSegStart])
+  }, [effectiveStart, effectiveEnd, syncAudioToVideo])
 
   const togglePlay = () => {
     const v = videoRef.current
@@ -110,7 +138,7 @@ export default function VideoPlayer() {
       setPlaying(false)
     } else {
       v.play()
-      audioRef.current?.play()
+      syncAudioToVideo(v.currentTime, true)
       setPlaying(true)
     }
   }
@@ -124,31 +152,21 @@ export default function VideoPlayer() {
       audioRef.current?.pause()
       setPlaying(false)
     }
-    if (audioApplied && audioRef.current && audioSegEnd > 0) {
-      const expectedAudioTime = audioSegStart + Math.max(0, v.currentTime - effectiveStart)
-      if (expectedAudioTime >= audioSegEnd) {
-        audioRef.current.pause()
-      } else if (Math.abs(audioRef.current.currentTime - expectedAudioTime) > 0.3) {
-        audioRef.current.currentTime = expectedAudioTime
-      }
-    }
+    syncAudioToVideo(v.currentTime, !v.paused && v.currentTime < effectiveEnd)
   }
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const t = parseFloat(e.target.value)
     const next = effectiveStart + t
     if (videoRef.current) videoRef.current.currentTime = next
-    if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart + t
+    syncAudioToVideo(next, playing)
     setCurrentTime(next)
   }
 
   const handleTimelineSeek = (t: number) => {
     const next = Math.min(Math.max(t, 0), fullDuration)
     if (videoRef.current) videoRef.current.currentTime = next
-    if (audioRef.current && audioApplied) {
-      const offset = Math.max(0, next - effectiveStart)
-      audioRef.current.currentTime = audioSegStart + offset
-    }
+    syncAudioToVideo(next, playing)
     setCurrentTime(next)
   }
   const updateVideoDisplayRect = useCallback(() => {
@@ -214,6 +232,8 @@ export default function VideoPlayer() {
     && (previewCrop.top > 0 || previewCrop.bottom > 0 || previewCrop.left > 0 || previewCrop.right > 0)
   const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
   const videoIntrinsicHeight = videoRef.current?.videoHeight || 0
+  const baseSourceWidth = videoSourceWidth || videoIntrinsicWidth
+  const baseSourceHeight = videoSourceHeight || videoIntrinsicHeight
   const previewTitleText = activeTab === 'title' ? titleDraftText || titleText : titleText
   const previewTitleX = activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5
   const previewTitleY = activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2
@@ -228,9 +248,16 @@ export default function VideoPlayer() {
   const previewTitlePadding = activeTab === 'title' ? titleDraftPadding : titlePadding
   const previewTitleLineSpacing = activeTab === 'title' ? titleDraftLineSpacing : titleLineSpacing
   const previewTitleAlign = activeTab === 'title' ? titleDraftAlign || titleAlign : titleAlign
+  const renderedAppliedTitleSize = getRenderedTitleFontSize(titleSize)
+  const effectiveSourceDimensions = getCroppedSourceDimensions({
+    sourceWidth: baseSourceWidth,
+    sourceHeight: baseSourceHeight,
+    cropEnabled,
+    crop,
+  })
   const renderedVideoDimensions = getRenderedVideoDimensions({
-    sourceWidth: videoIntrinsicWidth,
-    sourceHeight: videoIntrinsicHeight,
+    sourceWidth: effectiveSourceDimensions.width,
+    sourceHeight: effectiveSourceDimensions.height,
     quality: exportQuality,
     aspectRatio: exportAspectRatio,
     borderEnabled,
@@ -238,12 +265,13 @@ export default function VideoPlayer() {
     borderHeight,
     borderMode,
   })
-  const titleDraftRect = getContainRect({
+  const titleOuterRect = getContainRect({
     containerWidth: overlayRef.current?.clientWidth || 0,
     containerHeight: overlayRef.current?.clientHeight || 0,
     contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
     contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
   })
+  const titleDraftRect = titleOuterRect
   const logoDraftRect = getContainRect({
     containerWidth: overlayRef.current?.clientWidth || 0,
     containerHeight: overlayRef.current?.clientHeight || 0,
@@ -251,48 +279,26 @@ export default function VideoPlayer() {
     contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
   })
   const fullPreviewWidth = renderedVideoDimensions.width || videoIntrinsicWidth || 0
-  const fullPreviewHeight = renderedVideoDimensions.height || videoIntrinsicHeight || 0
   const previewTitleLayoutWidth = Math.max(0, fullPreviewWidth)
   const titlePreviewScale = previewTitleLayoutWidth > 0 && titleDraftRect.width > 0
     ? titleDraftRect.width / previewTitleLayoutWidth
     : 1
-  const previewTitleMetrics = getTitleLayoutMetrics(
-    previewTitleText,
-    previewTitleSize,
-    previewTitleLayoutWidth,
-    previewTitlePadding,
-    previewTitleFrameWidth,
-    previewTitleLineSpacing,
-    previewTitleFont,
-    previewTitleBorderWidth,
-  )
+  const previewTitleLayout = getTitleRenderLayout({
+    text: previewTitleText,
+    fontSize: previewTitleSize,
+    videoWidth: previewTitleLayoutWidth,
+    padding: previewTitlePadding,
+    frameWidth: previewTitleFrameWidth,
+    lineSpacing: previewTitleLineSpacing,
+    fontFamily: previewTitleFont,
+    borderWidth: previewTitleBorderWidth,
+    align: previewTitleAlign,
+  })
   const appliedTitleLayoutWidth = previewTitleLayoutWidth
-  const appliedTitleMetrics = getTitleLayoutMetrics(
-    titleText,
-    titleSize,
-    appliedTitleLayoutWidth,
-    titlePadding,
-    titleFrameWidth,
-    titleLineSpacing,
-    titleFont,
-    titleBorderWidth,
-  )
-  const previewTitleBoxWidth = previewTitleMetrics.layoutBlockWidth * titlePreviewScale
-  const previewTitleBoxHeight = previewTitleMetrics.layoutBlockHeight * titlePreviewScale
-  const previewTitleTextBlockWidth = previewTitleMetrics.textBlockWidth * titlePreviewScale
-  const previewTitleLineHeightPx = previewTitleMetrics.lineHeight * titlePreviewScale
-  const previewTitleContentInsetPx = previewTitleMetrics.contentInset * titlePreviewScale
-  const previewTitleBorderWidthPx = previewTitleBorderWidth * titlePreviewScale
-  const previewTitleStrokeInsetPx = previewTitleMetrics.strokeInset * titlePreviewScale
-  const previewTitleFrameInsetPx = previewTitleBorderWidthPx
-  const previewTitleBackgroundInsetPx = (previewTitleFrameWidth + previewTitleBorderWidth) * titlePreviewScale
-  const previewTitleBackgroundWidthPx = Math.max(0, previewTitleBoxWidth - (previewTitleBackgroundInsetPx * 2))
-  const previewTitleBackgroundHeightPx = Math.max(0, previewTitleBoxHeight - (previewTitleBackgroundInsetPx * 2))
-  const previewTitleFrameWidthPx = Math.max(0, previewTitleBoxWidth - previewTitleStrokeInsetPx)
-  const previewTitleFrameHeightPx = Math.max(0, previewTitleBoxHeight - previewTitleStrokeInsetPx)
+  const previewTitleBoxWidth = (previewTitleLayout?.blockWidth || 0) * titlePreviewScale
+  const previewTitleBoxHeight = (previewTitleLayout?.blockHeight || 0) * titlePreviewScale
   const constrainedPreviewTitleX = clampNormalizedCenter(previewTitleX, titleDraftRect.width, previewTitleBoxWidth)
   const constrainedPreviewTitleY = clampNormalizedCenter(previewTitleY, titleDraftRect.height, previewTitleBoxHeight)
-  const appliedLineWidthsKey = appliedTitleMetrics.measuredLineWidths.map(width => width.toFixed(3)).join(',')
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -324,39 +330,101 @@ export default function VideoPlayer() {
   }, [getRelativePointInRect, logoDraftRect, previewTitleBoxHeight, previewTitleBoxWidth, setLogoDraftXY, setTitleDraftXY, titleDraftRect])
 
   useEffect(() => {
-    if (!video || !titleText.trim() || appliedTitleLayoutWidth <= 0) {
-      setTitleRenderLayout(null)
-      return
+    const canvas = titleCanvasRef.current
+    if (!canvas) return
+
+    const layout = previewTitleLayout
+    const cssWidth = Math.max(1, previewTitleBoxWidth || 1)
+    const cssHeight = Math.max(1, previewTitleBoxHeight || 1)
+    const dpr = window.devicePixelRatio || 1
+
+    canvas.width = Math.max(1, Math.round(cssWidth * dpr))
+    canvas.height = Math.max(1, Math.round(cssHeight * dpr))
+    canvas.style.width = `${cssWidth}px`
+    canvas.style.height = `${cssHeight}px`
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    if (!layout || !previewTitleText.trim()) return
+
+    ctx.setTransform(dpr * titlePreviewScale, 0, 0, dpr * titlePreviewScale, 0, 0)
+
+    if (previewTitleFrameWidth > 0) {
+      ctx.fillStyle = previewTitleFrameColor
+      ctx.fillRect(
+        layout.frameBounds.x,
+        layout.frameBounds.y,
+        layout.frameBounds.width,
+        layout.frameBounds.height,
+      )
     }
 
-    const nextLayout = {
-      wrappedText: appliedTitleMetrics.wrappedText,
-      lineWidths: appliedTitleMetrics.measuredLineWidths,
-      textBlockWidth: appliedTitleMetrics.textBlockWidth,
-      textBlockHeight: appliedTitleMetrics.textBlockHeight,
-      layoutBlockWidth: appliedTitleMetrics.layoutBlockWidth,
-      layoutBlockHeight: appliedTitleMetrics.layoutBlockHeight,
-      lineHeight: appliedTitleMetrics.lineHeight,
-    }
+    ctx.fillStyle = previewTitleBgColor
+    ctx.fillRect(
+      layout.backgroundBounds.x,
+      layout.backgroundBounds.y,
+      layout.backgroundBounds.width,
+      layout.backgroundBounds.height,
+    )
 
-    setTitleRenderLayout(nextLayout)
+    ctx.font = `${previewTitleSize}px "${previewTitleFont.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
+    ctx.lineJoin = 'round'
+    ctx.miterLimit = 2
+    ctx.fillStyle = previewTitleColor
+    ctx.strokeStyle = previewTitleBorderColor
+    ctx.lineWidth = previewTitleBorderWidth * 2
+
+    layout.lines.forEach((line) => {
+      if (!line.text.trim()) return
+      if (previewTitleBorderWidth > 0) {
+        ctx.strokeText(line.text, line.drawX, line.baselineY)
+      }
+      ctx.fillText(line.text, line.drawX, line.baselineY)
+    })
   }, [
-    video,
+    previewTitleLayout,
+    previewTitleText,
+    previewTitleSize,
+    previewTitleFont,
+    previewTitleColor,
+    previewTitleBgColor,
+    previewTitleBorderColor,
+    previewTitleBorderWidth,
+    previewTitleFrameColor,
+    previewTitleFrameWidth,
+    previewTitleBoxWidth,
+    previewTitleBoxHeight,
+    titlePreviewScale,
+  ])
+
+  useEffect(() => {
+    setTitleRenderLayout(getTitleRenderLayout({
+      text: titleText,
+      fontSize: renderedAppliedTitleSize,
+      videoWidth: appliedTitleLayoutWidth,
+      padding: titlePadding,
+      frameWidth: titleFrameWidth,
+      lineSpacing: titleLineSpacing,
+      fontFamily: titleFont,
+      borderWidth: titleBorderWidth,
+      align: titleAlign,
+    }))
+  }, [
     titleText,
     titleFont,
-    titleSize,
+    renderedAppliedTitleSize,
     titlePadding,
     titleFrameWidth,
     titleLineSpacing,
+    titleAlign,
     titleBorderWidth,
     appliedTitleLayoutWidth,
-    appliedTitleMetrics.wrappedText,
-    appliedTitleMetrics.textBlockWidth,
-    appliedTitleMetrics.textBlockHeight,
-    appliedTitleMetrics.layoutBlockWidth,
-    appliedTitleMetrics.layoutBlockHeight,
-    appliedTitleMetrics.lineHeight,
-    appliedLineWidthsKey,
     setTitleRenderLayout,
   ])
 
@@ -369,15 +437,19 @@ export default function VideoPlayer() {
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => setPlaying(false)}
           onLoadedMetadata={() => {
+            let nextStart = trimStart
             if (videoRef.current) {
               const actualDuration = Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : 0
               setMediaDuration(actualDuration)
-              const nextStart = Math.min(trimStart, actualDuration || trimStart)
+              if (src === originalVideoSrc || !videoSourceWidth || !videoSourceHeight) {
+                setVideoSourceDimensions(videoRef.current.videoWidth || 0, videoRef.current.videoHeight || 0)
+              }
+              nextStart = Math.min(trimStart, actualDuration || trimStart)
               videoRef.current.currentTime = nextStart
               setCurrentTime(nextStart)
             }
             updateVideoDisplayRect()
-            if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
+            syncAudioToVideo(nextStart, false)
           }}
         />
         <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
@@ -474,75 +546,17 @@ export default function VideoPlayer() {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  boxSizing: 'border-box',
                   overflow: 'hidden',
                 }}
               >
-                {previewTitleFrameWidth > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: `${previewTitleFrameInsetPx}px`,
-                      top: `${previewTitleFrameInsetPx}px`,
-                      width: `${previewTitleFrameWidthPx}px`,
-                      height: `${previewTitleFrameHeightPx}px`,
-                      backgroundColor: previewTitleFrameColor,
-                    }}
-                  />
-                )}
-                <div
+                <canvas
+                  ref={titleCanvasRef}
                   style={{
                     position: 'absolute',
-                    left: `${previewTitleBackgroundInsetPx}px`,
-                    top: `${previewTitleBackgroundInsetPx}px`,
-                    width: `${previewTitleBackgroundWidthPx}px`,
-                    height: `${previewTitleBackgroundHeightPx}px`,
-                    backgroundColor: previewTitleBgColor,
+                    inset: 0,
+                    display: 'block',
                   }}
                 />
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${previewTitleContentInsetPx}px`,
-                    top: `${previewTitleContentInsetPx}px`,
-                    width: `${previewTitleTextBlockWidth}px`,
-                    height: `${Math.max(0, previewTitleBoxHeight - (previewTitleContentInsetPx * 2))}px`,
-                    fontFamily: previewTitleFont,
-                    fontSize: `${previewTitleSize * titlePreviewScale}px`,
-                    fontWeight: 400,
-                    color: previewTitleColor,
-                    boxSizing: 'border-box',
-                    WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
-                    WebkitTextStrokeColor: previewTitleBorderColor,
-                  }}
-                >
-                  {previewTitleMetrics.lines.map((line, index) => (
-                    <div
-                      key={`${index}-${line}`}
-                      style={{
-                        position: 'absolute',
-                        left: `${getAlignedLineOffset({
-                          align: previewTitleAlign,
-                          textBlockWidth: previewTitleTextBlockWidth,
-                          measuredLineWidth: previewTitleMetrics.measuredLineWidths[index] * titlePreviewScale,
-                          borderWidth: previewTitleBorderWidthPx,
-                        })}px`,
-                        top: `${(index * previewTitleLineHeightPx) + previewTitleBorderWidthPx}px`,
-                        width: `${Math.max(
-                          0,
-                          (previewTitleMetrics.measuredLineWidths[index] * titlePreviewScale) + (previewTitleBorderWidthPx * 2),
-                        )}px`,
-                        minHeight: `${previewTitleSize * titlePreviewScale}px`,
-                        lineHeight: `${previewTitleSize * titlePreviewScale}px`,
-                        whiteSpace: 'pre',
-                      }}
-                    >
-                      <span style={{ display: 'inline-block' }}>
-                        {line || '\u00A0'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

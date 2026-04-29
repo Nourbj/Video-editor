@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'
 import { exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
+import { getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
+import { getCroppedSourceDimensions, getRenderedVideoDimensions } from '../../utils/videoLayout'
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -20,7 +22,7 @@ export default function ExportPanel() {
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
     titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
     cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
-    setExportFilename, setProcessedUrl,
+    setExportFilename, setProcessedUrl, videoSourceWidth, videoSourceHeight,
   } = useStore()
 
   const [loading, setLoading] = useState(false)
@@ -36,6 +38,38 @@ export default function ExportPanel() {
   const hasLogo = !!logoImage
   const hasAppliedAudio = !!audioTrack && audioApplied
   const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
+  const renderedTitleSize = getRenderedTitleFontSize(titleSize)
+  const effectiveTitleSourceDimensions = getCroppedSourceDimensions({
+    sourceWidth: videoSourceWidth,
+    sourceHeight: videoSourceHeight,
+    cropEnabled,
+    crop,
+  })
+  const renderedVideoDimensions = getRenderedVideoDimensions({
+    sourceWidth: effectiveTitleSourceDimensions.width,
+    sourceHeight: effectiveTitleSourceDimensions.height,
+    quality: exportQuality,
+    aspectRatio: exportAspectRatio,
+    borderEnabled,
+    borderWidth,
+    borderHeight,
+    borderMode,
+  })
+  const resolvedTitleRenderLayout = titleText.trim() && renderedVideoDimensions.width > 0
+    ? getTitleRenderLayout({
+      text: titleText,
+      fontSize: renderedTitleSize,
+      videoWidth: renderedVideoDimensions.width,
+      padding: titlePadding,
+      frameWidth: titleFrameWidth,
+      lineSpacing: titleLineSpacing,
+      fontFamily: titleFont,
+      borderWidth: titleBorderWidth,
+      align: titleAlign,
+    })
+    : titleRenderLayout
+  const resolvedTitleX = titleX ?? 0.5
+  const resolvedTitleY = titleY ?? 0.2
 
   const handleExport = async () => {
     if (!video) return
@@ -65,7 +99,7 @@ export default function ExportPanel() {
         titleStyle: titleText.trim() ? {
           text: titleText.trim(),
           font: titleFont,
-          size: titleSize,
+          size: renderedTitleSize,
           color: titleColor,
           bgColor: titleBgColor,
           borderColor: titleBorderColor,
@@ -75,15 +109,10 @@ export default function ExportPanel() {
           padding: titlePadding,
           lineSpacing: titleLineSpacing,
           align: titleAlign,
-          x: titleX ?? undefined,
-          y: titleY ?? undefined,
-          wrappedText: titleRenderLayout?.wrappedText,
-          lineWidths: titleRenderLayout?.lineWidths,
-          textBlockWidth: titleRenderLayout?.textBlockWidth,
-          textBlockHeight: titleRenderLayout?.textBlockHeight,
-          layoutBlockWidth: titleRenderLayout?.layoutBlockWidth,
-          layoutBlockHeight: titleRenderLayout?.layoutBlockHeight,
-          lineHeight: titleRenderLayout?.lineHeight,
+          frameMode: borderEnabled && borderMode === 'outside' ? 'outside' : 'inside',
+          x: resolvedTitleX,
+          y: resolvedTitleY,
+          layout: resolvedTitleRenderLayout || undefined,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,

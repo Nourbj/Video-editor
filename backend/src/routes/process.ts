@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, deleteManagedCutOutput } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, cleanupTitleTextArtifacts, deleteManagedCutOutput } from '../utils/ffmpeg'
+import type { TitleStyle } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
 
@@ -260,31 +261,7 @@ export async function processRoute(app: FastifyInstance) {
         color?: string
         position?: 'bottom' | 'middle' | 'top'
       }
-      titleStyle?: {
-        text?: string
-        font?: string
-        size?: number
-        color?: string
-        bgColor?: string
-        borderColor?: string
-        borderWidth?: number
-        frameColor?: string
-        frameWidth?: number
-        padding?: number
-        lineSpacing?: number
-        align?: 'left' | 'center' | 'right'
-        position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
-        frameMode?: 'inside' | 'outside'
-        x?: number
-        y?: number
-        wrappedText?: string
-        lineWidths?: number[]
-        textBlockWidth?: number
-        textBlockHeight?: number
-        layoutBlockWidth?: number
-        layoutBlockHeight?: number
-        lineHeight?: number
-      }
+      titleStyle?: TitleStyle
       borderStyle?: {
         enabled?: boolean
         sizeX?: number
@@ -319,6 +296,7 @@ export async function processRoute(app: FastifyInstance) {
     }
 
     try {
+      cleanupTitleTextArtifacts()
       const crop = normalizeCrop(body.crop)
       console.log('--- POST /api/export ---')
       console.log('body:', JSON.stringify({
@@ -391,31 +369,7 @@ export async function processRoute(app: FastifyInstance) {
         color?: string
         position?: 'bottom' | 'middle' | 'top'
       }
-      titleStyle?: {
-        text?: string
-        font?: string
-        size?: number
-        color?: string
-        bgColor?: string
-        borderColor?: string
-        borderWidth?: number
-        frameColor?: string
-        frameWidth?: number
-        padding?: number
-        lineSpacing?: number
-        align?: 'left' | 'center' | 'right'
-        position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
-        frameMode?: 'inside' | 'outside'
-        x?: number
-        y?: number
-        wrappedText?: string
-        lineWidths?: number[]
-        textBlockWidth?: number
-        textBlockHeight?: number
-        layoutBlockWidth?: number
-        layoutBlockHeight?: number
-        lineHeight?: number
-      }
+      titleStyle?: TitleStyle
       borderStyle?: {
         enabled?: boolean
         sizeX?: number
@@ -450,6 +404,7 @@ export async function processRoute(app: FastifyInstance) {
     }
 
     try {
+      cleanupTitleTextArtifacts()
       const crop = normalizeCrop(body.crop)
       cleanupTempPreviews()
       const outPath = await exportVideo({

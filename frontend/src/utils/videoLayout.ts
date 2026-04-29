@@ -72,6 +72,30 @@ export function getRenderedVideoDimensions(params: {
   return { width, height }
 }
 
+export function getCroppedSourceDimensions(params: {
+  sourceWidth: number
+  sourceHeight: number
+  cropEnabled?: boolean
+  crop?: {
+    top?: number
+    bottom?: number
+    left?: number
+    right?: number
+  }
+}) {
+  const { sourceWidth, sourceHeight, cropEnabled, crop } = params
+  if (!sourceWidth || !sourceHeight) return { width: 0, height: 0 }
+  if (!cropEnabled || !crop) return { width: sourceWidth, height: sourceHeight }
+
+  const horizontalKeep = Math.max(0.01, 1 - (crop.left || 0) - (crop.right || 0))
+  const verticalKeep = Math.max(0.01, 1 - (crop.top || 0) - (crop.bottom || 0))
+
+  return {
+    width: Math.max(2, sourceWidth * horizontalKeep),
+    height: Math.max(2, sourceHeight * verticalKeep),
+  }
+}
+
 export function getContainRect(params: {
   containerWidth: number
   containerHeight: number

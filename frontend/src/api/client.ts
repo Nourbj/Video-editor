@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { withMediaBase } from '../utils/media'
+import type { TitleRenderLayout } from '../utils/titleLayout'
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 const api = axios.create({ baseURL: apiBase })
@@ -60,13 +61,7 @@ export interface TitleStyle {
   frameMode?: 'inside' | 'outside'
   x?: number
   y?: number
-  wrappedText?: string
-  lineWidths?: number[]
-  textBlockWidth?: number
-  textBlockHeight?: number
-  layoutBlockWidth?: number
-  layoutBlockHeight?: number
-  lineHeight?: number
+  layout?: TitleRenderLayout
 }
 
 export interface BorderStyle {

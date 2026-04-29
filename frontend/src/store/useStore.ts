@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { SubtitleEntry } from '../api/client'
 import { createId } from '../utils/id'
+import type { TitleLineLayout, TitleRect, TitleRenderLayout } from '../utils/titleLayout'
 
 export interface VideoProject {
   id: string
@@ -37,36 +38,82 @@ export interface CropSettings {
   right: number
 }
 
-export interface TitleRenderLayout {
-  wrappedText: string
-  lineWidths: number[]
-  textBlockWidth: number
-  textBlockHeight: number
-  layoutBlockWidth: number
-  layoutBlockHeight: number
-  lineHeight: number
-}
-
 function areTitleLayoutsEqual(a: TitleRenderLayout | null, b: TitleRenderLayout | null) {
   if (a === b) return true
   if (!a || !b) return false
   if (
     a.wrappedText !== b.wrappedText
-    || a.textBlockWidth !== b.textBlockWidth
-    || a.textBlockHeight !== b.textBlockHeight
-    || a.layoutBlockWidth !== b.layoutBlockWidth
-    || a.layoutBlockHeight !== b.layoutBlockHeight
+    || a.blockWidth !== b.blockWidth
+    || a.blockHeight !== b.blockHeight
     || a.lineHeight !== b.lineHeight
-    || a.lineWidths.length !== b.lineWidths.length
+    || a.lines.length !== b.lines.length
+    || !areTitleRectsEqual(a.textBounds, b.textBounds)
+    || !areTitleRectsEqual(a.backgroundBounds, b.backgroundBounds)
+    || !areTitleRectsEqual(a.frameBounds, b.frameBounds)
   ) {
     return false
   }
 
-  return a.lineWidths.every((width, index) => width === b.lineWidths[index])
+  return a.lines.every((line, index) => areTitleLinesEqual(line, b.lines[index]))
 }
 
-function normalizeLineWidths(lineWidths: number[]) {
-  return lineWidths.map(width => Number(width.toFixed(3)))
+function normalizeMetric(value: number) {
+  return Number(value.toFixed(3))
+}
+
+function normalizeRect(rect: TitleRect): TitleRect {
+  return {
+    x: normalizeMetric(rect.x),
+    y: normalizeMetric(rect.y),
+    width: normalizeMetric(rect.width),
+    height: normalizeMetric(rect.height),
+  }
+}
+
+function normalizeTitleLine(line: TitleLineLayout): TitleLineLayout {
+  return {
+    ...line,
+    drawX: normalizeMetric(line.drawX),
+    baselineY: normalizeMetric(line.baselineY),
+    visualLeft: normalizeMetric(line.visualLeft),
+    visualTop: normalizeMetric(line.visualTop),
+    visualWidth: normalizeMetric(line.visualWidth),
+    visualHeight: normalizeMetric(line.visualHeight),
+    ascent: normalizeMetric(line.ascent),
+    descent: normalizeMetric(line.descent),
+  }
+}
+
+function normalizeTitleLayout(layout: TitleRenderLayout): TitleRenderLayout {
+  return {
+    ...layout,
+    textBounds: normalizeRect(layout.textBounds),
+    backgroundBounds: normalizeRect(layout.backgroundBounds),
+    frameBounds: normalizeRect(layout.frameBounds),
+    blockWidth: normalizeMetric(layout.blockWidth),
+    blockHeight: normalizeMetric(layout.blockHeight),
+    lineHeight: normalizeMetric(layout.lineHeight),
+    lines: layout.lines.map(normalizeTitleLine),
+  }
+}
+
+function areTitleRectsEqual(a: TitleRect, b: TitleRect) {
+  return a.x === b.x
+    && a.y === b.y
+    && a.width === b.width
+    && a.height === b.height
+}
+
+function areTitleLinesEqual(a: TitleLineLayout, b: TitleLineLayout) {
+  return a.text === b.text
+    && a.drawX === b.drawX
+    && a.baselineY === b.baselineY
+    && a.visualLeft === b.visualLeft
+    && a.visualTop === b.visualTop
+    && a.visualWidth === b.visualWidth
+    && a.visualHeight === b.visualHeight
+    && a.ascent === b.ascent
+    && a.descent === b.descent
 }
 
 export interface ActionToast {
@@ -99,6 +146,9 @@ export type TitlePosition =
 interface EditorState {
   video: VideoProject | null
   setVideo: (v: VideoProject | null) => void
+  videoSourceWidth: number
+  videoSourceHeight: number
+  setVideoSourceDimensions: (width: number, height: number) => void
 
   trimStart: number
   trimEnd: number
@@ -393,6 +443,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
     return {
       video: v,
+      videoSourceWidth: 0,
+      videoSourceHeight: 0,
       trimStart: 0,
       trimEnd: v?.duration || 0,
       cropEnabled: false,
@@ -456,6 +508,12 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
   trimStart: 0,
   trimEnd: 0,
+  videoSourceWidth: 0,
+  videoSourceHeight: 0,
+  setVideoSourceDimensions: (width, height) => set({
+    videoSourceWidth: Math.max(0, Math.round(width)),
+    videoSourceHeight: Math.max(0, Math.round(height)),
+  }),
   setTrimStart: t => set({ trimStart: t }),
   setTrimEnd: t => set({ trimEnd: t }),
   segments: [],
@@ -544,6 +602,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
   })),
   setMergedVideo: v => set(() => ({
     video: v,
+    videoSourceWidth: 0,
+    videoSourceHeight: 0,
     trimStart: 0,
     trimEnd: v.duration || 0,
     cropEnabled: false,
@@ -560,6 +620,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     exportFilename: '',
     appliedSubtitleStyle: null,
     subtitleAppliedSignature: null,
+    titleRenderLayout: null,
   })),
 
   audioTrack: null,
@@ -699,16 +760,10 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setTitleDraftAlign: a => set({ titleDraftAlign: a }),
   titleRenderLayout: null,
   setTitleRenderLayout: layout => set(state => (
-    areTitleLayoutsEqual(state.titleRenderLayout, layout ? {
-      ...layout,
-      lineWidths: normalizeLineWidths(layout.lineWidths),
-    } : null)
+    areTitleLayoutsEqual(state.titleRenderLayout, layout ? normalizeTitleLayout(layout) : null)
       ? state
       : {
-        titleRenderLayout: layout ? {
-          ...layout,
-          lineWidths: normalizeLineWidths(layout.lineWidths),
-        } : null,
+        titleRenderLayout: layout ? normalizeTitleLayout(layout) : null,
       }
   )),
   isApplyingTitle: false,
@@ -774,7 +829,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   })),
 
   reset: () => set({
-    video: null, trimStart: 0, trimEnd: 0,
+    video: null, videoSourceWidth: 0, videoSourceHeight: 0, trimStart: 0, trimEnd: 0,
     segments: [],
     audioTrack: null, replaceOriginalAudio: false, audioDuration: 0, audioTrimStart: 0, audioTrimEnd: 0, audioOffset: 0,
     audioApplied: false, appliedReplaceOriginal: false, appliedAudioTrimStart: 0, appliedAudioTrimEnd: 0, appliedAudioOffset: 0,

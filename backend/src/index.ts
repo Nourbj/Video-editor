@@ -23,6 +23,14 @@ dotenv.config(envPath ? { path: envPath } : undefined)
 
 const app = Fastify({ logger: true })
 
+function resolveExistingPath(...relativeCandidates: string[]) {
+  for (const relativePath of relativeCandidates) {
+    const absolutePath = path.join(process.cwd(), relativePath)
+    if (fs.existsSync(absolutePath)) return absolutePath
+  }
+  return path.join(process.cwd(), relativeCandidates[0] || '')
+}
+
 function resolveCookiesPathForStartup(): string {
   const envPath = process.env.YTDLP_COOKIES || ''
   const defaultPath = path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
@@ -103,7 +111,7 @@ app.register(staticFiles, {
 })
 
 app.register(staticFiles, {
-  root: path.join(process.cwd(), 'fonts'),
+  root: resolveExistingPath('fonts', 'backend/fonts'),
   prefix: '/fonts/',
   decorateReply: false,
 })

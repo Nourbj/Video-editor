@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
         '/final-outputs': backendUrl,
         '/uploads': backendUrl,
         '/temp': backendUrl,
-        '/fonts': backendUrl,
       },
     },
   }

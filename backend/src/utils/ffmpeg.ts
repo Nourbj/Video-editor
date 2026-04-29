@@ -7,6 +7,16 @@ const outputDir = path.join(process.cwd(), 'outputs')
 const finalOutputDir = path.join(process.cwd(), 'final-outputs')
 const tempDir = path.join(process.cwd(), 'temp')
 
+function resolveExistingPath(...relativeCandidates: string[]) {
+  for (const relativePath of relativeCandidates) {
+    const absolutePath = path.join(process.cwd(), relativePath)
+    if (fs.existsSync(absolutePath)) return absolutePath
+  }
+  return path.join(process.cwd(), relativeCandidates[0] || '')
+}
+
+const fontsDir = resolveExistingPath('fonts', 'backend/fonts')
+
 export interface CutOptions {
   inputPath: string
   startTime: number   
@@ -75,6 +85,36 @@ export type TitlePosition =
   | 'middle-left' | 'middle' | 'middle-right'
   | 'bottom-left' | 'bottom' | 'bottom-right'
 
+export interface TitleRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface TitleLineLayout {
+  text: string
+  drawX: number
+  baselineY: number
+  visualLeft?: number
+  visualTop?: number
+  visualWidth?: number
+  visualHeight?: number
+  ascent?: number
+  descent?: number
+}
+
+export interface TitleRenderLayout {
+  wrappedText: string
+  lines: TitleLineLayout[]
+  textBounds: TitleRect
+  backgroundBounds: TitleRect
+  frameBounds: TitleRect
+  blockWidth: number
+  blockHeight: number
+  lineHeight: number
+}
+
 export interface TitleStyle {
   text?: string
   font?: string
@@ -92,13 +132,7 @@ export interface TitleStyle {
   frameMode?: 'inside' | 'outside'
   x?: number
   y?: number
-  wrappedText?: string
-  lineWidths?: number[]
-  textBlockWidth?: number
-  textBlockHeight?: number
-  layoutBlockWidth?: number
-  layoutBlockHeight?: number
-  lineHeight?: number
+  layout?: TitleRenderLayout
 }
 
 export interface BorderStyle {
@@ -147,7 +181,6 @@ function normalizeFontName(name: string) {
 
 function resolveFontFile(fontName?: string) {
   if (!fontName) return null
-  const fontsDir = path.join(process.cwd(), 'fonts')
   try {
     const target = normalizeFontName(fontName)
     const entries = fs.readdirSync(fontsDir)
@@ -230,23 +263,28 @@ function wrapText(text: string, fontSize: number, videoWidth: number): string {
       lines.push('')
       continue
     }
-    const words = p.split(' ')
+    const tokens = p.match(/\s+|\S+\s*/g) || [p]
     let currentLine = ''
 
-    for (const word of words) {
-      if (word.length > maxChars) {
+    for (const token of tokens) {
+      if (token.length > maxChars) {
         if (currentLine) {
           lines.push(currentLine)
           currentLine = ''
         }
-        for (let i = 0; i < word.length; i += maxChars) {
-          lines.push(word.substring(i, i + maxChars))
+        for (let i = 0; i < token.length; i += maxChars) {
+          const segment = token.substring(i, i + maxChars)
+          if (i + maxChars >= token.length) {
+            currentLine = segment
+          } else {
+            lines.push(segment)
+          }
         }
       } else {
-        const testLine = currentLine ? `${currentLine} ${word}` : word
+        const testLine = `${currentLine}${token}`
         if (testLine.length > maxChars && currentLine) {
           lines.push(currentLine)
-          currentLine = word
+          currentLine = token
         } else {
           currentLine = testLine
         }
@@ -259,9 +297,12 @@ function wrapText(text: string, fontSize: number, videoWidth: number): string {
   return lines.join('\n')
 }
 
-function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, videoWidth = 1280) {
+function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
   const text = (style?.text || '').trim()
   if (!text) return null
+
+  const layout = style?.layout
+  if (!layout) return null
 
   const font = style?.font || 'Arial'
   const fontFile = resolveFontFile(font)
@@ -272,136 +313,143 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   const borderWidth = clamp(Number(style?.borderWidth ?? 0), 0, 20)
   const frameColor = style?.frameColor || '#000000'
   const frameWidth = clamp(Number(style?.frameWidth ?? 0), 0, 30)
-  const padding = clamp(Number(style?.padding ?? (process.env.TITLE_PADDING || 8)), 0, 40)
-  const lineSpacing = clamp(Number(style?.lineSpacing ?? 0), 0, 200)
-  const align = style?.align || 'center'
   const position = style?.position || 'top'
   const margin = Number(process.env.TITLE_MARGIN || 36)
-  const frameMode = style?.frameMode || 'inside'
-  const padX = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeX ?? 0), 0, 300) : 0
-  const padY = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeY ?? 0), 0, 300) : 0
-  const wrappedLines = (style?.wrappedText || wrapText(text, size, videoWidth)).split('\n')
-  const lines = wrappedLines.length > 0 ? wrappedLines : ['']
-  const approxCharWidth = size * 0.75
-  const approxLineHeight = Number.isFinite(style?.lineHeight) ? Math.max(1, Number(style?.lineHeight)) : size + lineSpacing
-  const maxLineLength = Math.max(...lines.map(line => Math.max(line.length, 1)))
-  const textBlockWidth = Number.isFinite(style?.textBlockWidth)
-    ? Math.max(approxCharWidth, Number(style?.textBlockWidth))
-    : Math.max(approxCharWidth, maxLineLength * approxCharWidth)
-  const textBlockHeight = Number.isFinite(style?.textBlockHeight)
-    ? Math.max(approxLineHeight, Number(style?.textBlockHeight))
-    : Number.isFinite(style?.layoutBlockHeight)
-      ? Math.max(approxLineHeight, Number(style?.layoutBlockHeight) - (padding + frameWidth) * 2)
-    : Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing)
-  const contentInset = padding + frameWidth
-  const strokeInset = Math.max(0, borderWidth * 2)
-  const layoutBlockWidth = Number.isFinite(style?.layoutBlockWidth)
-    ? Math.max(textBlockWidth, Number(style?.layoutBlockWidth))
-    : textBlockWidth + contentInset * 2
-  const layoutBlockHeight = Number.isFinite(style?.layoutBlockHeight)
-    ? Math.max(approxLineHeight, Number(style?.layoutBlockHeight))
-    : textBlockHeight + contentInset * 2
+  const blockWidth = Number.isFinite(layout.blockWidth) ? Math.max(1, Number(layout.blockWidth)) : 0
+  const blockHeight = Number.isFinite(layout.blockHeight) ? Math.max(1, Number(layout.blockHeight)) : 0
+  const backgroundBounds = layout.backgroundBounds
+  const frameBounds = layout.frameBounds
+  const lines = Array.isArray(layout.lines)
+    ? layout.lines.filter((line) => (
+      typeof line?.text === 'string'
+      && Number.isFinite(line?.drawX)
+      && Number.isFinite(line?.baselineY)
+    ))
+    : []
 
-  const outsideLayoutXLeft = `max((${padX}-${layoutBlockWidth})/2,0)`
-  const outsideLayoutXRight = `w-${padX}+max((${padX}-${layoutBlockWidth})/2,0)-${layoutBlockWidth}`
-  const outsideLayoutYTop = `max((${padY}-${layoutBlockHeight})/2,0)`
-  const outsideLayoutYBottom = `h-${padY}+max((${padY}-${layoutBlockHeight})/2,0)-${layoutBlockHeight}`
-
-  const insideLayoutPosMap: Record<TitlePosition, { x: string; y: string }> = {
-    'top-left': { x: `${margin}`, y: `${margin}` },
-    'top': { x: `(w-${layoutBlockWidth})/2`, y: `${margin}` },
-    'top-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `${margin}` },
-    'middle-left': { x: `${margin}`, y: `(h-${layoutBlockHeight})/2` },
-    'middle': { x: `(w-${layoutBlockWidth})/2`, y: `(h-${layoutBlockHeight})/2` },
-    'middle-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `(h-${layoutBlockHeight})/2` },
-    'bottom-left': { x: `${margin}`, y: `h-${layoutBlockHeight}-${margin}` },
-    'bottom': { x: `(w-${layoutBlockWidth})/2`, y: `h-${layoutBlockHeight}-${margin}` },
-    'bottom-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `h-${layoutBlockHeight}-${margin}` },
-  }
-
-  const outsideLayoutPosMap: Record<TitlePosition, { x: string; y: string }> = {
-    'top-left': { x: outsideLayoutXLeft, y: outsideLayoutYTop },
-    'top': { x: `(w-${layoutBlockWidth})/2`, y: outsideLayoutYTop },
-    'top-right': { x: outsideLayoutXRight, y: outsideLayoutYTop },
-    'middle-left': { x: outsideLayoutXLeft, y: `(h-${layoutBlockHeight})/2` },
-    'middle': { x: `(w-${layoutBlockWidth})/2`, y: `(h-${layoutBlockHeight})/2` },
-    'middle-right': { x: outsideLayoutXRight, y: `(h-${layoutBlockHeight})/2` },
-    'bottom-left': { x: outsideLayoutXLeft, y: outsideLayoutYBottom },
-    'bottom': { x: `(w-${layoutBlockWidth})/2`, y: outsideLayoutYBottom },
-    'bottom-right': { x: outsideLayoutXRight, y: outsideLayoutYBottom },
+  if (
+    !blockWidth
+    || !blockHeight
+    || !backgroundBounds
+    || !frameBounds
+    || !Number.isFinite(backgroundBounds.x)
+    || !Number.isFinite(backgroundBounds.y)
+    || !Number.isFinite(backgroundBounds.width)
+    || !Number.isFinite(backgroundBounds.height)
+    || !Number.isFinite(frameBounds.x)
+    || !Number.isFinite(frameBounds.y)
+    || !Number.isFinite(frameBounds.width)
+    || !Number.isFinite(frameBounds.height)
+    || lines.length === 0
+  ) {
+    return null
   }
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
   const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
-  const wrappedText = lines.join('\n')
-  const titleFile = path.join(tempDir, `title_text_${uuidv4()}.txt`)
-  fs.writeFileSync(titleFile, wrappedText, 'utf8')
-  const escapedFile = titleFile.replace(/\\/g, '/').replace(/:/g, '\\:')
-  const textFileArg = `textfile='${escapedFile}'`
-  const buildLineFilters = (layoutX: string, layoutY: string) => {
+  const offsetExpr = (baseExpr: string, offset: number) => {
+    if (!offset) return baseExpr
+    return `(${baseExpr}+${offset})`
+  }
+
+  const resolveBlockLayoutPosition = (widthVar: string, heightVar: string) => {
+    const regionLeft = 0
+    const regionTop = 0
+    const regionWidth = widthVar
+    const regionHeight = heightVar
+    const minLayoutX = 0
+    const minLayoutY = 0
+    const maxLayoutX = maxExpr(`${widthVar}-${blockWidth}`, 0)
+    const maxLayoutY = maxExpr(`${heightVar}-${blockHeight}`, 0)
+    const positionMap: Record<TitlePosition, { x: string; y: string }> = {
+      'top-left': {
+        x: `${regionLeft + margin}`,
+        y: `${regionTop + margin}`,
+      },
+      'top': {
+        x: `(${regionLeft}+(${regionWidth}-${blockWidth})/2)`,
+        y: `${regionTop + margin}`,
+      },
+      'top-right': {
+        x: `(${regionLeft}+${regionWidth}-${blockWidth}-${margin})`,
+        y: `${regionTop + margin}`,
+      },
+      'middle-left': {
+        x: `${regionLeft + margin}`,
+        y: `(${regionTop}+(${regionHeight}-${blockHeight})/2)`,
+      },
+      'middle': {
+        x: `(${regionLeft}+(${regionWidth}-${blockWidth})/2)`,
+        y: `(${regionTop}+(${regionHeight}-${blockHeight})/2)`,
+      },
+      'middle-right': {
+        x: `(${regionLeft}+${regionWidth}-${blockWidth}-${margin})`,
+        y: `(${regionTop}+(${regionHeight}-${blockHeight})/2)`,
+      },
+      'bottom-left': {
+        x: `${regionLeft + margin}`,
+        y: `(${regionTop}+${regionHeight}-${blockHeight}-${margin})`,
+      },
+      'bottom': {
+        x: `(${regionLeft}+(${regionWidth}-${blockWidth})/2)`,
+        y: `(${regionTop}+${regionHeight}-${blockHeight}-${margin})`,
+      },
+      'bottom-right': {
+        x: `(${regionLeft}+${regionWidth}-${blockWidth}-${margin})`,
+        y: `(${regionTop}+${regionHeight}-${blockHeight}-${margin})`,
+      },
+    }
+
+    if (typeof style?.x === 'number' && typeof style?.y === 'number') {
+      const safeX = clamp(style.x, 0, 1)
+      const safeY = clamp(style.y, 0, 1)
+      const xBase = `(${regionLeft}+${safeX}*${regionWidth})`
+      const yBase = `(${regionTop}+${safeY}*${regionHeight})`
+
+      return {
+        x: clampExpr(`(${xBase}-${blockWidth}/2)`, minLayoutX, maxLayoutX),
+        y: clampExpr(`(${yBase}-${blockHeight}/2)`, minLayoutY, maxLayoutY),
+      }
+    }
+
+    const { x, y } = positionMap[position]
+    return {
+      x: clampExpr(x, minLayoutX, maxLayoutX),
+      y: clampExpr(y, minLayoutY, maxLayoutY),
+    }
+  }
+
+  const buildBlockFilters = () => {
+    const boxLayout = resolveBlockLayoutPosition('iw', 'ih')
+    const textLayout = resolveBlockLayoutPosition('w', 'h')
     const filters: string[] = []
-    const blockX = `(${layoutX}+${contentInset})`
-    const blockY = `(${layoutY}+${contentInset})`
-    const boxTextX = `(${blockX}+${borderWidth})`
-    const boxTextY = `(${blockY}+${borderWidth})`
 
     if (frameWidth > 0) {
       filters.push(
-        `drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:borderw=${borderWidth}:bordercolor=${borderColor}@0:x=${boxTextX}:y=${boxTextY}:line_spacing=${lineSpacing}:fix_bounds=1:box=1:boxcolor=${frameColor}:boxborderw=${padding + frameWidth}`
+        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x))}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width))}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
       )
     }
+
     filters.push(
-      `drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:borderw=${borderWidth}:bordercolor=${borderColor}@0:x=${boxTextX}:y=${boxTextY}:line_spacing=${lineSpacing}:fix_bounds=1:box=1:boxcolor=${bgColor}:boxborderw=${padding}`
+      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x))}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width))}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
     )
 
-    lines.forEach((rawLine, index) => {
-      const lineText = rawLine.length > 0 ? rawLine : ' '
-      const escapedText = escapeDrawtext(lineText)
-      const textArg = `text='${escapedText}'`
-      const measuredLineWidth = Array.isArray(style?.lineWidths) && Number.isFinite(style?.lineWidths[index])
-        ? Math.max(approxCharWidth, Number(style?.lineWidths[index]))
-        : null
-      const x = align === 'left'
-        ? `(${blockX}+${borderWidth})`
-        : align === 'right'
-          ? measuredLineWidth !== null
-            ? `(${blockX}+${textBlockWidth}-${measuredLineWidth}-${strokeInset}+${borderWidth})`
-            : `(${blockX}+${textBlockWidth}-text_w-${borderWidth})`
-          : measuredLineWidth !== null
-            ? `(${blockX}+(${textBlockWidth}-${measuredLineWidth}-${strokeInset})/2+${borderWidth})`
-            : `(${blockX}+(${textBlockWidth}-(text_w+${strokeInset}))/2+${borderWidth})`
-      const y = `(${blockY}+${index * approxLineHeight}+${borderWidth})`
-      filters.push(`drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:borderw=${borderWidth}:bordercolor=${borderColor}:fix_bounds=1`)
+    lines.forEach((line) => {
+      if (!line.text.trim()) return
+      const textX = Number.isFinite(line.visualLeft) ? Number(line.visualLeft) : Number(line.drawX)
+      const textY = Number.isFinite(line.visualTop)
+        ? Number(line.visualTop)
+        : Number.isFinite(line.ascent)
+          ? Number(line.baselineY) - Number(line.ascent)
+          : Number(line.baselineY)
+      filters.push(
+        `drawtext=text='${escapeDrawtext(line.text)}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${offsetExpr(textLayout.x, textX)}:y=${offsetExpr(textLayout.y, textY)}:borderw=${borderWidth}:bordercolor=${borderColor}:expansion=none`,
+      )
     })
 
     return filters.join(',')
   }
-
-  if (typeof style?.x === 'number' && typeof style?.y === 'number') {
-    const safeX = clamp(style.x, 0, 1)
-    const safeY = clamp(style.y, 0, 1)
-    const xBase = frameMode === 'outside'
-      ? `(${padX}+${safeX}*(w-${padX * 2}))`
-      : `(${safeX}*w)`
-    const yBase = frameMode === 'outside'
-      ? `(${padY}+${safeY}*(h-${padY * 2}))`
-      : `(${safeY}*h)`
-    const layoutX = clampExpr(`(${xBase}-${layoutBlockWidth}/2)`, 0, `w-${layoutBlockWidth}`)
-    const layoutY = clampExpr(`(${yBase}-${layoutBlockHeight}/2)`, 0, `h-${layoutBlockHeight}`)
-    return buildLineFilters(layoutX, layoutY)
-  }
-
-  const normalizedPosition = frameMode === 'outside'
-    ? (position.startsWith('top')
-        ? 'top'
-        : position.startsWith('bottom')
-          ? 'bottom'
-          : 'middle')
-    : position
-
-  const posMap = frameMode === 'outside' ? outsideLayoutPosMap : insideLayoutPosMap
-  const { x, y } = posMap[normalizedPosition as TitlePosition]
-  return buildLineFilters(x, y)
+  return buildBlockFilters()
 }
 
 function buildBorderFilter(style?: BorderStyle) {
@@ -451,6 +499,10 @@ function clamp(n: number, min: number, max: number) {
 
 function clampExpr(expr: string, min: string | number, max: string | number) {
   return `min(${max}\\,max(${min}\\,${expr}))`
+}
+
+function maxExpr(left: string | number, right: string | number) {
+  return `max(${left}\\,${right})`
 }
 
 function buildLogoOverlayFilters(params: {
@@ -695,7 +747,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       estimatedVideoWidth += sizeX * 2
     }
 
-    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle, estimatedVideoWidth)
+    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle)
     const borderFilter = buildBorderFilter(borderStyle)
 
     const isGif = hasLogo && logoPath!.toLowerCase().endsWith('.gif')
@@ -900,6 +952,25 @@ export function cleanupTempArtifacts(maxAgeMs?: number): void {
       try {
         const stat = fs.statSync(fp)
         if (now - stat.mtimeMs > ageMs) fs.unlinkSync(fp)
+      } catch {
+      }
+    }
+  } catch {
+  }
+}
+
+export function cleanupTitleTextArtifacts(maxAgeMs = 0): void {
+  const now = Date.now()
+
+  try {
+    const files = fs.readdirSync(tempDir)
+    for (const f of files) {
+      if (!/^title_text_.*\.txt$/i.test(f)) continue
+
+      const fp = path.join(tempDir, f)
+      try {
+        const stat = fs.statSync(fp)
+        if (now - stat.mtimeMs >= maxAgeMs) fs.unlinkSync(fp)
       } catch {
       }
     }
