@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -12,6 +12,8 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { previewVideo } from './api/client'
+import type { SubtitleEntry } from './api/client'
+import type { SubtitleStyle } from './store/useStore'
 
 type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -39,6 +41,19 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+function getSubtitleSignature(entries: SubtitleEntry[], style: SubtitleStyle) {
+  return JSON.stringify({ entries, style })
+}
+
+function formatActionCompletedAt(value?: string) {
+  if (!value) return 'Completed recently'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Completed recently'
+
+  return `Completed at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+}
+
 export default function App() {
   const {
     video, activeTab, setActiveTab, reset,
@@ -47,8 +62,9 @@ export default function App() {
     audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename,
     subtitleStyle,
+    subtitleAppliedSignature,
     logoImage, logoSize, logoX, logoY,
-    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY,
+    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     cropEnabled,
     crop,
@@ -65,6 +81,7 @@ export default function App() {
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
+  const currentSubtitleSignature = getSubtitleSignature(subtitles, subtitleStyle)
 
   const handlePreview = useCallback(async () => {
     if (!video) return
@@ -89,7 +106,22 @@ export default function App() {
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
         subtitleFilename: subtitleFilename || undefined,
         subtitleStyle,
-        titleStyle: undefined,
+        titleStyle: titleText.trim() ? {
+          text: titleText.trim(),
+          font: titleFont,
+          size: titleSize,
+          color: titleColor,
+          bgColor: titleBgColor,
+          borderColor: titleBorderColor,
+          borderWidth: titleBorderWidth,
+          frameColor: titleFrameColor,
+          frameWidth: titleFrameWidth,
+          padding: titlePadding,
+          lineSpacing: titleLineSpacing,
+          align: titleAlign,
+          x: titleX ?? undefined,
+          y: titleY ?? undefined,
+        } : undefined,
         borderStyle: {
           enabled: borderEnabled,
           sizeX: borderWidth,
@@ -132,6 +164,7 @@ export default function App() {
     titleFrameColor,
     titleFrameWidth,
     titlePadding,
+    titleLineSpacing,
     titleX,
     titleY,
     borderEnabled,
@@ -170,7 +203,9 @@ export default function App() {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
-    const hasSubtitlesApplied = subtitles.length > 0 && !!subtitleFilename
+    const hasSubtitlesApplied = subtitles.length > 0
+      && !!subtitleFilename
+      && subtitleAppliedSignature === currentSubtitleSignature
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
@@ -201,13 +236,13 @@ export default function App() {
           t1: appliedAudioTrimEnd,
         }
         : null,
-      subtitles,
-      subtitleFilename,
-      subtitleStyle,
+      subtitles: hasSubtitlesApplied ? subtitles : [],
+      subtitleFilename: hasSubtitlesApplied ? subtitleFilename : null,
+      subtitleStyle: hasSubtitlesApplied ? subtitleStyle : null,
       exportQuality,
       exportAspectRatio,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
-      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding } : null,
+      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding, ls: titleLineSpacing, align: titleAlign } : null,
       titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
       border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor, mode: borderMode } : null,
     })
@@ -242,6 +277,8 @@ export default function App() {
     subtitles,
     subtitleFilename,
     subtitleStyle,
+    subtitleAppliedSignature,
+    currentSubtitleSignature,
     exportQuality,
     exportAspectRatio,
     logoImage,
@@ -258,6 +295,7 @@ export default function App() {
     titleFrameColor,
     titleFrameWidth,
     titlePadding,
+    titleLineSpacing,
     titleX,
     titleY,
     borderEnabled,
@@ -304,62 +342,85 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <header className="border-b border-zinc-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="w-full px-8 min-h-14 py-2 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
-              <Film size={16} className="text-white" />
-            </div>
-            <span className="font-semibold text-zinc-900 tracking-tight">{appName}</span>
-          </div>
-
-          {video && (
-            <div className="flex items-center justify-end gap-2 sm:gap-3 ml-auto">
-              <div className="text-xs text-zinc-500 max-w-[12rem] sm:max-w-xs truncate hidden sm:block">
-                {video.title}
+      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75">
+        <div className="w-full px-4 sm:px-6 lg:px-8 min-h-16 py-3 flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0891b2_0%,#06b6d4_55%,#67e8f9_100%)] shadow-[0_10px_24px_rgba(8,145,178,0.28)] ring-1 ring-cyan-500/20">
+                <Film size={17} className="text-white" />
               </div>
-              {showActionHistoryCard && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setActionsOpen(open => !open)}
-                    className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                    aria-label="Toggle recent actions"
-                  >
-                    <History size={13} />
-                    <span className="hidden sm:inline">Recent actions</span>
-                    <ChevronDown size={13} className={`transition-transform ${actionsOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {actionsOpen && (
-                    <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[80] w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-zinc-200 bg-white p-3 shadow-[0_18px_40px_rgba(24,24,27,0.12)]">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Recent actions</p>
-                      <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
-                        {recentActions.map(action => (
-                          <div key={action.id} className="flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2">
-                            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-zinc-400" />
-                            <p className="min-w-0 text-sm text-zinc-700">{action.message}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={reset}
-                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
-              >
-                <RotateCcw size={12} /> New project
-              </button>
+              <div className="min-w-0">
+                <span className="block truncate text-sm sm:text-base font-semibold tracking-tight text-zinc-900">{appName}</span>
+              </div>
             </div>
-          )}
+            {video && (
+              <>
+                <div className="hidden h-8 w-px bg-zinc-200 sm:block" />
+                <div className="hidden min-w-0 sm:block">
+                  <div className="max-w-[14rem] lg:max-w-sm truncate text-[14px] font-medium text-zinc-600">
+                    {video.title}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-2 text-xs font-semibold text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm whitespace-nowrap"
+                >
+                  <RotateCcw size={13} /> New project
+                </button>
+              </>
+            )}
+          </div>
+          <div className="ml-auto flex-shrink-0">
+            {showActionHistoryCard && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen(open => !open)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900"
+                  aria-label="Toggle recent actions"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                    <History size={13} />
+                  </span>
+                  <span className="hidden sm:inline">Recent actions</span>
+                  <ChevronDown size={13} className={`transition-transform ${actionsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {actionsOpen && (
+                  <div className="absolute right-0 top-[calc(100%+0.65rem)] z-[80] w-[min(25rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-zinc-200/90 bg-white/95 p-3 shadow-[0_24px_60px_rgba(24,24,27,0.16)] backdrop-blur-xl">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Activity</p>
+                        <p className="mt-1 text-sm font-semibold text-zinc-900">Recent actions</p>
+                      </div>
+                      <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700">
+                        {recentActions.length} items
+                      </span>
+                    </div>
+                    <div className="mt-2 max-h-72 space-y-1 overflow-y-auto pr-1">
+                      {recentActions.map(action => (
+                        <div key={action.id} className="flex items-start gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/80 px-3 py-2">
+                          <span className="mt-4 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)]" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] leading-5 text-zinc-700">{action.message}</p>
+                            <p className="text-[11px] font-medium text-zinc-400">
+                              {formatActionCompletedAt(action.completedAt)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       <div className="max-w-[1700px] mx-auto px-4 lg:px-8 py-2">
         <div className="flex flex-col lg:flex-row gap-2 items-start">
-          <div className="w-full lg:w-44 flex-shrink-0 lg:sticky lg:top-[64px]">
+          <div className="w-full lg:w-40 flex-shrink-0 lg:sticky lg:top-[64px]">
             <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
                 const disabled = tab.requiresVideo && !video
@@ -439,14 +500,9 @@ export default function App() {
                     )}
                   </div>
                 </div>
-                {previewError && (
-                  <span className="text-xs text-red-400">{previewError}</span>
-                )}
-                {/* Player */}
-                <div className="bg-white rounded-2xl border border-zinc-200 px-4 py-2">
+                <div className="bg-white rounded-2xl border border-zinc-200 p-2">
                   <VideoPlayer />
                 </div>
-
                 {actionToasts.length > 0 && (
                   <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
                     {actionToasts.map(toast => (
@@ -473,8 +529,27 @@ export default function App() {
                     ))}
                   </div>
                 )}
-
-                {/* Subtitle preview overlay info */}
+                {previewError && (
+                  <div className="pointer-events-none fixed bottom-4 left-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                    <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(220,38,38,0.14)] backdrop-blur-sm">
+                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
+                        <AlertCircle size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">Preview error</p>
+                        <p className="mt-1 text-sm text-zinc-700">{previewError}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewError(null)}
+                        className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                        aria-label="Close preview error"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {activeTab === 'subtitles' && subtitles.length > 0 && (
                   <div className="bg-white rounded-2xl border border-zinc-200 p-3">
                     <h3 className="text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">Subtitle preview</h3>
@@ -495,7 +570,6 @@ export default function App() {
                 )}
               </div>
             ) : (
-              /* Empty state */
               <div className="bg-white rounded-2xl border border-zinc-200 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center p-8 sm:p-10 text-center">
                 <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
                   <Film size={28} className="text-zinc-500" />
@@ -507,7 +581,6 @@ export default function App() {
               </div>
             )}
           </div>
-          {/* Active Panel (Right) */}
           <div className="w-full lg:w-96 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px]">
             <div className="bg-white rounded-2xl px-4 py-2 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}

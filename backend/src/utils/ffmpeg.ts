@@ -86,6 +86,8 @@ export interface TitleStyle {
   frameColor?: string 
   frameWidth?: number
   padding?: number
+  lineSpacing?: number
+  align?: 'left' | 'center' | 'right'
   position?: TitlePosition
   frameMode?: 'inside' | 'outside'
   x?: number
@@ -217,6 +219,10 @@ function wrapText(text: string, fontSize: number, videoWidth: number): string {
   const paragraphs = text.split('\n')
 
   for (const p of paragraphs) {
+    if (p === '') {
+      lines.push('')
+      continue
+    }
     const words = p.split(' ')
     let currentLine = ''
 
@@ -260,59 +266,93 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   const frameColor = style?.frameColor || '#000000'
   const frameWidth = clamp(Number(style?.frameWidth ?? 0), 0, 30)
   const padding = clamp(Number(style?.padding ?? (process.env.TITLE_PADDING || 8)), 0, 40)
+  const lineSpacing = clamp(Number(style?.lineSpacing ?? 0), 0, 200)
+  const align = style?.align || 'center'
   const position = style?.position || 'top'
   const margin = Number(process.env.TITLE_MARGIN || 36)
   const frameMode = style?.frameMode || 'inside'
   const padX = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeX ?? 0), 0, 300) : 0
   const padY = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeY ?? 0), 0, 300) : 0
+  const wrappedLines = wrapText(text, size, videoWidth).split('\n')
+  const lines = wrappedLines.length > 0 ? wrappedLines : ['']
+  const wrappedText = lines.join('\n')
+  const approxCharWidth = size * 0.60
+  const approxLineHeight = size + lineSpacing
+  const maxLineLength = Math.max(...lines.map(line => Math.max(line.length, 1)))
+  const approxBlockWidth = Math.max(approxCharWidth, maxLineLength * approxCharWidth)
+  const approxBlockHeight = Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing)
+  const contentInset = padding + frameWidth
+  const layoutBlockWidth = approxBlockWidth + contentInset * 2
+  const layoutBlockHeight = approxBlockHeight + contentInset * 2
 
-  const outsideXLeft = `max((${padX}-text_w)/2,0)`
-  const outsideXRight = `w-${padX}+max((${padX}-text_w)/2,0)`
-  const outsideYTop = `max((${padY}-text_h)/2,0)`
-  const outsideYBottom = `h-${padY}+max((${padY}-text_h)/2,0)`
+  const outsideLayoutXLeft = `max((${padX}-${layoutBlockWidth})/2,0)`
+  const outsideLayoutXRight = `w-${padX}+max((${padX}-${layoutBlockWidth})/2,0)-${layoutBlockWidth}`
+  const outsideLayoutYTop = `max((${padY}-${layoutBlockHeight})/2,0)`
+  const outsideLayoutYBottom = `h-${padY}+max((${padY}-${layoutBlockHeight})/2,0)-${layoutBlockHeight}`
 
-  const insidePosMap: Record<TitlePosition, { x: string; y: string }> = {
+  const insideLayoutPosMap: Record<TitlePosition, { x: string; y: string }> = {
     'top-left': { x: `${margin}`, y: `${margin}` },
-    'top': { x: `(w-text_w)/2`, y: `${margin}` },
-    'top-right': { x: `w-text_w-${margin}`, y: `${margin}` },
-    'middle-left': { x: `${margin}`, y: `(h-text_h)/2` },
-    'middle': { x: `(w-text_w)/2`, y: `(h-text_h)/2` },
-    'middle-right': { x: `w-text_w-${margin}`, y: `(h-text_h)/2` },
-    'bottom-left': { x: `${margin}`, y: `h-text_h-${margin}` },
-    'bottom': { x: `(w-text_w)/2`, y: `h-text_h-${margin}` },
-    'bottom-right': { x: `w-text_w-${margin}`, y: `h-text_h-${margin}` },
+    'top': { x: `(w-${layoutBlockWidth})/2`, y: `${margin}` },
+    'top-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `${margin}` },
+    'middle-left': { x: `${margin}`, y: `(h-${layoutBlockHeight})/2` },
+    'middle': { x: `(w-${layoutBlockWidth})/2`, y: `(h-${layoutBlockHeight})/2` },
+    'middle-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `(h-${layoutBlockHeight})/2` },
+    'bottom-left': { x: `${margin}`, y: `h-${layoutBlockHeight}-${margin}` },
+    'bottom': { x: `(w-${layoutBlockWidth})/2`, y: `h-${layoutBlockHeight}-${margin}` },
+    'bottom-right': { x: `w-${layoutBlockWidth}-${margin}`, y: `h-${layoutBlockHeight}-${margin}` },
   }
 
-  const outsidePosMap: Record<TitlePosition, { x: string; y: string }> = {
-    'top-left': { x: outsideXLeft, y: outsideYTop },
-    'top': { x: `(w-text_w)/2`, y: outsideYTop },
-    'top-right': { x: outsideXRight, y: outsideYTop },
-    'middle-left': { x: outsideXLeft, y: `(h-text_h)/2` },
-    'middle': { x: `(w-text_w)/2`, y: `(h-text_h)/2` },
-    'middle-right': { x: outsideXRight, y: `(h-text_h)/2` },
-    'bottom-left': { x: outsideXLeft, y: outsideYBottom },
-    'bottom': { x: `(w-text_w)/2`, y: outsideYBottom },
-    'bottom-right': { x: outsideXRight, y: outsideYBottom },
+  const outsideLayoutPosMap: Record<TitlePosition, { x: string; y: string }> = {
+    'top-left': { x: outsideLayoutXLeft, y: outsideLayoutYTop },
+    'top': { x: `(w-${layoutBlockWidth})/2`, y: outsideLayoutYTop },
+    'top-right': { x: outsideLayoutXRight, y: outsideLayoutYTop },
+    'middle-left': { x: outsideLayoutXLeft, y: `(h-${layoutBlockHeight})/2` },
+    'middle': { x: `(w-${layoutBlockWidth})/2`, y: `(h-${layoutBlockHeight})/2` },
+    'middle-right': { x: outsideLayoutXRight, y: `(h-${layoutBlockHeight})/2` },
+    'bottom-left': { x: outsideLayoutXLeft, y: outsideLayoutYBottom },
+    'bottom': { x: `(w-${layoutBlockWidth})/2`, y: outsideLayoutYBottom },
+    'bottom-right': { x: outsideLayoutXRight, y: outsideLayoutYBottom },
   }
 
-  // Write text to file for reliable multi-line support
-  const wrappedText = wrapText(text, size, videoWidth)
+  const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
+  const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
   const titleFile = path.join(tempDir, `title_text_${uuidv4()}.txt`)
   fs.writeFileSync(titleFile, wrappedText, 'utf8')
   const escapedFile = titleFile.replace(/\\/g, '/').replace(/:/g, '\\:')
-  const textArg = `textfile='${escapedFile}'`
+  const textFileArg = `textfile='${escapedFile}'`
+
+  const buildLineFilters = (layoutX: string, layoutY: string) => {
+    const filters: string[] = []
+    const blockX = `(${layoutX}+${contentInset})`
+    const blockY = `(${layoutY}+${contentInset})`
+
+    if (frameWidth > 0) {
+      filters.push(`drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${blockX}:y=${blockY}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0:line_spacing=${lineSpacing}`)
+    }
+    filters.push(`drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${blockX}:y=${blockY}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=0:line_spacing=${lineSpacing}`)
+
+    lines.forEach((rawLine, index) => {
+      const lineText = rawLine.length > 0 ? rawLine : ' '
+      const escapedText = escapeDrawtext(lineText)
+      const textArg = `text='${escapedText}'`
+      const x = align === 'left'
+        ? `(${blockX})`
+        : align === 'right'
+          ? `(${blockX}+${approxBlockWidth}-text_w)`
+          : `(${blockX}+(${approxBlockWidth}-text_w)/2)`
+      const y = `(${blockY}+${index * approxLineHeight})`
+      filters.push(`drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:borderw=${borderWidth}:bordercolor=${borderColor}`)
+    })
+
+    return filters.join(',')
+  }
 
   if (typeof style?.x === 'number' && typeof style?.y === 'number') {
     const safeX = clamp(style.x, 0, 1)
     const safeY = clamp(style.y, 0, 1)
-    const x = `(${safeX}*w-text_w/2)`
-    const y = `(${safeY}*h-text_h/2)`
-    const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-    const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
-    const base = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
-    if (frameWidth <= 0) return base
-    const frameLayer = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
-    return `${frameLayer},${base}`
+    const layoutX = `(${safeX}*w-${layoutBlockWidth}/2)`
+    const layoutY = `(${safeY}*h-${layoutBlockHeight}/2)`
+    return buildLineFilters(layoutX, layoutY)
   }
 
   const normalizedPosition = frameMode === 'outside'
@@ -323,15 +363,9 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
           : 'middle')
     : position
 
-  const posMap = frameMode === 'outside' ? outsidePosMap : insidePosMap
+  const posMap = frameMode === 'outside' ? outsideLayoutPosMap : insideLayoutPosMap
   const { x, y } = posMap[normalizedPosition as TitlePosition]
-
-  const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
-  const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
-  const base = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=${borderWidth}:bordercolor=${borderColor}`
-  if (frameWidth <= 0) return base
-  const frameLayer = `drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${x}:y=${y}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0`
-  return `${frameLayer},${base}`
+  return buildLineFilters(x, y)
 }
 
 function buildBorderFilter(style?: BorderStyle) {

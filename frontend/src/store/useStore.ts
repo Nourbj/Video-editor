@@ -45,6 +45,7 @@ export interface ActionToast {
 export interface ActionHistoryEntry {
   id: string
   message: string
+  completedAt?: string
 }
 
 export interface VideoSegment {
@@ -148,22 +149,44 @@ interface EditorState {
   setTitleDraftText: (t: string) => void
   titleFont: string
   setTitleFont: (f: string) => void
+  titleDraftFont: string
+  setTitleDraftFont: (f: string) => void
   titleSize: number
   setTitleSize: (s: number) => void
+  titleDraftSize: number
+  setTitleDraftSize: (s: number) => void
   titleColor: string
   setTitleColor: (c: string) => void
+  titleDraftColor: string
+  setTitleDraftColor: (c: string) => void
   titleBgColor: string
   setTitleBgColor: (c: string) => void
+  titleDraftBgColor: string
+  setTitleDraftBgColor: (c: string) => void
   titleBorderColor: string
   setTitleBorderColor: (c: string) => void
+  titleDraftBorderColor: string
+  setTitleDraftBorderColor: (c: string) => void
   titleBorderWidth: number
   setTitleBorderWidth: (s: number) => void
+  titleDraftBorderWidth: number
+  setTitleDraftBorderWidth: (s: number) => void
   titleFrameColor: string
   setTitleFrameColor: (c: string) => void
+  titleDraftFrameColor: string
+  setTitleDraftFrameColor: (c: string) => void
   titleFrameWidth: number
   setTitleFrameWidth: (s: number) => void
+  titleDraftFrameWidth: number
+  setTitleDraftFrameWidth: (s: number) => void
   titlePadding: number
   setTitlePadding: (s: number) => void
+  titleDraftPadding: number
+  setTitleDraftPadding: (s: number) => void
+  titleLineSpacing: number
+  setTitleLineSpacing: (s: number) => void
+  titleDraftLineSpacing: number
+  setTitleDraftLineSpacing: (s: number) => void
   titleX: number | null
   titleY: number | null
   setTitleXY: (x: number | null, y: number | null) => void
@@ -172,6 +195,8 @@ interface EditorState {
   setTitleDraftXY: (x: number | null, y: number | null) => void
   titleAlign: 'left' | 'center' | 'right'
   setTitleAlign: (a: 'left' | 'center' | 'right') => void
+  titleDraftAlign: 'left' | 'center' | 'right'
+  setTitleDraftAlign: (a: 'left' | 'center' | 'right') => void
   isApplyingTitle: boolean
   setIsApplyingTitle: (v: boolean) => void
 
@@ -263,19 +288,31 @@ type PersistedEditorState = Pick<EditorState,
   | 'titleText'
   | 'titleDraftText'
   | 'titleFont'
+  | 'titleDraftFont'
   | 'titleSize'
+  | 'titleDraftSize'
   | 'titleColor'
+  | 'titleDraftColor'
   | 'titleBgColor'
+  | 'titleDraftBgColor'
   | 'titleBorderColor'
+  | 'titleDraftBorderColor'
   | 'titleBorderWidth'
+  | 'titleDraftBorderWidth'
   | 'titleFrameColor'
+  | 'titleDraftFrameColor'
   | 'titleFrameWidth'
+  | 'titleDraftFrameWidth'
   | 'titlePadding'
+  | 'titleDraftPadding'
+  | 'titleLineSpacing'
+  | 'titleDraftLineSpacing'
   | 'titleX'
   | 'titleY'
   | 'titleDraftX'
   | 'titleDraftY'
   | 'titleAlign'
+  | 'titleDraftAlign'
   | 'borderEnabled'
   | 'borderWidth'
   | 'borderHeight'
@@ -306,6 +343,7 @@ const defaultTitleBorderWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_BORDER
 const defaultTitleFrameColor = import.meta.env.VITE_TITLE_DEFAULT_FRAME_COLOR || '#000000'
 const defaultTitleFrameWidth = Number(import.meta.env.VITE_TITLE_DEFAULT_FRAME_WIDTH || 0)
 const defaultTitlePadding = Number(import.meta.env.VITE_TITLE_DEFAULT_PADDING || 8)
+const defaultTitleLineSpacing = Number(import.meta.env.VITE_TITLE_DEFAULT_LINE_SPACING || 0)
 const defaultTitleAlign = (import.meta.env.VITE_TITLE_DEFAULT_ALIGN || 'center') as 'left' | 'center' | 'right'
 const defaultBorderSize = Number(import.meta.env.VITE_BORDER_DEFAULT_SIZE || 0)
 const defaultBorderColor = import.meta.env.VITE_BORDER_DEFAULT_COLOR || '#ffffff'
@@ -352,11 +390,23 @@ export const useStore = create<EditorState>()(persist((set) => ({
           logoDraftY: null,
           titleText: '',
           titleDraftText: '',
+          titleDraftFont: defaultTitleFont,
+          titleDraftSize: defaultTitleSize,
+          titleDraftColor: defaultTitleColor,
+          titleDraftBgColor: defaultTitleBgColor,
+          titleDraftBorderColor: defaultTitleBorderColor,
+          titleDraftBorderWidth: defaultTitleBorderWidth,
+          titleDraftFrameColor: defaultTitleFrameColor,
+          titleDraftFrameWidth: defaultTitleFrameWidth,
+          titleDraftPadding: defaultTitlePadding,
+          titleLineSpacing: defaultTitleLineSpacing,
+          titleDraftLineSpacing: defaultTitleLineSpacing,
           titleX: null,
           titleY: null,
           titleDraftX: null,
           titleDraftY: null,
           titleAlign: defaultTitleAlign,
+          titleDraftAlign: defaultTitleAlign,
           isApplyingLogo: false,
           isApplyingTitle: false,
         }
@@ -556,22 +606,44 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setTitleDraftText: t => set({ titleDraftText: t }),
   titleFont: defaultTitleFont,
   setTitleFont: f => set({ titleFont: f }),
+  titleDraftFont: defaultTitleFont,
+  setTitleDraftFont: f => set({ titleDraftFont: f }),
   titleSize: defaultTitleSize,
   setTitleSize: s => set({ titleSize: s }),
+  titleDraftSize: defaultTitleSize,
+  setTitleDraftSize: s => set({ titleDraftSize: s }),
   titleColor: defaultTitleColor,
   setTitleColor: c => set({ titleColor: c }),
+  titleDraftColor: defaultTitleColor,
+  setTitleDraftColor: c => set({ titleDraftColor: c }),
   titleBgColor: defaultTitleBgColor,
   setTitleBgColor: c => set({ titleBgColor: c }),
+  titleDraftBgColor: defaultTitleBgColor,
+  setTitleDraftBgColor: c => set({ titleDraftBgColor: c }),
   titleBorderColor: defaultTitleBorderColor,
   setTitleBorderColor: c => set({ titleBorderColor: c }),
+  titleDraftBorderColor: defaultTitleBorderColor,
+  setTitleDraftBorderColor: c => set({ titleDraftBorderColor: c }),
   titleBorderWidth: defaultTitleBorderWidth,
   setTitleBorderWidth: s => set({ titleBorderWidth: s }),
+  titleDraftBorderWidth: defaultTitleBorderWidth,
+  setTitleDraftBorderWidth: s => set({ titleDraftBorderWidth: s }),
   titleFrameColor: defaultTitleFrameColor,
   setTitleFrameColor: c => set({ titleFrameColor: c }),
+  titleDraftFrameColor: defaultTitleFrameColor,
+  setTitleDraftFrameColor: c => set({ titleDraftFrameColor: c }),
   titleFrameWidth: defaultTitleFrameWidth,
   setTitleFrameWidth: s => set({ titleFrameWidth: s }),
+  titleDraftFrameWidth: defaultTitleFrameWidth,
+  setTitleDraftFrameWidth: s => set({ titleDraftFrameWidth: s }),
   titlePadding: defaultTitlePadding,
   setTitlePadding: s => set({ titlePadding: s }),
+  titleDraftPadding: defaultTitlePadding,
+  setTitleDraftPadding: s => set({ titleDraftPadding: s }),
+  titleLineSpacing: defaultTitleLineSpacing,
+  setTitleLineSpacing: s => set({ titleLineSpacing: s }),
+  titleDraftLineSpacing: defaultTitleLineSpacing,
+  setTitleDraftLineSpacing: s => set({ titleDraftLineSpacing: s }),
   titleX: null,
   titleY: null,
   setTitleXY: (x, y) => set({ titleX: x, titleY: y }),
@@ -580,6 +652,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setTitleDraftXY: (x, y) => set({ titleDraftX: x, titleDraftY: y }),
   titleAlign: defaultTitleAlign,
   setTitleAlign: a => set({ titleAlign: a }),
+  titleDraftAlign: defaultTitleAlign,
+  setTitleDraftAlign: a => set({ titleDraftAlign: a }),
   isApplyingTitle: false,
   setIsApplyingTitle: v => set({ isApplyingTitle: v }),
 
@@ -636,7 +710,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   actionHistory: [],
   pushActionToast: message => set(state => ({
     actionToasts: [...state.actionToasts, { id: createId(), message }].slice(-4),
-    actionHistory: [...state.actionHistory, { id: createId(), message }].slice(-6),
+    actionHistory: [...state.actionHistory, { id: createId(), message, completedAt: new Date().toISOString() }].slice(-6),
   })),
   removeActionToast: id => set(state => ({
     actionToasts: state.actionToasts.filter(toast => toast.id !== id),
@@ -666,18 +740,31 @@ export const useStore = create<EditorState>()(persist((set) => ({
     titleText: '',
     titleDraftText: '',
     titleFont: defaultTitleFont,
+    titleDraftFont: defaultTitleFont,
     titleSize: defaultTitleSize,
+    titleDraftSize: defaultTitleSize,
     titleColor: defaultTitleColor,
+    titleDraftColor: defaultTitleColor,
     titleBgColor: defaultTitleBgColor,
+    titleDraftBgColor: defaultTitleBgColor,
     titleBorderColor: defaultTitleBorderColor,
+    titleDraftBorderColor: defaultTitleBorderColor,
     titleBorderWidth: defaultTitleBorderWidth,
+    titleDraftBorderWidth: defaultTitleBorderWidth,
     titleFrameColor: defaultTitleFrameColor,
+    titleDraftFrameColor: defaultTitleFrameColor,
     titleFrameWidth: defaultTitleFrameWidth,
+    titleDraftFrameWidth: defaultTitleFrameWidth,
     titlePadding: defaultTitlePadding,
+    titleDraftPadding: defaultTitlePadding,
+    titleLineSpacing: defaultTitleLineSpacing,
+    titleDraftLineSpacing: defaultTitleLineSpacing,
     titleX: null,
     titleY: null,
     titleDraftX: null,
     titleDraftY: null,
+    titleAlign: defaultTitleAlign,
+    titleDraftAlign: defaultTitleAlign,
     isApplyingTitle: false,
     borderEnabled: defaultBorderSize > 0,
     borderWidth: defaultBorderSize,
@@ -736,19 +823,31 @@ export const useStore = create<EditorState>()(persist((set) => ({
     titleText: state.titleText,
     titleDraftText: state.titleDraftText,
     titleFont: state.titleFont,
+    titleDraftFont: state.titleDraftFont,
     titleSize: state.titleSize,
+    titleDraftSize: state.titleDraftSize,
     titleColor: state.titleColor,
+    titleDraftColor: state.titleDraftColor,
     titleBgColor: state.titleBgColor,
+    titleDraftBgColor: state.titleDraftBgColor,
     titleBorderColor: state.titleBorderColor,
+    titleDraftBorderColor: state.titleDraftBorderColor,
     titleBorderWidth: state.titleBorderWidth,
+    titleDraftBorderWidth: state.titleDraftBorderWidth,
     titleFrameColor: state.titleFrameColor,
+    titleDraftFrameColor: state.titleDraftFrameColor,
     titleFrameWidth: state.titleFrameWidth,
+    titleDraftFrameWidth: state.titleDraftFrameWidth,
     titlePadding: state.titlePadding,
+    titleDraftPadding: state.titleDraftPadding,
+    titleLineSpacing: state.titleLineSpacing,
+    titleDraftLineSpacing: state.titleDraftLineSpacing,
     titleX: state.titleX,
     titleY: state.titleY,
     titleDraftX: state.titleDraftX,
     titleDraftY: state.titleDraftY,
     titleAlign: state.titleAlign,
+    titleDraftAlign: state.titleDraftAlign,
     borderEnabled: state.borderEnabled,
     borderWidth: state.borderWidth,
     borderHeight: state.borderHeight,

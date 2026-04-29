@@ -271,6 +271,8 @@ export async function processRoute(app: FastifyInstance) {
         frameColor?: string
         frameWidth?: number
         padding?: number
+        lineSpacing?: number
+        align?: 'left' | 'center' | 'right'
         position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
         frameMode?: 'inside' | 'outside'
         x?: number
@@ -393,6 +395,8 @@ export async function processRoute(app: FastifyInstance) {
         frameColor?: string
         frameWidth?: number
         padding?: number
+        lineSpacing?: number
+        align?: 'left' | 'center' | 'right'
         position?: 'top-left' | 'top' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom' | 'bottom-right'
         frameMode?: 'inside' | 'outside'
         x?: number

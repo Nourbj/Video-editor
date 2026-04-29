@@ -10,33 +10,21 @@ function formatTime(s: number) {
   const h = Math.floor(totalSeconds / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
   const sec = totalSeconds % 60
-
   if (h > 0) {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
   }
-
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
 export default function VideoPlayer() {
   const {
-    video, trimStart, trimEnd, setTrimEnd, processedUrl,
-    audioTrack, audioDuration,
-    audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd,
-    activeTab,
-    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleX, titleY, titleDraftX, titleDraftY, setTitleDraftXY,
-    titleDraftText, titleAlign,
-    isApplyingTitle,
-    previewLoading,
-    logoImage, logoSize, logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
-    borderEnabled, borderWidth, borderHeight, borderMode,
-    cropEnabled,
-    cropDraftEnabled,
-    crop,
-    cropDraft,
-    exportQuality, exportAspectRatio,
-    seekTo, setSeekTo,
-  } = useStore()
+    video, trimStart, trimEnd, setTrimEnd, processedUrl, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
+    appliedAudioTrimStart, appliedAudioTrimEnd, activeTab, titleText, titleFont, titleDraftFont, titleSize, titleDraftSize, titleColor, titleDraftColor, titleBgColor, titleDraftBgColor,
+    titleBorderColor, titleDraftBorderColor, titleBorderWidth, titleDraftBorderWidth, titleFrameColor, titleDraftFrameColor, titleFrameWidth, titleDraftFrameWidth, titlePadding, titleDraftPadding, titleLineSpacing, titleDraftLineSpacing, titleX, titleY, titleDraftX,
+    titleDraftY, setTitleDraftXY, titleDraftText, titleAlign, titleDraftAlign, isApplyingTitle, previewLoading, logoImage, logoSize,
+    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY, borderEnabled, borderWidth,
+    borderHeight, borderMode, cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
+    setSeekTo } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -228,6 +216,20 @@ export default function VideoPlayer() {
   const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
     ? videoDisplayRect.width / videoIntrinsicWidth
     : 1
+  const previewTitleText = activeTab === 'title' ? titleDraftText || titleText : titleText
+  const previewTitleX = activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5
+  const previewTitleY = activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2
+  const previewTitleFont = activeTab === 'title' ? titleDraftFont || titleFont : titleFont
+  const previewTitleSize = activeTab === 'title' ? titleDraftSize || titleSize : titleSize
+  const previewTitleColor = activeTab === 'title' ? titleDraftColor || titleColor : titleColor
+  const previewTitleBgColor = activeTab === 'title' ? titleDraftBgColor || titleBgColor : titleBgColor
+  const previewTitleBorderColor = activeTab === 'title' ? titleDraftBorderColor || titleBorderColor : titleBorderColor
+  const previewTitleBorderWidth = activeTab === 'title' ? titleDraftBorderWidth : titleBorderWidth
+  const previewTitleFrameColor = activeTab === 'title' ? titleDraftFrameColor || titleFrameColor : titleFrameColor
+  const previewTitleFrameWidth = activeTab === 'title' ? titleDraftFrameWidth : titleFrameWidth
+  const previewTitlePadding = activeTab === 'title' ? titleDraftPadding : titlePadding
+  const previewTitleLineSpacing = activeTab === 'title' ? titleDraftLineSpacing : titleLineSpacing
+  const previewTitleAlign = activeTab === 'title' ? titleDraftAlign || titleAlign : titleAlign
   const renderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: videoIntrinsicWidth,
     sourceHeight: videoIntrinsicHeight,
@@ -276,16 +278,8 @@ export default function VideoPlayer() {
 
   return (
     <div className="space-y-2">
-      {/* Video */}
-      <div
-        ref={overlayRef}
-        className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[38vh] min-h-[300px]"
-      >
-        <video
-          ref={videoRef}
-          src={src}
-          muted={isMuted}
-          className="w-full h-full object-contain"
+      <div ref={overlayRef} className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[40vh] min-h-[372px]">
+        <video ref={videoRef} src={src} muted={isMuted} className="w-full h-full object-contain"
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => setPlaying(false)}
           onLoadedMetadata={() => {
@@ -385,27 +379,28 @@ export default function VideoPlayer() {
                 draggingRef.current = true
               }}
               className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
-                } ${((activeTab === 'title' ? titleDraftText || titleText : titleText).trim() ? '' : 'opacity-60 italic')}`}
+                } ${(previewTitleText.trim() ? '' : 'opacity-60 italic')}`}
               style={{
-                left: `${videoDisplayRect.left + ((activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5) * videoDisplayRect.width)}px`,
-                top: `${videoDisplayRect.top + ((activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2) * videoDisplayRect.height)}px`,
+                left: `${videoDisplayRect.left + (previewTitleX * videoDisplayRect.width)}px`,
+                top: `${videoDisplayRect.top + (previewTitleY * videoDisplayRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
-                color: titleColor,
-                fontFamily: titleFont,
-                fontSize: `${titleSize * titlePreviewScale}px`,
-                backgroundColor: titleBgColor,
-                border: titleFrameWidth > 0 ? `${titleFrameWidth * titlePreviewScale}px solid ${titleFrameColor}` : 'none',
-                WebkitTextStrokeWidth: titleBorderWidth > 0 ? `${titleBorderWidth * titlePreviewScale}px` : '0px',
-                WebkitTextStrokeColor: titleBorderColor,
-                padding: `${titlePadding * titlePreviewScale}px`,
+                color: previewTitleColor,
+                fontFamily: previewTitleFont,
+                fontSize: `${previewTitleSize * titlePreviewScale}px`,
+                backgroundColor: previewTitleBgColor,
+                border: previewTitleFrameWidth > 0 ? `${previewTitleFrameWidth * titlePreviewScale}px solid ${previewTitleFrameColor}` : 'none',
+                WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
+                WebkitTextStrokeColor: previewTitleBorderColor,
+                padding: `${previewTitlePadding * titlePreviewScale}px`,
+                lineHeight: previewTitleLineSpacing > 0 ? `calc(1em + ${previewTitleLineSpacing * titlePreviewScale}px)` : undefined,
                 pointerEvents: activeTab === 'title' ? 'auto' : 'none',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxWidth: `${videoDisplayRect.width * 0.9}px`,
-                textAlign: titleAlign,
+                textAlign: previewTitleAlign,
               }}
             >
-              {activeTab === 'title' ? ((titleDraftText || titleText).trim() || 'Title') : titleText}
+              {activeTab === 'title' ? (previewTitleText.trim() || 'Title') : titleText}
             </div>
           </div>
         )}
