@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import axios from 'axios'
 import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
@@ -11,7 +12,7 @@ import BorderEditor from './components/BorderEditor/BorderEditor'
 import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
-import { previewVideo } from './api/client'
+import { getApiErrorMessage, previewVideo } from './api/client'
 
 type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -48,6 +49,38 @@ function formatActionCompletedAt(value?: string) {
   return `Completed at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
 }
 
+function isLocalAppUrl(url?: string | null) {
+  if (!url || typeof window === 'undefined') return false
+  if (url.startsWith('blob:') || url.startsWith('data:')) return false
+
+  try {
+    const parsed = new URL(url, window.location.origin)
+    return parsed.origin === window.location.origin
+  } catch {
+    return url.startsWith('/')
+  }
+}
+
+async function doesLocalResourceExist(url: string) {
+  try {
+    const headResponse = await fetch(url, { method: 'HEAD' })
+    if (headResponse.ok) return true
+    if (headResponse.status !== 405) return false
+  } catch {
+    return false
+  }
+
+  try {
+    const getResponse = await fetch(url, {
+      method: 'GET',
+      headers: { Range: 'bytes=0-0' },
+    })
+    return getResponse.ok
+  } catch {
+    return false
+  }
+}
+
 export default function App() {
   const {
     video, activeTab, setActiveTab, reset,
@@ -57,7 +90,7 @@ export default function App() {
     subtitleFilename,
     appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY,
-    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY,
+    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
     cropEnabled,
     crop,
@@ -74,10 +107,66 @@ export default function App() {
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
+  const titleRenderLayoutRef = useRef(titleRenderLayout)
+  const validatedProjectSig = useRef<string>('')
+
+  useEffect(() => {
+    titleRenderLayoutRef.current = titleRenderLayout
+  }, [titleRenderLayout])
+
+  useEffect(() => {
+    if (!video) {
+      validatedProjectSig.current = ''
+      return
+    }
+
+    const resources = [
+      { label: 'video file', url: video.url },
+      { label: 'audio file', url: audioTrack?.url },
+      { label: 'logo image', url: logoImage?.url },
+      { label: 'preview file', url: processedUrl },
+    ].filter((resource): resource is { label: string; url: string } => !!resource.url && isLocalAppUrl(resource.url))
+
+    if (resources.length === 0) {
+      validatedProjectSig.current = ''
+      return
+    }
+
+    const currentSig = resources.map(resource => `${resource.label}:${resource.url}`).join('|')
+    if (validatedProjectSig.current === currentSig) return
+
+    let cancelled = false
+
+    void (async () => {
+      const results = await Promise.all(resources.map(async resource => ({
+        ...resource,
+        exists: await doesLocalResourceExist(resource.url),
+      })))
+
+      if (cancelled) return
+
+      const missingResource = results.find(resource => !resource.exists)
+      if (missingResource) {
+        validatedProjectSig.current = ''
+        reset()
+        return
+      }
+
+      validatedProjectSig.current = currentSig
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [audioTrack?.url, logoImage?.url, processedUrl, reset, video, video?.url])
+
   const handlePreview = useCallback(async () => {
     if (!video) return
+    const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
+    if (isPendingTitleApply && titleText.trim() && !titleRenderLayoutRef.current) return
     setPreviewLoading(true)
     setPreviewError(null)
+    const currentTitleRenderLayout = titleRenderLayoutRef.current
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
@@ -113,6 +202,13 @@ export default function App() {
           align: titleAlign,
           x: titleX ?? undefined,
           y: titleY ?? undefined,
+          wrappedText: currentTitleRenderLayout?.wrappedText,
+          lineWidths: currentTitleRenderLayout?.lineWidths,
+          textBlockWidth: currentTitleRenderLayout?.textBlockWidth,
+          textBlockHeight: currentTitleRenderLayout?.textBlockHeight,
+          layoutBlockWidth: currentTitleRenderLayout?.layoutBlockWidth,
+          layoutBlockHeight: currentTitleRenderLayout?.layoutBlockHeight,
+          lineHeight: currentTitleRenderLayout?.lineHeight,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,
@@ -130,7 +226,13 @@ export default function App() {
         setPendingPreviewAction(null)
       }
     } catch (e: unknown) {
-      setPreviewError(e instanceof Error ? e.message : 'Preview failed')
+      const errorMessage = getApiErrorMessage(e, 'Preview failed')
+      if (axios.isAxiosError(e) && e.response?.status === 404) {
+        validatedProjectSig.current = ''
+        reset()
+      } else {
+        setPreviewError(errorMessage)
+      }
       if (pendingPreviewAction) setPendingPreviewAction(null)
     } finally {
       setPreviewLoading(false)
@@ -243,6 +345,8 @@ export default function App() {
     if (debounceRef.current) window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       if (previewLoading) return
+      const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
+      if (isPendingTitleApply && titleText.trim() && !titleRenderLayoutRef.current) return
       if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
         lastPreviewSig.current = pendingSig.current
         handlePreview()
@@ -285,11 +389,13 @@ export default function App() {
     titleLineSpacing,
     titleX,
     titleY,
+    titleRenderLayout,
     borderEnabled,
     borderWidth,
     borderHeight,
     borderColor,
     borderMode,
+    pendingPreviewAction,
     handlePreview,
     previewLoading,
     processedUrl,
@@ -299,11 +405,13 @@ export default function App() {
   useEffect(() => {
     if (!video) return
     if (previewLoading) return
+    const isPendingTitleApply = pendingPreviewAction === 'Title applied successfully.'
+    if (isPendingTitleApply && titleText.trim() && !titleRenderLayout) return
     if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
       lastPreviewSig.current = pendingSig.current
       handlePreview()
     }
-  }, [handlePreview, previewLoading, video])
+  }, [handlePreview, pendingPreviewAction, previewLoading, titleRenderLayout, titleText, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
   const recentActions = actionHistory.slice(-6).reverse()
@@ -451,7 +559,14 @@ export default function App() {
                 <div className="justify-between bg-white rounded-2xl border border-zinc-200 px-4 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     {video.thumbnail && (
-                      <img src={video.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      <img
+                        src={video.thumbnail}
+                        alt=""
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                        onError={event => {
+                          event.currentTarget.style.display = 'none'
+                        }}
+                      />
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
@@ -749,5 +864,4 @@ function formatTime2(s: number) {
 
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
-
 

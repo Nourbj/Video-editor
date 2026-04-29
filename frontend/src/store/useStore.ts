@@ -37,6 +37,38 @@ export interface CropSettings {
   right: number
 }
 
+export interface TitleRenderLayout {
+  wrappedText: string
+  lineWidths: number[]
+  textBlockWidth: number
+  textBlockHeight: number
+  layoutBlockWidth: number
+  layoutBlockHeight: number
+  lineHeight: number
+}
+
+function areTitleLayoutsEqual(a: TitleRenderLayout | null, b: TitleRenderLayout | null) {
+  if (a === b) return true
+  if (!a || !b) return false
+  if (
+    a.wrappedText !== b.wrappedText
+    || a.textBlockWidth !== b.textBlockWidth
+    || a.textBlockHeight !== b.textBlockHeight
+    || a.layoutBlockWidth !== b.layoutBlockWidth
+    || a.layoutBlockHeight !== b.layoutBlockHeight
+    || a.lineHeight !== b.lineHeight
+    || a.lineWidths.length !== b.lineWidths.length
+  ) {
+    return false
+  }
+
+  return a.lineWidths.every((width, index) => width === b.lineWidths[index])
+}
+
+function normalizeLineWidths(lineWidths: number[]) {
+  return lineWidths.map(width => Number(width.toFixed(3)))
+}
+
 export interface ActionToast {
   id: string
   message: string
@@ -199,6 +231,8 @@ interface EditorState {
   setTitleAlign: (a: 'left' | 'center' | 'right') => void
   titleDraftAlign: 'left' | 'center' | 'right'
   setTitleDraftAlign: (a: 'left' | 'center' | 'right') => void
+  titleRenderLayout: TitleRenderLayout | null
+  setTitleRenderLayout: (layout: TitleRenderLayout | null) => void
   isApplyingTitle: boolean
   setIsApplyingTitle: (v: boolean) => void
 
@@ -412,6 +446,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
           titleDraftY: null,
           titleAlign: defaultTitleAlign,
           titleDraftAlign: defaultTitleAlign,
+          titleRenderLayout: null,
           isApplyingLogo: false,
           isApplyingTitle: false,
         }
@@ -662,6 +697,20 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setTitleAlign: a => set({ titleAlign: a }),
   titleDraftAlign: defaultTitleAlign,
   setTitleDraftAlign: a => set({ titleDraftAlign: a }),
+  titleRenderLayout: null,
+  setTitleRenderLayout: layout => set(state => (
+    areTitleLayoutsEqual(state.titleRenderLayout, layout ? {
+      ...layout,
+      lineWidths: normalizeLineWidths(layout.lineWidths),
+    } : null)
+      ? state
+      : {
+        titleRenderLayout: layout ? {
+          ...layout,
+          lineWidths: normalizeLineWidths(layout.lineWidths),
+        } : null,
+      }
+  )),
   isApplyingTitle: false,
   setIsApplyingTitle: v => set({ isApplyingTitle: v }),
 
@@ -774,6 +823,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     titleDraftY: null,
     titleAlign: defaultTitleAlign,
     titleDraftAlign: defaultTitleAlign,
+    titleRenderLayout: null,
     isApplyingTitle: false,
     borderEnabled: defaultBorderSize > 0,
     borderWidth: defaultBorderSize,

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Play, Pause } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
+import { clampNormalizedCenter, getAlignedLineOffset, getTitleLayoutMetrics } from '../../utils/titleLayout'
 import { getContainRect, getRenderedVideoDimensions } from '../../utils/videoLayout'
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
@@ -16,99 +17,6 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-function wrapTitlePreviewText(text: string, fontSize: number, videoWidth: number) {
-  if (!text.trim() || !videoWidth) return text
-
-  const charWidth = fontSize * 0.60
-  const maxWidth = videoWidth * 0.90
-  const maxChars = Math.max(5, Math.floor(maxWidth / charWidth))
-  const lines: string[] = []
-  const paragraphs = text.split('\n')
-
-  for (const paragraph of paragraphs) {
-    if (paragraph === '') {
-      lines.push('')
-      continue
-    }
-
-    const words = paragraph.split(' ')
-    let currentLine = ''
-
-    for (const word of words) {
-      if (word.length > maxChars) {
-        if (currentLine) {
-          lines.push(currentLine)
-          currentLine = ''
-        }
-
-        for (let i = 0; i < word.length; i += maxChars) {
-          lines.push(word.slice(i, i + maxChars))
-        }
-      } else {
-        const testLine = currentLine ? `${currentLine} ${word}` : word
-        if (testLine.length > maxChars && currentLine) {
-          lines.push(currentLine)
-          currentLine = word
-        } else {
-          currentLine = testLine
-        }
-      }
-    }
-
-    if (currentLine) lines.push(currentLine)
-  }
-
-  return lines.join('\n')
-}
-
-function getPreviewTitleMetrics(
-  text: string,
-  fontSize: number,
-  videoWidth: number,
-  padding: number,
-  frameWidth: number,
-  lineSpacing: number,
-  fontFamily: string,
-  borderWidth: number,
-) {
-  const wrappedText = wrapTitlePreviewText(text, fontSize, videoWidth)
-  const wrappedLines = wrappedText.split('\n')
-  const lines = wrappedLines.length > 0 ? wrappedLines : ['']
-  const approxCharWidth = fontSize * 0.60
-  const approxLineHeight = fontSize + lineSpacing
-  let measuredLineWidths = lines.map(() => approxCharWidth)
-
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.font = `${fontSize}px ${fontFamily}`
-      measuredLineWidths = lines.map(line => {
-        const content = line.length > 0 ? line : ' '
-        return Math.max(approxCharWidth, ctx.measureText(content).width)
-      })
-    }
-  }
-
-  const strokeInset = Math.max(0, borderWidth * 2)
-  const maxMeasuredLineWidth = Math.max(...measuredLineWidths)
-  const textBlockWidth = maxMeasuredLineWidth + strokeInset
-  const approxBlockHeight = Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing) + strokeInset
-  const contentInset = padding + frameWidth
-  const layoutBlockWidth = textBlockWidth + contentInset * 2
-  const layoutBlockHeight = approxBlockHeight + contentInset * 2
-
-  return {
-    lines,
-    measuredLineWidths,
-    textBlockWidth,
-    approxLineHeight,
-    contentInset,
-    layoutBlockWidth,
-    layoutBlockHeight,
-  }
-}
-
 export default function VideoPlayer() {
   const {
     video, trimStart, trimEnd, setTrimEnd, processedUrl, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
@@ -117,7 +25,7 @@ export default function VideoPlayer() {
     titleDraftY, setTitleDraftXY, titleDraftText, titleAlign, titleDraftAlign, isApplyingTitle, previewLoading, logoImage, logoSize,
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY, borderEnabled, borderWidth,
     borderHeight, borderMode, cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
-    setSeekTo } = useStore()
+    setSeekTo, setTitleRenderLayout } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -306,9 +214,6 @@ export default function VideoPlayer() {
     && (previewCrop.top > 0 || previewCrop.bottom > 0 || previewCrop.left > 0 || previewCrop.right > 0)
   const videoIntrinsicWidth = videoRef.current?.videoWidth || 0
   const videoIntrinsicHeight = videoRef.current?.videoHeight || 0
-  const titlePreviewScale = videoIntrinsicWidth > 0 && videoDisplayRect.width > 0
-    ? videoDisplayRect.width / videoIntrinsicWidth
-    : 1
   const previewTitleText = activeTab === 'title' ? titleDraftText || titleText : titleText
   const previewTitleX = activeTab === 'title' ? titleDraftX ?? titleX ?? 0.5 : titleX ?? 0.5
   const previewTitleY = activeTab === 'title' ? titleDraftY ?? titleY ?? 0.2 : titleY ?? 0.2
@@ -333,14 +238,25 @@ export default function VideoPlayer() {
     borderHeight,
     borderMode,
   })
+  const titleDraftRect = getContainRect({
+    containerWidth: overlayRef.current?.clientWidth || 0,
+    containerHeight: overlayRef.current?.clientHeight || 0,
+    contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
+    contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
+  })
   const logoDraftRect = getContainRect({
     containerWidth: overlayRef.current?.clientWidth || 0,
     containerHeight: overlayRef.current?.clientHeight || 0,
     contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
     contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
   })
-  const previewTitleLayoutWidth = renderedVideoDimensions.width || videoIntrinsicWidth || 0
-  const previewTitleMetrics = getPreviewTitleMetrics(
+  const fullPreviewWidth = renderedVideoDimensions.width || videoIntrinsicWidth || 0
+  const fullPreviewHeight = renderedVideoDimensions.height || videoIntrinsicHeight || 0
+  const previewTitleLayoutWidth = Math.max(0, fullPreviewWidth)
+  const titlePreviewScale = previewTitleLayoutWidth > 0 && titleDraftRect.width > 0
+    ? titleDraftRect.width / previewTitleLayoutWidth
+    : 1
+  const previewTitleMetrics = getTitleLayoutMetrics(
     previewTitleText,
     previewTitleSize,
     previewTitleLayoutWidth,
@@ -350,13 +266,42 @@ export default function VideoPlayer() {
     previewTitleFont,
     previewTitleBorderWidth,
   )
+  const appliedTitleLayoutWidth = previewTitleLayoutWidth
+  const appliedTitleMetrics = getTitleLayoutMetrics(
+    titleText,
+    titleSize,
+    appliedTitleLayoutWidth,
+    titlePadding,
+    titleFrameWidth,
+    titleLineSpacing,
+    titleFont,
+    titleBorderWidth,
+  )
+  const previewTitleBoxWidth = previewTitleMetrics.layoutBlockWidth * titlePreviewScale
+  const previewTitleBoxHeight = previewTitleMetrics.layoutBlockHeight * titlePreviewScale
+  const previewTitleTextBlockWidth = previewTitleMetrics.textBlockWidth * titlePreviewScale
+  const previewTitleLineHeightPx = previewTitleMetrics.lineHeight * titlePreviewScale
+  const previewTitleContentInsetPx = previewTitleMetrics.contentInset * titlePreviewScale
+  const previewTitleBorderWidthPx = previewTitleBorderWidth * titlePreviewScale
+  const previewTitleStrokeInsetPx = previewTitleMetrics.strokeInset * titlePreviewScale
+  const previewTitleFrameInsetPx = previewTitleBorderWidthPx
+  const previewTitleBackgroundInsetPx = (previewTitleFrameWidth + previewTitleBorderWidth) * titlePreviewScale
+  const previewTitleBackgroundWidthPx = Math.max(0, previewTitleBoxWidth - (previewTitleBackgroundInsetPx * 2))
+  const previewTitleBackgroundHeightPx = Math.max(0, previewTitleBoxHeight - (previewTitleBackgroundInsetPx * 2))
+  const previewTitleFrameWidthPx = Math.max(0, previewTitleBoxWidth - previewTitleStrokeInsetPx)
+  const previewTitleFrameHeightPx = Math.max(0, previewTitleBoxHeight - previewTitleStrokeInsetPx)
+  const constrainedPreviewTitleX = clampNormalizedCenter(previewTitleX, titleDraftRect.width, previewTitleBoxWidth)
+  const constrainedPreviewTitleY = clampNormalizedCenter(previewTitleY, titleDraftRect.height, previewTitleBoxHeight)
+  const appliedLineWidthsKey = appliedTitleMetrics.measuredLineWidths.map(width => width.toFixed(3)).join(',')
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!draggingRef.current) return
-      const point = getRelativePointInRect(e.clientX, e.clientY, videoDisplayRect)
+      const point = getRelativePointInRect(e.clientX, e.clientY, titleDraftRect)
       if (!point) return
-      setTitleDraftXY(point.x, point.y)
+      const nextX = clampNormalizedCenter(point.x, titleDraftRect.width, previewTitleBoxWidth)
+      const nextY = clampNormalizedCenter(point.y, titleDraftRect.height, previewTitleBoxHeight)
+      setTitleDraftXY(nextX, nextY)
     }
     const handleLogoMove = (e: MouseEvent) => {
       if (!logoDraggingRef.current) return
@@ -376,7 +321,44 @@ export default function VideoPlayer() {
       window.removeEventListener('mousemove', handleLogoMove)
       window.removeEventListener('mouseup', handleUp)
     }
-  }, [getRelativePointInRect, setTitleDraftXY, setLogoDraftXY, videoDisplayRect, logoDraftRect])
+  }, [getRelativePointInRect, logoDraftRect, previewTitleBoxHeight, previewTitleBoxWidth, setLogoDraftXY, setTitleDraftXY, titleDraftRect])
+
+  useEffect(() => {
+    if (!video || !titleText.trim() || appliedTitleLayoutWidth <= 0) {
+      setTitleRenderLayout(null)
+      return
+    }
+
+    const nextLayout = {
+      wrappedText: appliedTitleMetrics.wrappedText,
+      lineWidths: appliedTitleMetrics.measuredLineWidths,
+      textBlockWidth: appliedTitleMetrics.textBlockWidth,
+      textBlockHeight: appliedTitleMetrics.textBlockHeight,
+      layoutBlockWidth: appliedTitleMetrics.layoutBlockWidth,
+      layoutBlockHeight: appliedTitleMetrics.layoutBlockHeight,
+      lineHeight: appliedTitleMetrics.lineHeight,
+    }
+
+    setTitleRenderLayout(nextLayout)
+  }, [
+    video,
+    titleText,
+    titleFont,
+    titleSize,
+    titlePadding,
+    titleFrameWidth,
+    titleLineSpacing,
+    titleBorderWidth,
+    appliedTitleLayoutWidth,
+    appliedTitleMetrics.wrappedText,
+    appliedTitleMetrics.textBlockWidth,
+    appliedTitleMetrics.textBlockHeight,
+    appliedTitleMetrics.layoutBlockWidth,
+    appliedTitleMetrics.layoutBlockHeight,
+    appliedTitleMetrics.lineHeight,
+    appliedLineWidthsKey,
+    setTitleRenderLayout,
+  ])
 
   if (!video) return null
 
@@ -398,7 +380,6 @@ export default function VideoPlayer() {
             if (audioRef.current && audioApplied) audioRef.current.currentTime = audioSegStart
           }}
         />
-        {/* Click to play/pause */}
         <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
           {!playing && (
             <div className="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -470,13 +451,8 @@ export default function VideoPlayer() {
             )}
           </div>
         )}
-
-        {/* Title Overlay */}
         {activeTab === 'title' && (
-          <div
-            className="absolute inset-0"
-            style={{ pointerEvents: 'none' }}
-          >
+          <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
             <div
               onMouseDown={() => {
                 if (previewLoading || isApplyingTitle || activeTab !== 'title') return
@@ -485,12 +461,12 @@ export default function VideoPlayer() {
               className={`absolute rounded-md select-none ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
                 } ${(previewTitleText.trim() ? '' : 'opacity-60 italic')}`}
               style={{
-                left: `${videoDisplayRect.left + (previewTitleX * videoDisplayRect.width)}px`,
-                top: `${videoDisplayRect.top + (previewTitleY * videoDisplayRect.height)}px`,
+                left: `${titleDraftRect.left + (constrainedPreviewTitleX * titleDraftRect.width)}px`,
+                top: `${titleDraftRect.top + (constrainedPreviewTitleY * titleDraftRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
                 pointerEvents: activeTab === 'title' ? 'auto' : 'none',
-                width: `${previewTitleMetrics.layoutBlockWidth * titlePreviewScale}px`,
-                height: `${previewTitleMetrics.layoutBlockHeight * titlePreviewScale}px`,
+                width: `${previewTitleBoxWidth}px`,
+                height: `${previewTitleBoxHeight}px`,
                 boxSizing: 'border-box',
               }}
             >
@@ -498,54 +474,75 @@ export default function VideoPlayer() {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  backgroundColor: previewTitleBgColor,
-                  border: previewTitleFrameWidth > 0 ? `${previewTitleFrameWidth * titlePreviewScale}px solid ${previewTitleFrameColor}` : 'none',
                   boxSizing: 'border-box',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `${previewTitleMetrics.contentInset * titlePreviewScale}px`,
-                  top: `${previewTitleMetrics.contentInset * titlePreviewScale}px`,
-                  width: `${previewTitleMetrics.textBlockWidth * titlePreviewScale}px`,
-                  height: `${previewTitleMetrics.approxLineHeight * previewTitleMetrics.lines.length * titlePreviewScale}px`,
-                  fontFamily: previewTitleFont,
-                  fontSize: `${previewTitleSize * titlePreviewScale}px`,
-                  fontWeight: 400,
-                  color: previewTitleColor,
-                  boxSizing: 'border-box',
-                  WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
-                  WebkitTextStrokeColor: previewTitleBorderColor,
+                  overflow: 'hidden',
                 }}
               >
-                {previewTitleMetrics.lines.map((line, index) => (
+                {previewTitleFrameWidth > 0 && (
                   <div
-                    key={`${index}-${line}`}
                     style={{
-                      display: 'flex',
-                      justifyContent: previewTitleAlign === 'left'
-                        ? 'flex-start'
-                        : previewTitleAlign === 'right'
-                          ? 'flex-end'
-                          : 'center',
-                      alignItems: 'flex-start',
-                      width: `${previewTitleMetrics.textBlockWidth * titlePreviewScale}px`,
-                      height: `${previewTitleMetrics.approxLineHeight * titlePreviewScale}px`,
-                      lineHeight: `${previewTitleMetrics.approxLineHeight * titlePreviewScale}px`,
-                      whiteSpace: 'pre',
+                      position: 'absolute',
+                      left: `${previewTitleFrameInsetPx}px`,
+                      top: `${previewTitleFrameInsetPx}px`,
+                      width: `${previewTitleFrameWidthPx}px`,
+                      height: `${previewTitleFrameHeightPx}px`,
+                      backgroundColor: previewTitleFrameColor,
                     }}
-                  >
-                    <span
+                  />
+                )}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${previewTitleBackgroundInsetPx}px`,
+                    top: `${previewTitleBackgroundInsetPx}px`,
+                    width: `${previewTitleBackgroundWidthPx}px`,
+                    height: `${previewTitleBackgroundHeightPx}px`,
+                    backgroundColor: previewTitleBgColor,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${previewTitleContentInsetPx}px`,
+                    top: `${previewTitleContentInsetPx}px`,
+                    width: `${previewTitleTextBlockWidth}px`,
+                    height: `${Math.max(0, previewTitleBoxHeight - (previewTitleContentInsetPx * 2))}px`,
+                    fontFamily: previewTitleFont,
+                    fontSize: `${previewTitleSize * titlePreviewScale}px`,
+                    fontWeight: 400,
+                    color: previewTitleColor,
+                    boxSizing: 'border-box',
+                    WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
+                    WebkitTextStrokeColor: previewTitleBorderColor,
+                  }}
+                >
+                  {previewTitleMetrics.lines.map((line, index) => (
+                    <div
+                      key={`${index}-${line}`}
                       style={{
-                        display: 'inline-block',
-                        width: `${(previewTitleMetrics.measuredLineWidths[index] + (previewTitleBorderWidth * 2)) * titlePreviewScale}px`,
+                        position: 'absolute',
+                        left: `${getAlignedLineOffset({
+                          align: previewTitleAlign,
+                          textBlockWidth: previewTitleTextBlockWidth,
+                          measuredLineWidth: previewTitleMetrics.measuredLineWidths[index] * titlePreviewScale,
+                          borderWidth: previewTitleBorderWidthPx,
+                        })}px`,
+                        top: `${(index * previewTitleLineHeightPx) + previewTitleBorderWidthPx}px`,
+                        width: `${Math.max(
+                          0,
+                          (previewTitleMetrics.measuredLineWidths[index] * titlePreviewScale) + (previewTitleBorderWidthPx * 2),
+                        )}px`,
+                        minHeight: `${previewTitleSize * titlePreviewScale}px`,
+                        lineHeight: `${previewTitleSize * titlePreviewScale}px`,
+                        whiteSpace: 'pre',
                       }}
                     >
-                      {line || '\u00A0'}
-                    </span>
-                  </div>
-                ))}
+                      <span style={{ display: 'inline-block' }}>
+                        {line || '\u00A0'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

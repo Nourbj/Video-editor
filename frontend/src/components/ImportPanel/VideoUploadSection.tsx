@@ -73,7 +73,14 @@ export default function VideoUploadSection() {
                             </div>
                             <div>
                                 {video.thumbnail && (
-                                    <img src={video.thumbnail} alt="" className="w-16 h-16 rounded-lg object-cover mb-2 border border-green-200" />
+                                    <img
+                                        src={video.thumbnail}
+                                        alt=""
+                                        className="w-16 h-16 rounded-lg object-cover mb-2 border border-green-200"
+                                        onError={event => {
+                                            event.currentTarget.style.display = 'none'
+                                        }}
+                                    />
                                 )}
                                 <p className="text-sm font-semibold text-green-900">{video.title}</p>
                                 <p className="text-xs text-green-700 mt-0.5">{video.filename}</p>

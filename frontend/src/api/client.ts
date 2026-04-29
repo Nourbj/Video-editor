@@ -60,6 +60,13 @@ export interface TitleStyle {
   frameMode?: 'inside' | 'outside'
   x?: number
   y?: number
+  wrappedText?: string
+  lineWidths?: number[]
+  textBlockWidth?: number
+  textBlockHeight?: number
+  layoutBlockWidth?: number
+  layoutBlockHeight?: number
+  lineHeight?: number
 }
 
 export interface BorderStyle {

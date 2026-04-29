@@ -92,6 +92,13 @@ export interface TitleStyle {
   frameMode?: 'inside' | 'outside'
   x?: number
   y?: number
+  wrappedText?: string
+  lineWidths?: number[]
+  textBlockWidth?: number
+  textBlockHeight?: number
+  layoutBlockWidth?: number
+  layoutBlockHeight?: number
+  lineHeight?: number
 }
 
 export interface BorderStyle {
@@ -211,7 +218,7 @@ function escapeDrawtext(text: string) {
 }
 
 function wrapText(text: string, fontSize: number, videoWidth: number): string {
-  const charWidth = fontSize * 0.60
+  const charWidth = fontSize * 0.75
   const maxWidth = videoWidth * 0.90
   const maxChars = Math.max(5, Math.floor(maxWidth / charWidth))
 
@@ -273,17 +280,27 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   const frameMode = style?.frameMode || 'inside'
   const padX = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeX ?? 0), 0, 300) : 0
   const padY = borderStyle?.mode === 'outside' ? clamp(Number(borderStyle?.sizeY ?? 0), 0, 300) : 0
-  const wrappedLines = wrapText(text, size, videoWidth).split('\n')
+  const wrappedLines = (style?.wrappedText || wrapText(text, size, videoWidth)).split('\n')
   const lines = wrappedLines.length > 0 ? wrappedLines : ['']
-  const wrappedText = lines.join('\n')
-  const approxCharWidth = size * 0.68
-  const approxLineHeight = size + lineSpacing
+  const approxCharWidth = size * 0.75
+  const approxLineHeight = Number.isFinite(style?.lineHeight) ? Math.max(1, Number(style?.lineHeight)) : size + lineSpacing
   const maxLineLength = Math.max(...lines.map(line => Math.max(line.length, 1)))
-  const approxBlockWidth = Math.max(approxCharWidth, maxLineLength * approxCharWidth)
-  const approxBlockHeight = Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing)
+  const textBlockWidth = Number.isFinite(style?.textBlockWidth)
+    ? Math.max(approxCharWidth, Number(style?.textBlockWidth))
+    : Math.max(approxCharWidth, maxLineLength * approxCharWidth)
+  const textBlockHeight = Number.isFinite(style?.textBlockHeight)
+    ? Math.max(approxLineHeight, Number(style?.textBlockHeight))
+    : Number.isFinite(style?.layoutBlockHeight)
+      ? Math.max(approxLineHeight, Number(style?.layoutBlockHeight) - (padding + frameWidth) * 2)
+    : Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing)
   const contentInset = padding + frameWidth
-  const layoutBlockWidth = approxBlockWidth + contentInset * 2
-  const layoutBlockHeight = approxBlockHeight + contentInset * 2
+  const strokeInset = Math.max(0, borderWidth * 2)
+  const layoutBlockWidth = Number.isFinite(style?.layoutBlockWidth)
+    ? Math.max(textBlockWidth, Number(style?.layoutBlockWidth))
+    : textBlockWidth + contentInset * 2
+  const layoutBlockHeight = Number.isFinite(style?.layoutBlockHeight)
+    ? Math.max(approxLineHeight, Number(style?.layoutBlockHeight))
+    : textBlockHeight + contentInset * 2
 
   const outsideLayoutXLeft = `max((${padX}-${layoutBlockWidth})/2,0)`
   const outsideLayoutXRight = `w-${padX}+max((${padX}-${layoutBlockWidth})/2,0)-${layoutBlockWidth}`
@@ -316,6 +333,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
 
   const safeFont = font.includes(' ') ? `'${font.replace(/'/g, "\\'")}'` : font
   const fontArg = fontFile ? `fontfile='${escapeFontFile(fontFile)}'` : `font=${safeFont}`
+  const wrappedText = lines.join('\n')
   const titleFile = path.join(tempDir, `title_text_${uuidv4()}.txt`)
   fs.writeFileSync(titleFile, wrappedText, 'utf8')
   const escapedFile = titleFile.replace(/\\/g, '/').replace(/:/g, '\\:')
@@ -324,23 +342,36 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
     const filters: string[] = []
     const blockX = `(${layoutX}+${contentInset})`
     const blockY = `(${layoutY}+${contentInset})`
+    const boxTextX = `(${blockX}+${borderWidth})`
+    const boxTextY = `(${blockY}+${borderWidth})`
 
     if (frameWidth > 0) {
-      filters.push(`drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${blockX}:y=${blockY}:box=1:boxcolor=${frameColor}@1:boxborderw=${padding + frameWidth}:borderw=0:line_spacing=${lineSpacing}`)
+      filters.push(
+        `drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:borderw=${borderWidth}:bordercolor=${borderColor}@0:x=${boxTextX}:y=${boxTextY}:line_spacing=${lineSpacing}:fix_bounds=1:box=1:boxcolor=${frameColor}:boxborderw=${padding + frameWidth}`
+      )
     }
-    filters.push(`drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:x=${blockX}:y=${blockY}:box=1:boxcolor=${bgColor}@0.6:boxborderw=${padding}:borderw=0:line_spacing=${lineSpacing}`)
+    filters.push(
+      `drawtext=${textFileArg}:${fontArg}:fontsize=${size}:fontcolor=${color}@0:borderw=${borderWidth}:bordercolor=${borderColor}@0:x=${boxTextX}:y=${boxTextY}:line_spacing=${lineSpacing}:fix_bounds=1:box=1:boxcolor=${bgColor}:boxborderw=${padding}`
+    )
 
     lines.forEach((rawLine, index) => {
       const lineText = rawLine.length > 0 ? rawLine : ' '
       const escapedText = escapeDrawtext(lineText)
       const textArg = `text='${escapedText}'`
+      const measuredLineWidth = Array.isArray(style?.lineWidths) && Number.isFinite(style?.lineWidths[index])
+        ? Math.max(approxCharWidth, Number(style?.lineWidths[index]))
+        : null
       const x = align === 'left'
-        ? `(${blockX})`
+        ? `(${blockX}+${borderWidth})`
         : align === 'right'
-          ? `(${blockX}+${approxBlockWidth}-text_w)`
-          : `(${blockX}+(${approxBlockWidth}-text_w)/2)`
-      const y = `(${blockY}+${index * approxLineHeight})`
-      filters.push(`drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:borderw=${borderWidth}:bordercolor=${borderColor}`)
+          ? measuredLineWidth !== null
+            ? `(${blockX}+${textBlockWidth}-${measuredLineWidth}-${strokeInset}+${borderWidth})`
+            : `(${blockX}+${textBlockWidth}-text_w-${borderWidth})`
+          : measuredLineWidth !== null
+            ? `(${blockX}+(${textBlockWidth}-${measuredLineWidth}-${strokeInset})/2+${borderWidth})`
+            : `(${blockX}+(${textBlockWidth}-(text_w+${strokeInset}))/2+${borderWidth})`
+      const y = `(${blockY}+${index * approxLineHeight}+${borderWidth})`
+      filters.push(`drawtext=${textArg}:${fontArg}:fontsize=${size}:fontcolor=${color}:x=${x}:y=${y}:borderw=${borderWidth}:bordercolor=${borderColor}:fix_bounds=1`)
     })
 
     return filters.join(',')
@@ -349,8 +380,14 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   if (typeof style?.x === 'number' && typeof style?.y === 'number') {
     const safeX = clamp(style.x, 0, 1)
     const safeY = clamp(style.y, 0, 1)
-    const layoutX = `(${safeX}*w-${layoutBlockWidth}/2)`
-    const layoutY = `(${safeY}*h-${layoutBlockHeight}/2)`
+    const xBase = frameMode === 'outside'
+      ? `(${padX}+${safeX}*(w-${padX * 2}))`
+      : `(${safeX}*w)`
+    const yBase = frameMode === 'outside'
+      ? `(${padY}+${safeY}*(h-${padY * 2}))`
+      : `(${safeY}*h)`
+    const layoutX = clampExpr(`(${xBase}-${layoutBlockWidth}/2)`, 0, `w-${layoutBlockWidth}`)
+    const layoutY = clampExpr(`(${yBase}-${layoutBlockHeight}/2)`, 0, `h-${layoutBlockHeight}`)
     return buildLineFilters(layoutX, layoutY)
   }
 
@@ -410,6 +447,10 @@ function buildCropFilter(crop?: CropSettings) {
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
+}
+
+function clampExpr(expr: string, min: string | number, max: string | number) {
+  return `min(${max}\\,max(${min}\\,${expr}))`
 }
 
 function buildLogoOverlayFilters(params: {

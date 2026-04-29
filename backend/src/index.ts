@@ -102,6 +102,12 @@ app.register(staticFiles, {
   decorateReply: false,
 })
 
+app.register(staticFiles, {
+  root: path.join(process.cwd(), 'fonts'),
+  prefix: '/fonts/',
+  decorateReply: false,
+})
+
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 
 app.register(downloadRoute, { prefix: '/api' })

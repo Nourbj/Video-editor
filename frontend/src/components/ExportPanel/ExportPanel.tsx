@@ -18,7 +18,7 @@ export default function ExportPanel() {
     appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
-    titleY, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
+    titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
     cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
     setExportFilename, setProcessedUrl,
   } = useStore()
@@ -77,6 +77,13 @@ export default function ExportPanel() {
           align: titleAlign,
           x: titleX ?? undefined,
           y: titleY ?? undefined,
+          wrappedText: titleRenderLayout?.wrappedText,
+          lineWidths: titleRenderLayout?.lineWidths,
+          textBlockWidth: titleRenderLayout?.textBlockWidth,
+          textBlockHeight: titleRenderLayout?.textBlockHeight,
+          layoutBlockWidth: titleRenderLayout?.layoutBlockWidth,
+          layoutBlockHeight: titleRenderLayout?.layoutBlockHeight,
+          lineHeight: titleRenderLayout?.lineHeight,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,

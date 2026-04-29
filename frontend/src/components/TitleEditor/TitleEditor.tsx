@@ -164,7 +164,7 @@ export default function TitleEditor() {
         <h2 className="text-xl font-semibold text-zinc-900">Title</h2>
         <p className="text-xs text-zinc-500 mb-1">Add a text title with font, size, color, and position</p>
       </div>
-      <div className="bg-zinc-50 rounded-xl border border-zinc-200 px-3 py-2 space-y-1">
+      <div className="bg-zinc-50 rounded-xl border border-zinc-200 px-3 pt-2 pb-1 space-y-1">
         <label htmlFor="title-text" className="text-[12px] font-medium text-zinc-700 flex items-center gap-1.5">
           <Type size={14} /> Title text
         </label>

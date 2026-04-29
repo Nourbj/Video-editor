@@ -277,6 +277,13 @@ export async function processRoute(app: FastifyInstance) {
         frameMode?: 'inside' | 'outside'
         x?: number
         y?: number
+        wrappedText?: string
+        lineWidths?: number[]
+        textBlockWidth?: number
+        textBlockHeight?: number
+        layoutBlockWidth?: number
+        layoutBlockHeight?: number
+        lineHeight?: number
       }
       borderStyle?: {
         enabled?: boolean
@@ -401,6 +408,13 @@ export async function processRoute(app: FastifyInstance) {
         frameMode?: 'inside' | 'outside'
         x?: number
         y?: number
+        wrappedText?: string
+        lineWidths?: number[]
+        textBlockWidth?: number
+        textBlockHeight?: number
+        layoutBlockWidth?: number
+        layoutBlockHeight?: number
+        lineHeight?: number
       }
       borderStyle?: {
         enabled?: boolean
