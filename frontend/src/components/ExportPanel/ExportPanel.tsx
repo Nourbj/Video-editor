@@ -3,7 +3,7 @@ import {
   Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText,
   Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo
 } from 'lucide-react'
-import { createSubtitles, exportVideo } from '../../api/client'
+import { exportVideo } from '../../api/client'
 import { useStore } from '../../store/useStore'
 
 function formatTime(s: number) {
@@ -15,7 +15,7 @@ function formatTime(s: number) {
 export default function ExportPanel() {
   const {
     video, trimStart, trimEnd, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
-    appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, subtitleStyle,
+    appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
     titleY, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
@@ -32,7 +32,7 @@ export default function ExportPanel() {
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
   const hasAudio = !!audioTrack
-  const hasSubtitles = subtitles.length > 0
+  const hasSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
   const hasLogo = !!logoImage
   const hasAppliedAudio = !!audioTrack && audioApplied
   const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
@@ -44,12 +44,7 @@ export default function ExportPanel() {
     setDone(null)
 
     try {
-      let subFile = subtitleFilename
-      if (hasSubtitles && !subFile) {
-        setStep('Saving subtitles...')
-        const res = await createSubtitles(subtitles)
-        subFile = res.filename
-      }
+      const subFile = hasSubtitles ? subtitleFilename : null
 
       setStep('Processing and exporting...')
       const result = await exportVideo({
@@ -66,7 +61,7 @@ export default function ExportPanel() {
         audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
         replaceOriginal: hasAppliedAudio ? appliedReplaceOriginal : undefined,
         subtitleFilename: subFile || undefined,
-        subtitleStyle,
+        subtitleStyle: hasSubtitles ? appliedSubtitleStyle || undefined : undefined,
         titleStyle: titleText.trim() ? {
           text: titleText.trim(),
           font: titleFont,

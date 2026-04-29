@@ -179,7 +179,6 @@ export default function TitleEditor() {
           rows={3}
           className="w-full resize-none bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-cyan-400"
         />
-        <p className="text-[11px] text-zinc-500">Use several lines if needed. The preview keeps the line breaks.</p>
       </div>
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 px-3 py-2 space-y-2">
         <div className="flex items-center gap-3">

@@ -27,7 +27,7 @@ function getSubtitleSignature(entries: SubtitleEntry[], style: { size: number; c
 
 export default function SubtitleEditor() {
   const { video, trimStart, trimEnd, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle,
-    setSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, setPendingPreviewAction } = useStore()
+    setSubtitleStyle, appliedSubtitleStyle, setAppliedSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, setPendingPreviewAction } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -54,7 +54,6 @@ export default function SubtitleEditor() {
     }
     setSubtitles([...subtitles, newEntry])
     setPendingSubtitleFilename(null)
-    setSubtitleFilename(null)
   }
 
   const updateEntry = (i: number, field: keyof SubtitleEntry, value: string) => {
@@ -62,7 +61,6 @@ export default function SubtitleEditor() {
     updated[i] = { ...updated[i], [field]: value }
     setSubtitles(updated)
     setPendingSubtitleFilename(null)
-    setSubtitleFilename(null)
   }
 
   const removeEntry = (i: number) => {
@@ -70,7 +68,6 @@ export default function SubtitleEditor() {
       .map((e, idx) => ({ ...e, index: idx + 1 }))
     setSubtitles(updated)
     setPendingSubtitleFilename(null)
-    setSubtitleFilename(null)
   }
 
   const handleSave = async () => {
@@ -81,6 +78,7 @@ export default function SubtitleEditor() {
       const result = await createSubtitles(subtitles)
       setPendingPreviewAction('Subtitles applied successfully.')
       setSubtitleFilename(result.filename)
+      setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
     } catch (e: unknown) {
@@ -96,7 +94,6 @@ export default function SubtitleEditor() {
       const result = await uploadSubtitle(file)
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
-      setSubtitleFilename(null)
       setPendingSrt(null)
       if (fileRef.current) fileRef.current.value = ''
     } catch (e: unknown) {
@@ -121,7 +118,6 @@ export default function SubtitleEditor() {
       })
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
-      setSubtitleFilename(null)
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, 'Auto subtitles failed'))
     } finally {
@@ -133,6 +129,7 @@ export default function SubtitleEditor() {
     if (pendingSubtitleFilename) {
       setPendingPreviewAction('Subtitles applied successfully.')
       setSubtitleFilename(pendingSubtitleFilename)
+      setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
       return
@@ -141,6 +138,7 @@ export default function SubtitleEditor() {
   }
   const isApplying = saving || autoLoading || uploadLoading
   const hasUnappliedChanges = subtitleAppliedSignature !== currentSignature
+    || JSON.stringify(appliedSubtitleStyle) !== JSON.stringify(subtitleStyle)
   const canApply = subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
   return (
     <div className="space-y-2">
@@ -360,7 +358,7 @@ export default function SubtitleEditor() {
                   value={entry.startTime}
                   onChange={e => updateEntry(i, 'startTime', e.target.value)}
                   aria-label={`Start time for subtitle ${entry.index}`}
-                  className="w-29 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  className="w-28 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
                 <ArrowRight size={12} className="text-zinc-500 shrink-0" />
                 <input
@@ -368,7 +366,7 @@ export default function SubtitleEditor() {
                   value={entry.endTime}
                   onChange={e => updateEntry(i, 'endTime', e.target.value)}
                   aria-label={`End time for subtitle ${entry.index}`}
-                  className="w-29 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+                  className="w-28 shrink-0 bg-white rounded-lg px-2 py-1 text-xs font-mono text-zinc-700 border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-cyan-600"
                 />
                 <button type="button" onClick={() => removeEntry(i)}
                   className="p-1 hover:bg-red-500/10 rounded text-red-700 hover:text-red-500 transition-colors"

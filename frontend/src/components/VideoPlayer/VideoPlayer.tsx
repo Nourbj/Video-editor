@@ -16,6 +16,99 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+function wrapTitlePreviewText(text: string, fontSize: number, videoWidth: number) {
+  if (!text.trim() || !videoWidth) return text
+
+  const charWidth = fontSize * 0.60
+  const maxWidth = videoWidth * 0.90
+  const maxChars = Math.max(5, Math.floor(maxWidth / charWidth))
+  const lines: string[] = []
+  const paragraphs = text.split('\n')
+
+  for (const paragraph of paragraphs) {
+    if (paragraph === '') {
+      lines.push('')
+      continue
+    }
+
+    const words = paragraph.split(' ')
+    let currentLine = ''
+
+    for (const word of words) {
+      if (word.length > maxChars) {
+        if (currentLine) {
+          lines.push(currentLine)
+          currentLine = ''
+        }
+
+        for (let i = 0; i < word.length; i += maxChars) {
+          lines.push(word.slice(i, i + maxChars))
+        }
+      } else {
+        const testLine = currentLine ? `${currentLine} ${word}` : word
+        if (testLine.length > maxChars && currentLine) {
+          lines.push(currentLine)
+          currentLine = word
+        } else {
+          currentLine = testLine
+        }
+      }
+    }
+
+    if (currentLine) lines.push(currentLine)
+  }
+
+  return lines.join('\n')
+}
+
+function getPreviewTitleMetrics(
+  text: string,
+  fontSize: number,
+  videoWidth: number,
+  padding: number,
+  frameWidth: number,
+  lineSpacing: number,
+  fontFamily: string,
+  borderWidth: number,
+) {
+  const wrappedText = wrapTitlePreviewText(text, fontSize, videoWidth)
+  const wrappedLines = wrappedText.split('\n')
+  const lines = wrappedLines.length > 0 ? wrappedLines : ['']
+  const approxCharWidth = fontSize * 0.60
+  const approxLineHeight = fontSize + lineSpacing
+  let measuredLineWidths = lines.map(() => approxCharWidth)
+
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.font = `${fontSize}px ${fontFamily}`
+      measuredLineWidths = lines.map(line => {
+        const content = line.length > 0 ? line : ' '
+        return Math.max(approxCharWidth, ctx.measureText(content).width)
+      })
+    }
+  }
+
+  const strokeInset = Math.max(0, borderWidth * 2)
+  const maxMeasuredLineWidth = Math.max(...measuredLineWidths)
+  const textBlockWidth = maxMeasuredLineWidth + strokeInset
+  const approxBlockHeight = Math.max(approxLineHeight, lines.length * approxLineHeight - lineSpacing) + strokeInset
+  const contentInset = padding + frameWidth
+  const layoutBlockWidth = textBlockWidth + contentInset * 2
+  const layoutBlockHeight = approxBlockHeight + contentInset * 2
+
+  return {
+    lines,
+    measuredLineWidths,
+    textBlockWidth,
+    approxLineHeight,
+    contentInset,
+    layoutBlockWidth,
+    layoutBlockHeight,
+  }
+}
+
 export default function VideoPlayer() {
   const {
     video, trimStart, trimEnd, setTrimEnd, processedUrl, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
@@ -246,6 +339,17 @@ export default function VideoPlayer() {
     contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
     contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
   })
+  const previewTitleLayoutWidth = renderedVideoDimensions.width || videoIntrinsicWidth || 0
+  const previewTitleMetrics = getPreviewTitleMetrics(
+    previewTitleText,
+    previewTitleSize,
+    previewTitleLayoutWidth,
+    previewTitlePadding,
+    previewTitleFrameWidth,
+    previewTitleLineSpacing,
+    previewTitleFont,
+    previewTitleBorderWidth,
+  )
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -368,7 +472,7 @@ export default function VideoPlayer() {
         )}
 
         {/* Title Overlay */}
-        {(activeTab === 'title' || (titleText && titleText.trim() !== '')) && (
+        {activeTab === 'title' && (
           <div
             className="absolute inset-0"
             style={{ pointerEvents: 'none' }}
@@ -378,29 +482,71 @@ export default function VideoPlayer() {
                 if (previewLoading || isApplyingTitle || activeTab !== 'title') return
                 draggingRef.current = true
               }}
-              className={`absolute px-3 py-1.5 rounded-md bg-black/50 text-xs font-semibold ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
+              className={`absolute rounded-md select-none ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
                 } ${(previewTitleText.trim() ? '' : 'opacity-60 italic')}`}
               style={{
                 left: `${videoDisplayRect.left + (previewTitleX * videoDisplayRect.width)}px`,
                 top: `${videoDisplayRect.top + (previewTitleY * videoDisplayRect.height)}px`,
                 transform: 'translate(-50%, -50%)',
-                color: previewTitleColor,
-                fontFamily: previewTitleFont,
-                fontSize: `${previewTitleSize * titlePreviewScale}px`,
-                backgroundColor: previewTitleBgColor,
-                border: previewTitleFrameWidth > 0 ? `${previewTitleFrameWidth * titlePreviewScale}px solid ${previewTitleFrameColor}` : 'none',
-                WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
-                WebkitTextStrokeColor: previewTitleBorderColor,
-                padding: `${previewTitlePadding * titlePreviewScale}px`,
-                lineHeight: previewTitleLineSpacing > 0 ? `calc(1em + ${previewTitleLineSpacing * titlePreviewScale}px)` : undefined,
                 pointerEvents: activeTab === 'title' ? 'auto' : 'none',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxWidth: `${videoDisplayRect.width * 0.9}px`,
-                textAlign: previewTitleAlign,
+                width: `${previewTitleMetrics.layoutBlockWidth * titlePreviewScale}px`,
+                height: `${previewTitleMetrics.layoutBlockHeight * titlePreviewScale}px`,
+                boxSizing: 'border-box',
               }}
             >
-              {activeTab === 'title' ? (previewTitleText.trim() || 'Title') : titleText}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: previewTitleBgColor,
+                  border: previewTitleFrameWidth > 0 ? `${previewTitleFrameWidth * titlePreviewScale}px solid ${previewTitleFrameColor}` : 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${previewTitleMetrics.contentInset * titlePreviewScale}px`,
+                  top: `${previewTitleMetrics.contentInset * titlePreviewScale}px`,
+                  width: `${previewTitleMetrics.textBlockWidth * titlePreviewScale}px`,
+                  height: `${previewTitleMetrics.approxLineHeight * previewTitleMetrics.lines.length * titlePreviewScale}px`,
+                  fontFamily: previewTitleFont,
+                  fontSize: `${previewTitleSize * titlePreviewScale}px`,
+                  fontWeight: 400,
+                  color: previewTitleColor,
+                  boxSizing: 'border-box',
+                  WebkitTextStrokeWidth: previewTitleBorderWidth > 0 ? `${previewTitleBorderWidth * titlePreviewScale}px` : '0px',
+                  WebkitTextStrokeColor: previewTitleBorderColor,
+                }}
+              >
+                {previewTitleMetrics.lines.map((line, index) => (
+                  <div
+                    key={`${index}-${line}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: previewTitleAlign === 'left'
+                        ? 'flex-start'
+                        : previewTitleAlign === 'right'
+                          ? 'flex-end'
+                          : 'center',
+                      alignItems: 'flex-start',
+                      width: `${previewTitleMetrics.textBlockWidth * titlePreviewScale}px`,
+                      height: `${previewTitleMetrics.approxLineHeight * titlePreviewScale}px`,
+                      lineHeight: `${previewTitleMetrics.approxLineHeight * titlePreviewScale}px`,
+                      whiteSpace: 'pre',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: `${(previewTitleMetrics.measuredLineWidths[index] + (previewTitleBorderWidth * 2)) * titlePreviewScale}px`,
+                      }}
+                    >
+                      {line || '\u00A0'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -123,6 +123,8 @@ interface EditorState {
   setSubtitleFilename: (f: string | null) => void
   subtitleStyle: SubtitleStyle
   setSubtitleStyle: (s: SubtitleStyle) => void
+  appliedSubtitleStyle: SubtitleStyle | null
+  setAppliedSubtitleStyle: (s: SubtitleStyle | null) => void
   subtitleAppliedSignature: string | null
   setSubtitleAppliedSignature: (s: string | null) => void
 
@@ -276,6 +278,7 @@ type PersistedEditorState = Pick<EditorState,
   | 'subtitles'
   | 'subtitleFilename'
   | 'subtitleStyle'
+  | 'appliedSubtitleStyle'
   | 'subtitleAppliedSignature'
   | 'logoImage'
   | 'logoDraftImage'
@@ -372,6 +375,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
       actionHistory: [],
       seekTo: null,
       exportFilename: '',
+      appliedSubtitleStyle: null,
       subtitleAppliedSignature: null,
       ...(isReplacingVideo
         ? {
@@ -382,6 +386,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
           appliedAudioOffset: 0,
           subtitles: [],
           subtitleFilename: null,
+          appliedSubtitleStyle: null,
           logoImage: null,
           logoDraftImage: null,
           logoX: null,
@@ -518,6 +523,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     actionToasts: [],
     seekTo: null,
     exportFilename: '',
+    appliedSubtitleStyle: null,
     subtitleAppliedSignature: null,
   })),
 
@@ -580,6 +586,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
     backgroundColor: defaultSubtitleBackgroundColor,
   },
   setSubtitleStyle: s => set({ subtitleStyle: s }),
+  appliedSubtitleStyle: null,
+  setAppliedSubtitleStyle: s => set({ appliedSubtitleStyle: s }),
   subtitleAppliedSignature: null,
   setSubtitleAppliedSignature: s => set({ subtitleAppliedSignature: s }),
 
@@ -727,6 +735,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
       color: defaultSubtitleColor,
       backgroundColor: defaultSubtitleBackgroundColor,
     },
+    appliedSubtitleStyle: null,
     subtitleAppliedSignature: null,
     logoImage: null,
     logoDraftImage: null,
@@ -811,6 +820,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     subtitles: state.subtitles,
     subtitleFilename: state.subtitleFilename,
     subtitleStyle: state.subtitleStyle,
+    appliedSubtitleStyle: state.appliedSubtitleStyle,
     subtitleAppliedSignature: state.subtitleAppliedSignature,
     logoImage: state.logoImage,
     logoDraftImage: state.logoDraftImage,

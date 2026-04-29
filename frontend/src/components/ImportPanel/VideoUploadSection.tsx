@@ -6,7 +6,7 @@ import { SocialIcon } from 'react-social-icons'
 import { PLATFORM_ICONS, detectPlatform, isLikelyPublicFacebookVideo } from './uploadConstants.tsx'
 
 export default function VideoUploadSection() {
-    const { video, setVideo, videoUrlInput, setVideoUrlInput, videoLoading, setVideoLoading, videoError, setVideoError } = useStore()
+    const { video, setVideo, videoUrlInput, setVideoUrlInput, videoLoading, setVideoLoading, videoError, setVideoError, pushActionToast } = useStore()
     const [videoTab, setVideoTab] = useState<'file' | 'url'>('file')
     const [uploadProgress, setUploadProgress] = useState(0)
     const [dragOver, setDragOver] = useState(false)
@@ -26,6 +26,7 @@ export default function VideoUploadSection() {
             const info = await downloadFromUrl(videoUrlInput)
             setVideo(info)
             setVideoUrlInput('')
+            pushActionToast('Video imported successfully.')
         } catch (e: unknown) {
             setVideoError(getApiErrorMessage(e, 'Download failed'))
         } finally {
@@ -44,6 +45,7 @@ export default function VideoUploadSection() {
         try {
             const info = await uploadVideo(file, setUploadProgress)
             setVideo(info)
+            pushActionToast('Video imported successfully.')
         } catch (e: unknown) {
             setVideoError(getApiErrorMessage(e, 'Upload failed'))
         } finally {

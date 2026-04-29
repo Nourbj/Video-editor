@@ -20,6 +20,7 @@ export default function AudioUploadSection() {
         setAudioDuration,
         setAudioTrimStart,
         setAudioTrimEnd,
+        pushActionToast,
     } = useStore()
 
     const [tab, setTab] = useState<'file' | 'url'>('file')
@@ -54,6 +55,7 @@ export default function AudioUploadSection() {
             setAudioTrack(result)
             setAudioApplied(false)
             hydrateAudioMetadata(result.url)
+            pushActionToast('Audio imported successfully.')
         } catch (e: unknown) {
             setAudioError(getApiErrorMessage(e, 'Upload failed'))
         } finally {
@@ -71,6 +73,7 @@ export default function AudioUploadSection() {
             setAudioApplied(false)
             hydrateAudioMetadata(result.url)
             setAudioUrlInput('')
+            pushActionToast('Audio imported successfully.')
         } catch (e: unknown) {
             setAudioError(getApiErrorMessage(e, 'Download failed'))
         } finally {

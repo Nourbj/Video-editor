@@ -12,8 +12,6 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { previewVideo } from './api/client'
-import type { SubtitleEntry } from './api/client'
-import type { SubtitleStyle } from './store/useStore'
 
 type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -41,10 +39,6 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-function getSubtitleSignature(entries: SubtitleEntry[], style: SubtitleStyle) {
-  return JSON.stringify({ entries, style })
-}
-
 function formatActionCompletedAt(value?: string) {
   if (!value) return 'Completed recently'
 
@@ -61,8 +55,7 @@ export default function App() {
     segments, segmentHistory,
     audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, subtitles,
     subtitleFilename,
-    subtitleStyle,
-    subtitleAppliedSignature,
+    appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY,
     borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
@@ -81,8 +74,6 @@ export default function App() {
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
-  const currentSubtitleSignature = getSubtitleSignature(subtitles, subtitleStyle)
-
   const handlePreview = useCallback(async () => {
     if (!video) return
     setPreviewLoading(true)
@@ -92,6 +83,7 @@ export default function App() {
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
+    const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
 
     try {
       const result = await previewVideo({
@@ -104,8 +96,8 @@ export default function App() {
         audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
         audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
         audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
-        subtitleFilename: subtitleFilename || undefined,
-        subtitleStyle,
+        subtitleFilename: hasAppliedSubtitles ? subtitleFilename || undefined : undefined,
+        subtitleStyle: hasAppliedSubtitles ? appliedSubtitleStyle || undefined : undefined,
         titleStyle: titleText.trim() ? {
           text: titleText.trim(),
           font: titleFont,
@@ -153,7 +145,7 @@ export default function App() {
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
     subtitleFilename,
-    subtitleStyle,
+    appliedSubtitleStyle,
     titleText,
     titleFont,
     titleSize,
@@ -192,7 +184,7 @@ export default function App() {
 
     const timers = actionToasts.map(toast => window.setTimeout(() => {
       removeActionToast(toast.id)
-    }, 2600))
+    }, 9900))
 
     return () => {
       timers.forEach(timer => window.clearTimeout(timer))
@@ -203,9 +195,7 @@ export default function App() {
     if (!video) return
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
-    const hasSubtitlesApplied = subtitles.length > 0
-      && !!subtitleFilename
-      && subtitleAppliedSignature === currentSubtitleSignature
+    const hasSubtitlesApplied = !!subtitleFilename && !!appliedSubtitleStyle
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
@@ -236,9 +226,9 @@ export default function App() {
           t1: appliedAudioTrimEnd,
         }
         : null,
-      subtitles: hasSubtitlesApplied ? subtitles : [],
+      subtitles: hasSubtitlesApplied ? ['applied'] : [],
       subtitleFilename: hasSubtitlesApplied ? subtitleFilename : null,
-      subtitleStyle: hasSubtitlesApplied ? subtitleStyle : null,
+      subtitleStyle: hasSubtitlesApplied ? appliedSubtitleStyle : null,
       exportQuality,
       exportAspectRatio,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
@@ -274,11 +264,8 @@ export default function App() {
     appliedReplaceOriginal,
     appliedAudioTrimStart,
     appliedAudioTrimEnd,
-    subtitles,
     subtitleFilename,
-    subtitleStyle,
-    subtitleAppliedSignature,
-    currentSubtitleSignature,
+    appliedSubtitleStyle,
     exportQuality,
     exportAspectRatio,
     logoImage,
@@ -323,7 +310,7 @@ export default function App() {
   const showActionHistoryCard = recentActions.length > 0
   const hasTrim = !!video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
-  const hasAppliedSubtitles = subtitles.length > 0 && !!subtitleFilename
+  const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
   const hasLogo = !!logoImage
   const hasTitle = titleText.trim().length > 0
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
@@ -551,19 +538,45 @@ export default function App() {
                   </div>
                 )}
                 {activeTab === 'subtitles' && subtitles.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-3">
-                    <h3 className="text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">Subtitle preview</h3>
-                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                  <div className="overflow-hidden rounded-3xl border border-zinc-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(244,244,245,0.96)_100%)] shadow-[0_18px_45px_rgba(24,24,27,0.08)] backdrop-blur-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-zinc-200/80 px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100">
+                            <FileText size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-semibold text-zinc-900">Subtitle preview</h3>
+                            <p className="text-[11px] text-zinc-500">Quick look at the first subtitle lines</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700">
+                        {subtitles.length} lines
+                      </div>
+                    </div>
+                    <div className="max-h-48 space-y-2 overflow-y-auto px-3 py-3">
                       {subtitles.slice(0, 10).map((s, i) => (
-                        <div key={i} className="flex items-start gap-3 text-xs border-b border-zinc-100 pb-1 last:border-0 last:pb-0">
-                          <span className="font-mono text-zinc-400 flex-shrink-0">
-                            {s.startTime.slice(0, 8)} - {s.endTime.slice(0, 8)}
-                          </span>
-                          <span className="text-zinc-600 leading-tight">{s.text}</span>
+                        <div
+                          key={i}
+                          className="rounded-2xl border border-white/80 bg-white/90 px-3 py-2.5 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-[88px] shrink-0 rounded-xl bg-zinc-100 px-2 py-1 text-center font-mono text-[10px] font-medium tracking-wide text-zinc-500">
+                              <div>{s.startTime.slice(0, 8)}</div>
+                              <div className="text-zinc-400">{s.endTime.slice(0, 8)}</div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Line {i + 1}</p>
+                              <p className="mt-1 text-sm leading-5 text-zinc-700">{s.text}</p>
+                            </div>
+                          </div>
                         </div>
                       ))}
                       {subtitles.length > 10 && (
-                        <p className="text-zinc-400 text-xs italic">+{subtitles.length - 10} more...</p>
+                        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 px-3 py-2 text-center text-xs font-medium text-zinc-500">
+                          +{subtitles.length - 10} more subtitle lines
+                        </div>
                       )}
                     </div>
                   </div>

@@ -276,7 +276,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   const wrappedLines = wrapText(text, size, videoWidth).split('\n')
   const lines = wrappedLines.length > 0 ? wrappedLines : ['']
   const wrappedText = lines.join('\n')
-  const approxCharWidth = size * 0.60
+  const approxCharWidth = size * 0.68
   const approxLineHeight = size + lineSpacing
   const maxLineLength = Math.max(...lines.map(line => Math.max(line.length, 1)))
   const approxBlockWidth = Math.max(approxCharWidth, maxLineLength * approxCharWidth)
@@ -320,7 +320,6 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle, video
   fs.writeFileSync(titleFile, wrappedText, 'utf8')
   const escapedFile = titleFile.replace(/\\/g, '/').replace(/:/g, '\\:')
   const textFileArg = `textfile='${escapedFile}'`
-
   const buildLineFilters = (layoutX: string, layoutY: string) => {
     const filters: string[] = []
     const blockX = `(${layoutX}+${contentInset})`
