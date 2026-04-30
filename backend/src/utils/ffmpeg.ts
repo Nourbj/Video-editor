@@ -384,18 +384,18 @@ function buildTitleDrawtext(style?: TitleStyle) {
     const filters: string[] = []
     let addPadding: number = 0
     if (font === 'Arial') {
-      addPadding = 0.50 * size;
+      addPadding = 0.40 * size;
     } else {
-      addPadding = 0.10 * size;
+      addPadding = 0.20 * size;
     }
     if (frameWidth > 0) {
       filters.push(
-        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - addPadding)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + addPadding}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
+        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - addPadding / 2)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + addPadding}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
       )
     }
 
     filters.push(
-      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - addPadding)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + addPadding}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
+      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - addPadding / 2)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + addPadding}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
     )
 
     lines.forEach((line) => {
