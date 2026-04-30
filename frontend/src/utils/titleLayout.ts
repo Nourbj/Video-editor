@@ -54,8 +54,6 @@ function getCanvasFont(fontSize: number, fontFamily: string) {
 
 export function applyTitleCanvasTextStyle(ctx: CanvasRenderingContext2D, fontSize: number, fontFamily: string) {
   ctx.font = getCanvasFont(fontSize, fontFamily)
-  ctx.letterSpacing = '0px'
-  ctx.wordSpacing = '0px'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
 

@@ -8,9 +8,7 @@ const fonts = [
   'Times New Roman',
   'Trebuchet MS',
   'Verdana',
-  'Courier New',
-  'Impact',
-  'Comic Sans MS',
+  'Impact'
 ]
 
 export default function TitleEditor() {

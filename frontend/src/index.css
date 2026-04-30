@@ -29,23 +29,19 @@
 }
 
 @font-face {
-  font-family: 'Courier New';
-  src: url('/fonts/CourierNew.TTF') format('truetype');
-}
-
-@font-face {
   font-family: 'Impact';
   src: url('/fonts/Impact.ttf') format('truetype');
 }
 
-@font-face {
-  font-family: 'Comic Sans MS';
-  src: url('/fonts/ComicSansMS.ttf') format('truetype');
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -67,6 +63,7 @@ input[type='range'] {
   background: #e4e4e7;
   cursor: pointer;
 }
+
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
@@ -76,15 +73,28 @@ input[type='range']::-webkit-slider-thumb {
   cursor: pointer;
   transition: transform 0.1s;
 }
+
 input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
 
 /* Audio element */
 audio {

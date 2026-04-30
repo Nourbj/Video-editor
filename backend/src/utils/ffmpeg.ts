@@ -250,54 +250,7 @@ function escapeDrawtext(text: string) {
     .replace(/\n/g, '\\n')
 }
 
-function wrapText(text: string, fontSize: number, videoWidth: number): string {
-  const charWidth = fontSize * 0.75
-  const maxWidth = videoWidth * 0.90
-  const maxChars = Math.max(5, Math.floor(maxWidth / charWidth))
-
-  const lines: string[] = []
-  const paragraphs = text.split('\n')
-
-  for (const p of paragraphs) {
-    if (p === '') {
-      lines.push('')
-      continue
-    }
-    const tokens = p.match(/\s+|\S+\s*/g) || [p]
-    let currentLine = ''
-
-    for (const token of tokens) {
-      if (token.length > maxChars) {
-        if (currentLine) {
-          lines.push(currentLine)
-          currentLine = ''
-        }
-        for (let i = 0; i < token.length; i += maxChars) {
-          const segment = token.substring(i, i + maxChars)
-          if (i + maxChars >= token.length) {
-            currentLine = segment
-          } else {
-            lines.push(segment)
-          }
-        }
-      } else {
-        const testLine = `${currentLine}${token}`
-        if (testLine.length > maxChars && currentLine) {
-          lines.push(currentLine)
-          currentLine = token
-        } else {
-          currentLine = testLine
-        }
-      }
-    }
-    if (currentLine) {
-      lines.push(currentLine)
-    }
-  }
-  return lines.join('\n')
-}
-
-function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
+function buildTitleDrawtext(style?: TitleStyle) {
   const text = (style?.text || '').trim()
   if (!text) return null
 
@@ -306,7 +259,13 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
 
   const font = style?.font || 'Arial'
   const fontFile = resolveFontFile(font)
-  const size = clamp(Number(style?.size ?? 42) - 4, 10, 200)
+  let size: number
+  if (font === 'Arial') {
+    size = clamp(Number(style?.size ?? 42) - 4, 10, 200)
+  } else {
+    size = clamp(Number(style?.size ?? 42), 10, 200)
+  }
+
   const color = style?.color || '#ffffff'
   const bgColor = style?.bgColor || '#000000'
   const borderColor = style?.borderColor || '#000000'
@@ -426,12 +385,12 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
 
     if (frameWidth > 0) {
       filters.push(
-        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - 40)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + 40}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
+        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - 0.40 * size)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + 0.40 * size}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
       )
     }
 
     filters.push(
-      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - 40)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + 40}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
+      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - 0.40 * size)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + 0.40 * size}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
     )
 
     lines.forEach((line) => {
@@ -694,37 +653,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       const fallback = baseName ? `${baseName}_${uuidv4()}.mp4` : `export_${uuidv4()}.mp4`
       outFile = path.join(outDir, fallback)
     }
-    const {
-      inputPath,
-      quality = '720p',
-      aspectRatio,
-      startTime,
-      endTime,
-      audioPath,
-      subtitlePath,
-      replaceOriginal,
-      audioStartTime,
-      audioEndTime,
-      crop,
-      titleStyle,
-      borderStyle,
-      logoPath,
-      logoSize,
-      logoX,
-      logoY,
-    } = options
-
-    console.log('[exportVideo] options:', {
-      quality,
-      aspectRatio,
-      audioPath: !!audioPath,
-      replaceOriginal,
-      logoPath: !!logoPath,
-      logoX,
-      logoY,
-      crop,
-    })
-
+    const { inputPath, quality = '720p', aspectRatio, startTime, endTime, audioPath, subtitlePath, replaceOriginal, audioStartTime, audioEndTime,
+      crop, titleStyle, borderStyle, logoPath, logoSize } = options
     const scaleFilter = buildScaleFilter(quality, aspectRatio)
     const cropFilter = buildCropFilter(crop)
 
@@ -761,7 +691,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       estimatedVideoWidth += sizeX * 2
     }
 
-    const titleFilter = buildTitleDrawtext(titleStyle, borderStyle)
+    const titleFilter = buildTitleDrawtext(titleStyle)
     const borderFilter = buildBorderFilter(borderStyle)
 
     const isGif = hasLogo && logoPath!.toLowerCase().endsWith('.gif')
