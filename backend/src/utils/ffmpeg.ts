@@ -382,15 +382,20 @@ function buildTitleDrawtext(style?: TitleStyle) {
     const boxLayout = resolveBlockLayoutPosition('iw', 'ih')
     const textLayout = resolveBlockLayoutPosition('w', 'h')
     const filters: string[] = []
-
+    let addPadding: number = 0
+    if (font === 'Arial') {
+      addPadding = 0.50 * size;
+    } else {
+      addPadding = 0.10 * size;
+    }
     if (frameWidth > 0) {
       filters.push(
-        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - 0.40 * size)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + 0.40 * size}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
+        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - addPadding)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + addPadding}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
       )
     }
 
     filters.push(
-      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - 0.40 * size)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + 0.40 * size}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
+      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - addPadding)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + addPadding}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
     )
 
     lines.forEach((line) => {
@@ -409,7 +414,7 @@ function buildTitleDrawtext(style?: TitleStyle) {
       const bgRight = bgLeft + Number(backgroundBounds.width)
       const bgBottom = bgTop + Number(backgroundBounds.height)
 
-      const safeTextX = Math.max(bgLeft, Math.min(textX, bgRight - 1)) - 0.40 * size
+      const safeTextX = Math.max(bgLeft, Math.min(textX, bgRight - 1)) - addPadding
       const safeTextY = Math.max(bgTop, Math.min(textY, bgBottom - 1)) + 0.40 * size
 
       filters.push(
