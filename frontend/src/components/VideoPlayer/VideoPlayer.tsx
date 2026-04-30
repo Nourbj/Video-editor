@@ -80,7 +80,7 @@ export default function VideoPlayer() {
     }
 
     if (shouldPlay) {
-      void audioEl.play().catch(() => {})
+      void audioEl.play().catch(() => { })
     } else {
       audioEl.pause()
     }
@@ -380,7 +380,8 @@ export default function VideoPlayer() {
     ctx.fillStyle = previewTitleColor
     ctx.strokeStyle = previewTitleBorderColor
     ctx.lineWidth = previewTitleBorderWidth * 2
-
+    ctx.letterSpacing = '0px'   
+    ctx.wordSpacing = '0px'
     layout.lines.forEach((line) => {
       if (!line.text.trim()) return
       if (previewTitleBorderWidth > 0) {

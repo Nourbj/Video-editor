@@ -49,11 +49,13 @@ function maxFinite(...values: Array<number | undefined>) {
 
 function getCanvasFont(fontSize: number, fontFamily: string) {
   const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-  return `${fontSize}px "${escapedFontFamily}"`
+  return `normal normal ${fontSize}px "${escapedFontFamily}"`
 }
 
 export function applyTitleCanvasTextStyle(ctx: CanvasRenderingContext2D, fontSize: number, fontFamily: string) {
   ctx.font = getCanvasFont(fontSize, fontFamily)
+  ctx.letterSpacing = '0px'
+  ctx.wordSpacing = '0px'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
 
@@ -341,7 +343,6 @@ export function getTitleRenderLayout(params: {
     width: backgroundBounds.width + (safeFrameWidth * 2),
     height: backgroundBounds.height + (safeFrameWidth * 2),
   }
-
   return {
     wrappedText,
     lines: provisionalLines.map((line) => ({

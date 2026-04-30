@@ -426,24 +426,38 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
 
     if (frameWidth > 0) {
       filters.push(
-        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x))}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width))}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
+        `drawbox=x=${offsetExpr(boxLayout.x, Number(frameBounds.x) - 40)}:y=${offsetExpr(boxLayout.y, Number(frameBounds.y))}:w=${Math.max(1, Number(frameBounds.width)) + 40}:h=${Math.max(1, Number(frameBounds.height))}:color=${frameColor}:t=fill`,
       )
     }
 
     filters.push(
-      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x))}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width))}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
+      `drawbox=x=${offsetExpr(boxLayout.x, Number(backgroundBounds.x) - 40)}:y=${offsetExpr(boxLayout.y, Number(backgroundBounds.y))}:w=${Math.max(1, Number(backgroundBounds.width)) + 40}:h=${Math.max(1, Number(backgroundBounds.height))}:color=${bgColor}:t=fill`,
     )
 
     lines.forEach((line) => {
       if (!line.text.trim()) return
-      const textX = Number.isFinite(line.visualLeft) ? Number(line.visualLeft) : Number(line.drawX)
+      const textX = Number.isFinite(line.visualLeft)
+        ? Number(line.visualLeft)
+        : Number(line.drawX)
+
       const textY = Number.isFinite(line.visualTop)
         ? Number(line.visualTop)
         : Number.isFinite(line.ascent)
           ? Number(line.baselineY) - Number(line.ascent)
           : Number(line.baselineY)
+      const bgLeft = Number(backgroundBounds.x)
+      const bgTop = Number(backgroundBounds.y)
+      const bgRight = bgLeft + Number(backgroundBounds.width)
+      const bgBottom = bgTop + Number(backgroundBounds.height)
+
+      const safeTextX = Math.max(bgLeft, Math.min(textX, bgRight - 1)) - 0.40 * size
+      const safeTextY = Math.max(bgTop, Math.min(textY, bgBottom - 1)) + 0.40 * size
+
       filters.push(
-        `drawtext=text='${escapeDrawtext(line.text)}':${fontArg}:fontsize=${size}:fontcolor=${color}:x=${offsetExpr(textLayout.x, textX)}:y=${offsetExpr(textLayout.y, textY)}:borderw=${borderWidth}:bordercolor=${borderColor}:expansion=none`,
+        `drawtext=text='${escapeDrawtext(line.text)}':${fontArg}:fontsize=${size}:fontcolor=${color}` +
+        `:x=${offsetExpr(textLayout.x, safeTextX)}` +
+        `:y=${offsetExpr(textLayout.y, safeTextY)}` +
+        `:borderw=${borderWidth}:bordercolor=${borderColor}:expansion=none`,
       )
     })
 

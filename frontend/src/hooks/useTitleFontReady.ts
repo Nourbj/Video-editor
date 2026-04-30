@@ -5,7 +5,7 @@ function escapeFontFamily(fontFamily: string) {
 }
 
 function getFontSpec(fontSize: number, fontFamily: string) {
-  return `${Math.max(10, Math.round(fontSize))}px "${escapeFontFamily(fontFamily)}"`
+  return `normal normal ${Math.max(10, Math.round(fontSize))}px "${escapeFontFamily(fontFamily)}"`
 }
 
 function getFontFaceSet() {
