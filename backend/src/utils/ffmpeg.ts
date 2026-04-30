@@ -450,7 +450,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
       const bgRight = bgLeft + Number(backgroundBounds.width)
       const bgBottom = bgTop + Number(backgroundBounds.height)
 
-      const safeTextX = Math.max(bgLeft, Math.min(textX, bgRight - 1)) - 0.40 * size
+      const safeTextX = Math.max(bgLeft, Math.min(textX, bgRight - 1)) - 0.50 * size
       const safeTextY = Math.max(bgTop, Math.min(textY, bgBottom - 1)) + 0.40 * size
 
       filters.push(
