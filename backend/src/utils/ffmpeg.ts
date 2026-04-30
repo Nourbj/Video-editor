@@ -19,8 +19,8 @@ const fontsDir = resolveExistingPath('fonts', 'backend/fonts')
 
 export interface CutOptions {
   inputPath: string
-  startTime: number   
-  endTime: number     
+  startTime: number
+  endTime: number
 }
 
 export interface SegmentDefinition {
@@ -46,7 +46,7 @@ export interface AudioOptions {
 
 export interface SubtitleOptions {
   inputPath: string
-  subtitlePath: string 
+  subtitlePath: string
   style?: SubtitleStyle
 }
 
@@ -76,8 +76,8 @@ export interface ExportOptions {
 
 export interface SubtitleStyle {
   size?: number
-  color?: string 
-  backgroundColor?: string 
+  color?: string
+  backgroundColor?: string
 }
 
 export type TitlePosition =
@@ -119,11 +119,11 @@ export interface TitleStyle {
   text?: string
   font?: string
   size?: number
-  color?: string 
-  bgColor?: string 
-  borderColor?: string 
+  color?: string
+  bgColor?: string
+  borderColor?: string
   borderWidth?: number
-  frameColor?: string 
+  frameColor?: string
   frameWidth?: number
   padding?: number
   lineSpacing?: number
@@ -139,7 +139,7 @@ export interface BorderStyle {
   enabled?: boolean
   sizeX?: number
   sizeY?: number
-  color?: string 
+  color?: string
   mode?: 'inside' | 'outside'
 }
 
@@ -306,7 +306,7 @@ function buildTitleDrawtext(style?: TitleStyle, borderStyle?: BorderStyle) {
 
   const font = style?.font || 'Arial'
   const fontFile = resolveFontFile(font)
-  const size = clamp(Number(style?.size ?? 42), 10, 200)
+  const size = clamp(Number(style?.size ?? 42) - 5, 10, 200)
   const color = style?.color || '#ffffff'
   const bgColor = style?.bgColor || '#000000'
   const borderColor = style?.borderColor || '#000000'
@@ -795,7 +795,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
         const videoStart = options.startTime || 0
         const audioOff = options.audioOffset || 0
         const relativeOffset = audioOff - videoStart
-        
+
         const offsetMs = Math.round(Math.max(0, relativeOffset) * 1000)
         const extraAudioTrim = relativeOffset < 0 ? Math.abs(relativeOffset) : 0
         const finalAudioStart = (audioStartTime || 0) + extraAudioTrim

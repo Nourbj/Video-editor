@@ -13,6 +13,7 @@ import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { getApiErrorMessage, previewVideo } from './api/client'
+import { ensureTitleFontLoaded } from './hooks/useTitleFontReady'
 import { getRenderedTitleFontSize, getTitleRenderLayout } from './utils/titleLayout'
 import { getCroppedSourceDimensions, getRenderedVideoDimensions } from './utils/videoLayout'
 
@@ -199,7 +200,6 @@ export default function App() {
     if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
     setPreviewLoading(true)
     setPreviewError(null)
-    const currentTitleRenderLayout = resolvedTitleRenderLayout
 
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
@@ -208,6 +208,24 @@ export default function App() {
     const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
 
     try {
+      if (titleText.trim()) {
+        await ensureTitleFontLoaded(renderedTitleSize, titleFont)
+      }
+
+      const currentTitleRenderLayout = titleText.trim() && titleRenderedVideoDimensions.width > 0
+        ? getTitleRenderLayout({
+          text: titleText,
+          fontSize: renderedTitleSize,
+          videoWidth: titleRenderedVideoDimensions.width,
+          padding: titlePadding,
+          frameWidth: titleFrameWidth,
+          lineSpacing: titleLineSpacing,
+          fontFamily: titleFont,
+          borderWidth: titleBorderWidth,
+          align: titleAlign,
+        })
+        : null
+
       const result = await previewVideo({
         filename: video.filename,
         quality: exportQuality,
@@ -290,6 +308,7 @@ export default function App() {
     titlePadding,
     titleLineSpacing,
     titleAlign,
+    titleRenderedVideoDimensions.width,
     resolvedTitleX,
     resolvedTitleY,
     resolvedTitleRenderLayoutKey,

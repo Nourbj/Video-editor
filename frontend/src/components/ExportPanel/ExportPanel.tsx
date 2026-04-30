@@ -4,6 +4,7 @@ import {
   Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo
 } from 'lucide-react'
 import { exportVideo } from '../../api/client'
+import { ensureTitleFontLoaded } from '../../hooks/useTitleFontReady'
 import { useStore } from '../../store/useStore'
 import { getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
 import { getCroppedSourceDimensions, getRenderedVideoDimensions } from '../../utils/videoLayout'
@@ -20,7 +21,7 @@ export default function ExportPanel() {
     appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
-    titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
+    titleY, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
     cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
     setExportFilename, setProcessedUrl, videoSourceWidth, videoSourceHeight,
   } = useStore()
@@ -55,19 +56,6 @@ export default function ExportPanel() {
     borderHeight,
     borderMode,
   })
-  const resolvedTitleRenderLayout = titleText.trim() && renderedVideoDimensions.width > 0
-    ? getTitleRenderLayout({
-      text: titleText,
-      fontSize: renderedTitleSize,
-      videoWidth: renderedVideoDimensions.width,
-      padding: titlePadding,
-      frameWidth: titleFrameWidth,
-      lineSpacing: titleLineSpacing,
-      fontFamily: titleFont,
-      borderWidth: titleBorderWidth,
-      align: titleAlign,
-    })
-    : titleRenderLayout
   const resolvedTitleX = titleX ?? 0.5
   const resolvedTitleY = titleY ?? 0.2
 
@@ -78,7 +66,24 @@ export default function ExportPanel() {
     setDone(null)
 
     try {
+      if (titleText.trim()) {
+        await ensureTitleFontLoaded(renderedTitleSize, titleFont)
+      }
+
       const subFile = hasSubtitles ? subtitleFilename : null
+      const currentTitleRenderLayout = titleText.trim() && renderedVideoDimensions.width > 0
+        ? getTitleRenderLayout({
+          text: titleText,
+          fontSize: renderedTitleSize,
+          videoWidth: renderedVideoDimensions.width,
+          padding: titlePadding,
+          frameWidth: titleFrameWidth,
+          lineSpacing: titleLineSpacing,
+          fontFamily: titleFont,
+          borderWidth: titleBorderWidth,
+          align: titleAlign,
+        })
+        : null
 
       setStep('Processing and exporting...')
       const result = await exportVideo({
@@ -112,7 +117,7 @@ export default function ExportPanel() {
           frameMode: borderEnabled && borderMode === 'outside' ? 'outside' : 'inside',
           x: resolvedTitleX,
           y: resolvedTitleY,
-          layout: resolvedTitleRenderLayout || undefined,
+          layout: currentTitleRenderLayout || undefined,
         } : undefined,
         borderStyle: {
           enabled: borderEnabled,

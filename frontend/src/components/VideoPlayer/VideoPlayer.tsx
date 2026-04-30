@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Play, Pause } from 'lucide-react'
+import { useTitleFontReady } from '../../hooks/useTitleFontReady'
 import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
-import { clampNormalizedCenter, getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
+import { applyTitleCanvasTextStyle, clampNormalizedCenter, getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
 import { getContainRect, getCroppedSourceDimensions, getRenderedVideoDimensions } from '../../utils/videoLayout'
 import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
@@ -249,6 +250,8 @@ export default function VideoPlayer() {
   const previewTitleLineSpacing = activeTab === 'title' ? titleDraftLineSpacing : titleLineSpacing
   const previewTitleAlign = activeTab === 'title' ? titleDraftAlign || titleAlign : titleAlign
   const renderedAppliedTitleSize = getRenderedTitleFontSize(titleSize)
+  const previewTitleFontReady = useTitleFontReady(previewTitleSize, previewTitleFont)
+  const appliedTitleFontReady = useTitleFontReady(renderedAppliedTitleSize, titleFont)
   const effectiveSourceDimensions = getCroppedSourceDimensions({
     sourceWidth: baseSourceWidth,
     sourceHeight: baseSourceHeight,
@@ -371,9 +374,7 @@ export default function VideoPlayer() {
       layout.backgroundBounds.height,
     )
 
-    ctx.font = `${previewTitleSize}px "${previewTitleFont.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'alphabetic'
+    applyTitleCanvasTextStyle(ctx, previewTitleSize, previewTitleFont)
     ctx.lineJoin = 'round'
     ctx.miterLimit = 2
     ctx.fillStyle = previewTitleColor
@@ -400,6 +401,7 @@ export default function VideoPlayer() {
     previewTitleFrameWidth,
     previewTitleBoxWidth,
     previewTitleBoxHeight,
+    previewTitleFontReady,
     titlePreviewScale,
   ])
 
@@ -425,6 +427,7 @@ export default function VideoPlayer() {
     titleAlign,
     titleBorderWidth,
     appliedTitleLayoutWidth,
+    appliedTitleFontReady,
     setTitleRenderLayout,
   ])
 

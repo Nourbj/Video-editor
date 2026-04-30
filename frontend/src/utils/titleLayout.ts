@@ -52,6 +52,17 @@ function getCanvasFont(fontSize: number, fontFamily: string) {
   return `${fontSize}px "${escapedFontFamily}"`
 }
 
+export function applyTitleCanvasTextStyle(ctx: CanvasRenderingContext2D, fontSize: number, fontFamily: string) {
+  ctx.font = getCanvasFont(fontSize, fontFamily)
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  const kerningContext = ctx as CanvasRenderingContext2D & { fontKerning?: string }
+  if (typeof kerningContext.fontKerning === 'string') {
+    kerningContext.fontKerning = 'none'
+  }
+}
+
 function getTextMeasurer(fontSize: number, fontFamily: string) {
   const approxCharWidth = Math.max(1, fontSize * 0.6)
   const approxAscent = Math.max(1, fontSize * 0.8)
@@ -80,9 +91,7 @@ function getTextMeasurer(fontSize: number, fontFamily: string) {
 
     if (ctx) {
       const applyFont = () => {
-        ctx.font = getCanvasFont(fontSize, fontFamily)
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'alphabetic'
+        applyTitleCanvasTextStyle(ctx, fontSize, fontFamily)
       }
 
       applyFont()
